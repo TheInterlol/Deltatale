@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Undertale-style Battle Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel top">
+      <div>
+        <h1 class="title">Undertale-style battle demo</h1>
+        <p class="subtitle">Jednoduchý funkční základ: srdce, arena, bullet patterns, collision, HP, timer.</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Boss</div>
+          <div class="stat-value" id="bossName">Training Dummy</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Čas přežití</div>
+          <div class="stat-value" id="timeValue">0.0 s</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Nejlepší čas</div>
+          <div class="stat-value" id="bestValue">0.0 s</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel arena-shell">
+      <canvas id="game" width="720" height="405"></canvas>
+    </section>
+
+    <section class="panel">
+      <div class="controls">
+        <select id="bossSelect">
+          <option value="gerson">Old Man Gerson</option>
+          <option value="dummy">Training Dummy</option>
+          <option value="bones">Bone Rain</option>
+          <option value="cards">Jevil-ish Cards</option>
+          <option value="neo">Spamton-ish Blasters</option>
+        </select>
+        <button id="startBtn">Start</button>
+        <button id="restartBtn">Restart</button>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div><strong>HP:</strong> <span id="hpText">20 / 20</span></div>
+        <div class="meter"><div id="hpBar" class="meter-fill"></div></div>
+      </div>
+
+      <p class="note" id="statusText" style="margin-top:14px;">Stiskni Start. Pohyb: WASD nebo šipky. Cíl je přežít.</p>
+    </section>
+
+    <section class="panel help">
+      <div class="help-card">
+        <h3>Co už to umí</h3>
+        <p class="note">Player movement, omezení na battle box, projektily, damage cooldown, různé patterny a lokální best score přes <code>localStorage</code>.</p>
+      </div>
+      <div class="help-card">
+        <h3>Co bys doplnil dál</h3>
+        <p class="note">Sprite bosse, attack timeline, dialog, invulnerability efekty, menu akcí, healing itemy, audio a separátní soubory pro každého bosse.</p>
+      </div>
+      <div class="help-card">
+        <h3>Jak to rozšířit</h3>
+        <p class="note">Každý boss může mít vlastní objekt s funkcemi <code>init()</code>, <code>update()</code> a <code>spawnPattern()</code>. Tohle je přesně kostra, na které stavíš dál.</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/bullets.js"></script>
+  <script src="js/patterns.js"></script>
+  <script src="js/render.js"></script>
+  <script src="bosses/gerson.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
