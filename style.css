@@ -173,3 +173,17 @@
 canvas:focus {
   outline: none;
 }
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: #1c1c1c;
+  color: var(--text);
+  font-family: "Courier New", Courier, monospace;
+  font-size: .85em;
+  text-align: center;
+}

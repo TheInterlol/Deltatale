@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Undertale-style Battle Demo</title>
+  <title>Deltatale – battle demo</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="wrap">
     <section class="panel top">
       <div>
-        <h1 class="title">Undertale-style battle demo</h1>
-        <p class="subtitle">Jednoduchý funkční základ: srdce, arena, bullet patterns, collision, HP, timer.</p>
+        <h1 class="title">Deltatale</h1>
+        <p class="subtitle">Undertale/Deltarune-style battle demo: tahová bitva, uhýbání v aréně, milost i rekordy.</p>
       </div>
 
       <div class="stats">
@@ -20,31 +20,36 @@
           <div class="stat-value" id="bossName">Training Dummy</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Čas přežití</div>
+          <div class="stat-label" id="timeLabel">Čas přežití</div>
           <div class="stat-value" id="timeValue">0.0 s</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Nejlepší čas</div>
+          <div class="stat-label" id="bestLabel">Nejlepší čas</div>
           <div class="stat-value" id="bestValue">0.0 s</div>
         </div>
       </div>
     </section>
 
     <section class="panel arena-shell">
-      <canvas id="game" width="720" height="405" tabindex="0"></canvas>
+      <canvas id="game" width="720" height="405" tabindex="0" aria-label="Herní plocha"></canvas>
     </section>
 
     <section class="panel">
       <div class="controls">
-        <select id="bossSelect">
+        <select id="bossSelect" aria-label="Boss">
           <option value="gerson">Old Man Gerson</option>
           <option value="dummy">Training Dummy</option>
           <option value="bones">Bone Rain</option>
           <option value="cards">Jevil-ish Cards</option>
           <option value="neo">Spamton-ish Blasters</option>
         </select>
+        <select id="modeSelect" aria-label="Herní režim">
+          <option value="battle">Bitva (tahová)</option>
+          <option value="survival">Přežití (na čas)</option>
+        </select>
         <button id="startBtn">Start</button>
         <button id="restartBtn">Restart</button>
+        <button id="muteBtn" aria-pressed="false">Zvuk: zap</button>
       </div>
 
       <div style="margin-top:14px;">
@@ -57,27 +62,48 @@
 
     <section class="panel help">
       <div class="help-card">
-        <h3>Co už to umí</h3>
-        <p class="note">Player movement, omezení na battle box, projektily, damage cooldown, různé patterny a lokální best score přes <code>localStorage</code>.</p>
+        <h3>Ovládání</h3>
+        <p class="note">
+          <kbd>WASD</kbd> / šipky – pohyb srdce a výběr v menu<br>
+          <kbd>Z</kbd> / <kbd>Enter</kbd> – potvrdit, <kbd>X</kbd> / <kbd>Shift</kbd> – zpět<br>
+          <kbd>Esc</kbd> / <kbd>P</kbd> – pauza, <kbd>M</kbd> – zvuk
+        </p>
       </div>
       <div class="help-card">
-        <h3>Co bys doplnil dál</h3>
-        <p class="note">Sprite bosse, attack timeline, dialog, invulnerability efekty, menu akcí, healing itemy, audio a separátní soubory pro každého bosse.</p>
+        <h3>Bitva</h3>
+        <p class="note"><strong>ÚTOK</strong> – zastav kurzor uprostřed terče. <strong>AKCE</strong> zvyšují MILOST; na 100 % zežloutne jméno a jde <strong>UŠETŘIT</strong>. <strong>VĚCI</strong> léčí, <strong>OBRANA</strong> půlí poškození. Těsné míjení střel (graze) nabíjí TP na kouzlo Rude Buster.</p>
+      </div>
+      <div class="help-card">
+        <h3>Přežití</h3>
+        <p class="note">Původní režim: žádné menu, jen uhýbání. Každý zásah ubere 1 HP a nejlepší čas pro každého bosse se ukládá přes <code>localStorage</code>.</p>
       </div>
       <div class="help-card">
         <h3>Jak to rozšířit</h3>
-        <p class="note">Každý boss může mít vlastní objekt s funkcemi <code>init()</code>, <code>update()</code> a <code>spawnPattern()</code>. Tohle je přesně kostra, na které stavíš dál.</p>
+        <p class="note">Každý boss má vlastní soubor v <code>bosses/</code> a registruje se přes <code>registerBoss()</code>: <code>init()</code> a <code>update()</code> pro přežití, <code>attacks</code>, <code>acts</code> a <code>dialogue</code> pro bitvu. Popis rozhraní je v <code>js/bosses.js</code>.</p>
       </div>
     </section>
   </div>
 
   <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/state.js"></script>
   <script src="js/player.js"></script>
   <script src="js/bullets.js"></script>
   <script src="js/patterns.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/textbox.js"></script>
+  <script src="js/items.js"></script>
+  <script src="js/bosses.js"></script>
+  <script src="js/hud.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/battle.js"></script>
   <script src="bosses/gerson.js"></script>
+  <script src="bosses/dummy.js"></script>
+  <script src="bosses/bones.js"></script>
+  <script src="bosses/cards.js"></script>
+  <script src="bosses/neo.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
