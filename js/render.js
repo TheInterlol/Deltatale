@@ -132,12 +132,17 @@ function drawCharacters(){
     }
 
     // Susie v přirozeném poměru stran (73x139), dřív byla roztažená do šířky
+    const susieX = SUSIE_POS.x + getSusieOffset();
+    ctx.save();
+    // při zásahu Susie bliká
+    if (effects.susieHurt > 0 && Math.floor(effects.susieHurt * 20) % 2 === 0) ctx.globalAlpha = 0.45;
     if(typeof susieSprite !== 'undefined' && susieSprite.complete && susieSprite.naturalWidth > 0){
-        ctx.drawImage(susieSprite, SUSIE_POS.x, SUSIE_POS.y, susieSprite.naturalWidth, susieSprite.naturalHeight);
+        ctx.drawImage(susieSprite, susieX, SUSIE_POS.y, susieSprite.naturalWidth, susieSprite.naturalHeight);
     }else {
         ctx.fillStyle = '#7a4fd1';
-        ctx.fillRect(SUSIE_POS.x, SUSIE_POS.y, 73, 139);
+        ctx.fillRect(susieX, SUSIE_POS.y, 73, 139);
     }
+    ctx.restore();
 }
 
 function drawHud() {

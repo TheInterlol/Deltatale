@@ -233,7 +233,7 @@ function drawFightBar(battle) {
     ctx.font = TEXT_FONT;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd34d';
-    ctx.fillText('PERFEKTNÍ!', cx, box.y + 24);
+    ctx.fillText('PERFEKTNÍ!', cx, box.y - 12);
   }
   ctx.restore();
 }

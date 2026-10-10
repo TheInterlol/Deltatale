@@ -228,6 +228,7 @@ function resolveFight(battle, pos) {
   fight.perfect = accuracy >= PERFECT_ACCURACY;
 
   sfx.slash();
+  effects.susieLunge = SUSIE_LUNGE_TIME;
   addSlash(BOSS_POS.x, BOSS_POS.y);
   dealDamage(battle, SUSIE_POWER * (0.25 + 0.75 * accuracy) * (fight.perfect ? 1.4 : 1));
 }
@@ -297,6 +298,7 @@ function addMercy(battle, amount) {
 function rudeBuster(battle) {
   battle.tp -= RUDE_BUSTER_COST;
   sfx.buster();
+  effects.susieLunge = SUSIE_LUNGE_TIME;
   addShake(4);
   addSlash(BOSS_POS.x, BOSS_POS.y);
   const damage = dealDamage(battle, SUSIE_POWER * 2.4);

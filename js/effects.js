@@ -4,8 +4,13 @@ const effects = {
   flash: 0,
   popups: [],
   rings: [],
-  slashes: []
+  slashes: [],
+  susieLunge: 0,   // výpad Susie při útoku (zbývající čas)
+  susieHurt: 0     // Susie sebou trhne, když srdce dostane zásah
 };
+
+const SUSIE_LUNGE_TIME = 0.35;
+const SUSIE_HURT_TIME = 0.4;
 
 function resetEffects() {
   effects.shake = 0;
@@ -13,6 +18,8 @@ function resetEffects() {
   effects.popups = [];
   effects.rings = [];
   effects.slashes = [];
+  effects.susieLunge = 0;
+  effects.susieHurt = 0;
 }
 
 function addShake(amount) {
@@ -38,6 +45,8 @@ function addSlash(x, y) {
 function updateEffects(dt) {
   effects.shake = Math.max(0, effects.shake - dt * 30);
   effects.flash = Math.max(0, effects.flash - dt * 3);
+  effects.susieLunge = Math.max(0, effects.susieLunge - dt);
+  effects.susieHurt = Math.max(0, effects.susieHurt - dt);
 
   for (const list of [effects.popups, effects.rings, effects.slashes]) {
     for (const fx of list) fx.life += dt;
@@ -45,6 +54,14 @@ function updateEffects(dt) {
   effects.popups = effects.popups.filter(p => p.life < p.maxLife);
   effects.rings = effects.rings.filter(r => r.life < r.maxLife);
   effects.slashes = effects.slashes.filter(s => s.life < s.maxLife);
+}
+
+// Posun Susie: výpad dopředu při útoku, třes při zásahu.
+function getSusieOffset() {
+  let x = 0;
+  if (effects.susieLunge > 0) x += Math.sin((1 - effects.susieLunge / SUSIE_LUNGE_TIME) * Math.PI) * 26;
+  if (effects.susieHurt > 0) x += Math.sin(effects.susieHurt * 70) * 4;
+  return x;
 }
 
 function getShakeOffset() {

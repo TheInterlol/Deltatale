@@ -45,6 +45,7 @@ function hurtPlayer(damage) {
   statusText.textContent = 'Zásah!';
 
   sfx.hurt();
+  effects.susieHurt = SUSIE_HURT_TIME;
   addShake(5);
   addFlash(1);
   if (state.gameMode === 'battle') addPopup(damage, SUSIE_POS.x + 36, SUSIE_POS.y + 40, '#ff4d4d');
