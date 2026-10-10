@@ -51,7 +51,7 @@ const JevilCards = registerBoss({
       name: 'Kropítko',
       duration: 6.5,
       update(run) {
-        every(run, 'fan', 0.32 / run.speed, () => spawnCardFan(run), 0.2);
+        every(run, 'fan', 0.42 / run.speed, () => spawnCardFan(run), 0.2);
       }
     },
     {
@@ -139,7 +139,7 @@ function spawnCardFan(run) {
   const base = Math.PI / 2 + Math.sin(run.t * 1.6) * 1.0;
   const speed = 150 * run.speed;
 
-  for (const offset of [-0.35, 0, 0.35]) {
+  for (const offset of [-0.4, 0, 0.4]) {
     const angle = base + offset;
     spawnBullet(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 7, 'card');
   }

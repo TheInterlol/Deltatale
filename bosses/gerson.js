@@ -139,12 +139,18 @@ function spawnGersonSpears(speedMult = 1){
 }
 
 // Sekera hozená zboku, která se zpomalí, otočí a vrátí zpátky (jako bumerang).
+// Doletí asi 300 px, tedy přes střed arény - jinak by byl střed bezpečné místo.
+// Každá druhá míří do řádku, kde je zrovna srdce.
 function spawnGersonBoomerang(speedMult = 1){
     const fromRight = Math.random() > 0.5;
     const x = fromRight ? arena.x + arena.w + 40 : arena.x - 40;
-    const y = arena.y + 20 + Math.random() * (arena.h - 40);
+    const aimed = Math.random() > 0.5;
+    const randomY = arena.y + 20 + Math.random() * (arena.h - 40);
+    const y = aimed ? state.player.y : randomY;
     const dir = fromRight ? -1 : 1;
+    const speed = 330 * speedMult;
+    const reach = 300;
 
-    const axe = spawnBullet(x, y, dir * 330 * speedMult, 0, 12, "axe01");
-    axe.ax = -dir * 260 * speedMult * speedMult;
+    const axe = spawnBullet(x, y, dir * speed, 0, 12, "axe01");
+    axe.ax = -dir * (speed * speed) / (2 * reach);
 }
