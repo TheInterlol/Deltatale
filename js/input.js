@@ -43,10 +43,6 @@ function releaseAllKeys() {
   pressedKeys.clear();
 }
 
-function isHeld(names) {
-  return names.some(name => keys[name]);
-}
-
 // Vrátí true, pokud byla některá z kláves zmáčknutá, a stisk "spotřebuje".
 function consumePress(names) {
   let hit = false;
