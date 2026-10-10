@@ -257,7 +257,8 @@ test('game keys do not scroll the page or re-click the Start button while playin
     await page.selectOption('#modeSelect', 'survival');
     await page.click('#startBtn');
     await page.keyboard.down('ArrowDown');
-    await page.waitForTimeout(400);
+    // s rezervou: na pomalém stroji běží hra méně snímky za sekundu (dt je omezené na 33 ms)
+    await page.waitForTimeout(900);
     await page.keyboard.up('ArrowDown');
 
     // hráč, který se k tlačítku dostal Tabem, nesmí mezerníkem restartovat hru
