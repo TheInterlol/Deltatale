@@ -63,6 +63,7 @@ restartBtn.addEventListener('click', () => {
   canvas.focus();
 });
 muteBtn.addEventListener('click', toggleMute);
+bindTouchControls();
 
 // Při přepnutí na jiný panel hru pozastavit, ať hráč nepřijde o HP.
 document.addEventListener('visibilitychange', () => {

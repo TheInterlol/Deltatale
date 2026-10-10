@@ -34,6 +34,21 @@
       <canvas id="game" width="720" height="405" tabindex="0" aria-label="Herní plocha"></canvas>
     </section>
 
+    <!-- Dotykové ovládání: zobrazí se jen na zařízeních bez myši (viz style.css) -->
+    <section class="panel touch-controls" aria-label="Dotykové ovládání">
+      <div class="dpad">
+        <button type="button" tabindex="-1" data-key="arrowup" class="dpad-up" aria-label="Nahoru">▲</button>
+        <button type="button" tabindex="-1" data-key="arrowleft" class="dpad-left" aria-label="Doleva">◀</button>
+        <button type="button" tabindex="-1" data-key="p" class="dpad-center" aria-label="Pauza">II</button>
+        <button type="button" tabindex="-1" data-key="arrowright" class="dpad-right" aria-label="Doprava">▶</button>
+        <button type="button" tabindex="-1" data-key="arrowdown" class="dpad-down" aria-label="Dolů">▼</button>
+      </div>
+      <div class="touch-actions">
+        <button type="button" tabindex="-1" data-key="x" class="touch-action" aria-label="Zpět">X</button>
+        <button type="button" tabindex="-1" data-key="z" class="touch-action touch-confirm" aria-label="Potvrdit">Z</button>
+      </div>
+    </section>
+
     <section class="panel">
       <div class="controls">
         <select id="bossSelect" aria-label="Boss">

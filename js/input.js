@@ -77,3 +77,27 @@ function directionPressed() {
 function endInputFrame() {
   pressedKeys.clear();
 }
+
+// Dotyková tlačítka (data-key) se chovají jako klávesy: stisk = keydown, puštění = keyup.
+function bindTouchControls() {
+  for (const button of document.querySelectorAll('.touch-controls [data-key]')) {
+    const key = button.dataset.key;
+    const release = () => {
+      keys[key] = false;
+      button.classList.remove('is-pressed');
+    };
+
+    button.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      button.setPointerCapture(e.pointerId);
+      pressedKeys.add(key);
+      keys[key] = true;
+      button.classList.add('is-pressed');
+    });
+    button.addEventListener('pointerup', release);
+    button.addEventListener('pointercancel', release);
+    button.addEventListener('lostpointercapture', release);
+    // dlouhý stisk nesmí otevřít kontextové menu
+    button.addEventListener('contextmenu', e => e.preventDefault());
+  }
+}

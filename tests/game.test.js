@@ -504,6 +504,58 @@ test('pause freezes the fight and Esc resumes it', async () => {
   }
 });
 
+test('touch controls appear on touch devices and drive the game', async () => {
+  const context = await browser.newContext({
+    viewport: { width: 400, height: 800 },
+    isMobile: true,
+    hasTouch: true
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  try {
+    await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
+    await page.goto(baseUrl);
+    await page.waitForFunction(() => typeof state !== 'undefined' && state.player !== null);
+    await page.selectOption('#modeSelect', 'survival');
+
+    assert.equal(await page.isVisible('.touch-controls'), true);
+
+    // Z na dotykovém panelu spustí hru
+    await page.tap('[data-key="z"]');
+    await step(page, 0.5);
+    await page.tap('[data-key="z"]');
+    await step(page);
+    assert.equal(await page.evaluate(() => state.running), true);
+
+    // podržení šipky doprava posune srdce
+    const startX = await page.evaluate(() => state.player.x);
+    const box = await page.locator('[data-key="arrowright"]').boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await step(page, 0.3);
+    await page.mouse.up();
+    const movedX = await page.evaluate(() => state.player.x);
+    assert.ok(movedX > startX + 30, `x ${startX} -> ${movedX}`);
+
+    // po puštění se srdce zastaví
+    await step(page, 0.3);
+    assert.equal(await page.evaluate(() => state.player.x), movedX);
+    assert.deepEqual(errors, []);
+  } finally {
+    await context.close();
+  }
+});
+
+test('touch controls stay hidden on desktop', async () => {
+  const { page, close } = await openGame();
+  try {
+    assert.equal(await page.isVisible('.touch-controls'), false);
+  } finally {
+    await close();
+  }
+});
+
 test('the game still works when localStorage is blocked', async () => {
   const { page, errors, close } = await openGame({
     initScript: () => {
