@@ -14,7 +14,7 @@ const state = {
     frame: 0,
     timer: 0,
     frameWidth: 81,
-    frameHeight: 64,
+    frameHeight: 63,
     frameCount: 7,
     frameDuration: 0.1
   }
@@ -63,12 +63,22 @@ function resetGame() {
   if(state.mode === 'gerson'){
     state.gersonAnim.frame = 0;
     state.gersonAnim.timer = 0;
-
-    gersonMusic.pause();
-    gersonMusic.currentTime = 0;
   }
 
-  
+  // hudbu zastavit vždy - i při přepnutí z Gersona na jiného bosse
+  stopMusic();
+}
+
+function stopMusic() {
+  gersonMusic.pause();
+  gersonMusic.currentTime = 0;
+}
+
+function playMusic(track) {
+  track.currentTime = 0;
+  // play() vrací promise, která selže např. při blokovaném autoplay
+  const result = track.play();
+  if (result && typeof result.catch === 'function') result.catch(() => {});
 }
 
 function startGame() {
@@ -76,17 +86,14 @@ function startGame() {
   state.running = true;
   statusText.textContent = 'Bojuj a uhýbej.';
 
-  if(state.mode === 'gerson'){
-    gersonMusic.currentTime = 0;
-    gersonMusic.play();
-  }
+  if(state.mode === 'gerson') playMusic(gersonMusic);
 }
 
 function endGame() {
   state.running = false;
   state.gameOver = true;
 
-  if(state.mode === 'gerson') gersonMusic.pause();
+  stopMusic();
 
   if (state.timer > state.best) {
     state.best = state.timer;

@@ -13,8 +13,21 @@ const statusText = document.getElementById('statusText');
 const bossName = document.getElementById('bossName');
 
 const keys = {};
-window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+// Klávesy, které během hry nesmí scrollovat stránkou ani "kliknout" na tlačítko s fokusem.
+const GAME_KEYS = new Set(['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'enter', 'w', 'a', 's', 'd']);
+
+window.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  if (GAME_KEYS.has(key) && typeof state !== 'undefined' && state.running) e.preventDefault();
+  keys[key] = true;
+}, true);
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false, true);
+
+// Po ztrátě fokusu (alt-tab) by klávesa zůstala "držená" a srdce by ujíždělo.
+window.addEventListener('blur', () => {
+  for (const key in keys) keys[key] = false;
+});
 
 const arena = { x: 170, y: 150, w: 380, h: 190 };
 

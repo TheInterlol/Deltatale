@@ -29,7 +29,11 @@ function frame(ts) {
 }
 
 bossSelect.addEventListener('change', resetGame);
-startBtn.addEventListener('click', startGame);
+startBtn.addEventListener('click', () => {
+  startGame();
+  // fokus pryč z tlačítka, jinak by ho Enter/mezerník během hry znovu "zmáčkl"
+  canvas.focus();
+});
 restartBtn.addEventListener('click', resetGame);
 
 resetGame();

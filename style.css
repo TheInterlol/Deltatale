@@ -170,3 +170,6 @@
     @media (max-width: 700px) {
       .panel { padding: 14px; }
     }
+canvas:focus {
+  outline: none;
+}

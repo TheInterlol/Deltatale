@@ -6,12 +6,34 @@ function spawnBoneRain() {
   }
 }
 
-function spawnCards() {
-  const centerX = arena.x + arena.w / 2;
-  const centerY = arena.y + arena.h / 2;
+// Najde bod v aréně, který je od hráče aspoň minDist daleko (aby burst nevznikl přímo na srdci).
+function pickPointAwayFromPlayer(minDist, margin = 30) {
+  const p = state.player;
+  let best = null;
+  let bestDist = -1;
 
   for (let i = 0; i < 12; i++) {
-    const angle = (Math.PI * 2 * i) / 12 + state.patternClock * 0.7;
+    const x = arena.x + margin + Math.random() * (arena.w - margin * 2);
+    const y = arena.y + margin + Math.random() * (arena.h - margin * 2);
+    const dist = Math.hypot(x - p.x, y - p.y);
+    if (dist >= minDist) return { x, y };
+    if (dist > bestDist) {
+      bestDist = dist;
+      best = { x, y };
+    }
+  }
+  return best;
+}
+
+function spawnCards() {
+  // dřív burst vznikal ve středu arény = přesně tam, kde hráč začíná
+  const origin = pickPointAwayFromPlayer(110);
+  const centerX = origin.x;
+  const centerY = origin.y;
+
+  for (let i = 0; i < 12; i++) {
+    // patternClock se před voláním nuluje, takže otočení se bere z celkového času
+    const angle = (Math.PI * 2 * i) / 12 + state.timer * 0.7;
     const speed = 120;
     spawnBullet(centerX, centerY, Math.cos(angle) * speed, Math.sin(angle) * speed, 7, 'card');
   }
