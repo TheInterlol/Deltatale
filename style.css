@@ -168,5 +168,86 @@
     .danger { color: var(--danger); }
 
     @media (max-width: 700px) {
+      body { padding: 10px; }
       .panel { padding: 14px; }
     }
+canvas:focus {
+  outline: none;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: #1c1c1c;
+  color: var(--text);
+  font-family: "Courier New", Courier, monospace;
+  font-size: .85em;
+  text-align: center;
+}
+
+/* -------------- Dotykové ovládání -------------- */
+.touch-controls {
+  --pad: clamp(44px, 13vw, 58px);
+  --action: clamp(56px, 17vw, 72px);
+  display: none;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.touch-controls button {
+  touch-action: none;
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 0;
+}
+
+.touch-controls button.is-pressed {
+  background: #3a2a00;
+  border-color: #ffd34d;
+  transform: none;
+}
+
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--pad));
+  grid-template-rows: repeat(3, var(--pad));
+  gap: 6px;
+}
+
+.dpad-up { grid-column: 2; grid-row: 1; }
+.dpad-left { grid-column: 1; grid-row: 2; }
+.dpad-center { grid-column: 2; grid-row: 2; font-size: .9rem !important; color: var(--muted); }
+.dpad-right { grid-column: 3; grid-row: 2; }
+.dpad-down { grid-column: 2; grid-row: 3; }
+
+.touch-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.touch-action {
+  width: var(--action);
+  height: var(--action);
+  border-radius: 50%;
+}
+
+.touch-confirm {
+  border-color: #d17f1f;
+  color: #ffd34d;
+  margin-bottom: 28px;
+}
+
+@media (pointer: coarse) {
+  .touch-controls { display: flex; }
+}
