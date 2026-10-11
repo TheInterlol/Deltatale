@@ -1,11 +1,11 @@
-// Text v boxu a bublinách: zalamování a postupné vypisování (typewriter).
-const TEXT_SPEED = 45; // znaků za sekundu
+// Text in the box and in speech bubbles: word wrapping and the typewriter effect.
+const TEXT_SPEED = 45; // characters per second
 
-// Zalomí text do řádků podle šířky. Odstavce začínající "* " mají odsazené
-// pokračovací řádky, aby hvězdička zůstala sama vlevo jako v Undertale.
-function wrapText(text, maxWidth, font = TEXT_FONT) {
+// Wraps text to lines. Paragraphs starting with "* " get indented continuation lines,
+// so the asterisk stays alone on the left like in Undertale.
+function wrapText(text, maxWidth, fontSpec = TEXT_FONT) {
   ctx.save();
-  ctx.font = font;
+  ctx.font = fontSpec;
 
   const lines = [];
   for (const paragraph of String(text).split('\n')) {
@@ -29,24 +29,27 @@ function wrapText(text, maxWidth, font = TEXT_FONT) {
   return lines;
 }
 
-function createTyper(text, maxWidth, font = TEXT_FONT) {
-  const lines = wrapText(text, maxWidth, font);
+function createTyper(text, maxWidth, fontSpec = TEXT_FONT, voice = null) {
+  const lines = wrapText(text, maxWidth, fontSpec);
   return {
     text,
     lines,
-    font,
+    font: fontSpec,
+    voice,
     total: lines.reduce((sum, line) => sum + line.length, 0),
     shown: 0
   };
 }
 
-function updateTyper(typer, dt, sound = true) {
+function updateTyper(typer, dt) {
   if (typerDone(typer)) return;
   const before = Math.floor(typer.shown);
   typer.shown = Math.min(typer.total, typer.shown + TEXT_SPEED * dt);
   const after = Math.floor(typer.shown);
-  // pípnutí na každý druhý nový znak, ať to nezní jako kulomet
-  if (sound && after !== before && after % 2 === 0) sfx.text();
+  if (after !== before) {
+    if (typer.voice) sfx.voice(typer.voice);
+    else sfx.text();
+  }
 }
 
 function typerDone(typer) {
@@ -73,9 +76,7 @@ function drawTyper(typer, x, y, lineHeight, color = '#fff') {
   ctx.restore();
 }
 
-// České skloňování podle čísla: plural(1, 'kolo', 'kola', 'kol').
-function plural(n, one, few, many) {
-  if (n === 1) return one;
-  if (n >= 2 && n <= 4) return few;
-  return many;
+function formatTime(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }

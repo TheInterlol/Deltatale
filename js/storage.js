@@ -1,5 +1,5 @@
-// Bezpečný přístup k localStorage. V anonymním okně nebo se zakázaným úložištěm
-// localStorage hází výjimky - hra musí běžet dál, jen bez ukládání.
+// Safe localStorage access. In private windows or with storage disabled localStorage throws;
+// the game must keep running, just without saving.
 function storageGet(key, fallback = null) {
   try {
     const value = localStorage.getItem(key);
@@ -13,7 +13,7 @@ function storageSet(key, value) {
   try {
     localStorage.setItem(key, value);
   } catch (e) {
-    // ukládání není k dispozici, hra pokračuje bez něj
+    // storage unavailable - keep playing without saving
   }
 }
 
@@ -32,48 +32,45 @@ function saveJson(key, value) {
   storageSet(key, JSON.stringify(value));
 }
 
-// -------------- Přežití: nejlepší čas --------
-// Formát klíče zůstává původní, aby se neztratily už uložené rekordy.
-function getBestTime(bossId) {
-  const value = Number(storageGet(`battle_best_${bossId}`, 0));
-  return Number.isFinite(value) ? value : 0;
-}
-
-function saveBestTime(bossId, seconds) {
-  storageSet(`battle_best_${bossId}`, String(seconds));
-}
-
-// -------------- Bitva: výsledky --------
-const RECORDS_KEY = 'deltatale_records';
+// -------------- Per-boss records --------------
+const RECORDS_KEY = 'deltatale_rush_records';
 
 function getBossRecord(bossId) {
-  const record = loadJson(RECORDS_KEY, {})[bossId] || {};
+  const r = loadJson(RECORDS_KEY, {})[bossId] || {};
   return {
-    defeated: Number(record.defeated) || 0,
-    spared: Number(record.spared) || 0,
-    bestTurns: Number(record.bestTurns) || 0
+    wins: Number(r.wins) || 0,
+    spared: Number(r.spared) || 0,
+    killed: Number(r.killed) || 0,
+    deaths: Number(r.deaths) || 0,
+    bestTime: Number(r.bestTime) || 0
   };
 }
 
-function recordBattleResult(bossId, outcome, turns) {
+function updateBossRecord(bossId, change) {
   const records = loadJson(RECORDS_KEY, {});
   const record = getBossRecord(bossId);
-
-  if (outcome === 'spared') record.spared += 1;
-  else record.defeated += 1;
-  if (!record.bestTurns || turns < record.bestTurns) record.bestTurns = turns;
-
+  change(record);
   records[bossId] = record;
   saveJson(RECORDS_KEY, records);
   return record;
 }
 
-// -------------- Nastavení --------
+function recordWin(bossId, outcome, seconds) {
+  return updateBossRecord(bossId, r => {
+    r.wins += 1;
+    if (outcome === 'spared' || outcome === 'pacified') r.spared += 1;
+    if (outcome === 'killed') r.killed += 1;
+    if (!r.bestTime || seconds < r.bestTime) r.bestTime = seconds;
+  });
+}
+
+function recordDeath(bossId) {
+  return updateBossRecord(bossId, r => { r.deaths += 1; });
+}
+
+// -------------- Settings --------------
 const SETTINGS_KEY = 'deltatale_settings';
-const settings = Object.assign(
-  { muted: false, gameMode: 'battle', boss: 'gerson' },
-  loadJson(SETTINGS_KEY, {})
-);
+const settings = Object.assign({ muted: false, lastBoss: 'toriel' }, loadJson(SETTINGS_KEY, {}));
 
 function saveSettings() {
   saveJson(SETTINGS_KEY, settings);

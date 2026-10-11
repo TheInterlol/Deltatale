@@ -1,39 +1,59 @@
-// Klávesy, které fungují kdykoli: pauza a ztlumení zvuku.
-function handleGlobalKeys() {
-  if (consumePress(['escape', 'p'])) togglePause();
-  if (consumePress(['m'])) toggleMute();
+// Main loop and page wiring.
+function togglePause() {
+  const battle = state.battle;
+  if (!battle || battle.phase === 'results' || battle.phase === 'gameover') return;
+  state.paused = !state.paused;
+  pauseIndex = 0;
+  releaseAllKeys();
+  if (state.paused) pauseMusic();
+  else resumeMusic();
 }
 
-// Jeden krok herní logiky. Oddělený od kreslení, aby ho testy mohly volat s pevným dt.
+function updatePauseMenu() {
+  const { dx, dy } = directionPressed();
+  const delta = dx || dy;
+  if (delta) {
+    pauseIndex = (pauseIndex + delta + PAUSE_OPTIONS.length) % PAUSE_OPTIONS.length;
+    sfx.move();
+  }
+  if (cancelPressed()) {
+    togglePause();
+    return;
+  }
+  if (!confirmPressed()) return;
+  const choice = PAUSE_OPTIONS[pauseIndex];
+  state.paused = false;
+  if (choice === 'Resume') resumeMusic();
+  else if (choice === 'Retry') retryFight();
+  else openBossSelect();
+}
+
+// One step of game logic, separate from drawing so tests can drive it with a fixed dt.
 function updateGame(dt) {
-  handleGlobalKeys();
-  if (state.paused) return;
-
   state.clock += dt;
-  if (state.currentBoss.animate) state.currentBoss.animate(dt);
-  updateBox(dt);
-  updateEffects(dt);
+  if (consumePress(['m'])) toggleMute();
 
-  if (state.running) state.timer += dt;
-
-  if (state.battle) {
-    updateBattle(dt);
-  } else if (state.running) {
-    updatePlayer(dt);
-    state.currentBoss.update(dt);
-    updateBullets(dt);
-  } else {
-    // klid před startem nebo po GAME OVER v režimu přežití
-    state.idleTime += dt;
-    if (state.idleTime > 0.4 && confirmPressed()) startGame();
+  if (state.scene === 'select') {
+    updateSelect(dt);
+    return;
   }
 
-  updateUi();
+  if (consumePress(['escape', 'p'])) togglePause();
+  if (state.paused) {
+    updatePauseMenu();
+    return;
+  }
+
+  const battle = state.battle;
+  updateBoard(dt);
+  updateEffects(dt);
+  if (battle.boss.animate) battle.boss.animate(dt, battle);
+  updateBattle(dt);
 }
 
 function frame(ts) {
   if (!state.lastTime) state.lastTime = ts;
-  const dt = Math.min((ts - state.lastTime) / 1000, 0.033);
+  const dt = Math.min((ts - state.lastTime) / 1000, 1 / 30);
   state.lastTime = ts;
 
   updateGame(dt);
@@ -42,33 +62,23 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 
-// Obnoví poslední výběr bosse a režimu, pokud v <select> existuje.
-function restoreSelection(select, value) {
-  if ([...select.options].some(option => option.value === value)) select.value = value;
-}
-
-restoreSelection(bossSelect, settings.boss);
-restoreSelection(modeSelect, settings.gameMode);
-updateMuteButton();
-
-bossSelect.addEventListener('change', resetGame);
-modeSelect.addEventListener('change', resetGame);
-startBtn.addEventListener('click', () => {
-  startGame();
-  // fokus pryč z tlačítka, jinak by ho Enter/mezerník během hry znovu "zmáčkl"
+selectBtn.addEventListener('click', () => {
+  openBossSelect(state.battle ? state.battle.boss.id : settings.lastBoss);
   canvas.focus();
 });
-restartBtn.addEventListener('click', () => {
-  resetGame();
+retryBtn.addEventListener('click', () => {
+  if (state.battle) retryFight();
+  else tryStartSelected();
   canvas.focus();
 });
 muteBtn.addEventListener('click', toggleMute);
 bindTouchControls();
+updateMuteButton();
 
-// Při přepnutí na jiný panel hru pozastavit, ať hráč nepřijde o HP.
+// Pause when the tab is hidden so the player doesn't lose HP while away.
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && state.running && !state.paused) togglePause();
+  if (document.hidden && state.scene === 'battle' && !state.paused) togglePause();
 });
 
-resetGame();
+openBossSelect();
 requestAnimationFrame(frame);

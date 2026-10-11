@@ -1,16 +1,14 @@
-// Vizuální odezva: otřesy, záblesk po zásahu, plovoucí čísla, kroužky při grazu a seky.
+// Visual feedback: screen shake, hit flash, floating numbers, graze rings, slashes,
+// SOUL shards and spare dust.
 const effects = {
   shake: 0,
   flash: 0,
+  flashColor: '#ff0000',
   popups: [],
   rings: [],
   slashes: [],
-  susieLunge: 0,   // výpad Susie při útoku (zbývající čas)
-  susieHurt: 0     // Susie sebou trhne, když srdce dostane zásah
+  particles: []
 };
-
-const SUSIE_LUNGE_TIME = 0.35;
-const SUSIE_HURT_TIME = 0.4;
 
 function resetEffects() {
   effects.shake = 0;
@@ -18,50 +16,57 @@ function resetEffects() {
   effects.popups = [];
   effects.rings = [];
   effects.slashes = [];
-  effects.susieLunge = 0;
-  effects.susieHurt = 0;
+  effects.particles = [];
 }
 
 function addShake(amount) {
   effects.shake = Math.max(effects.shake, amount);
 }
 
-function addFlash(amount = 1) {
+function addFlash(amount = 1, color = '#ff0000') {
   effects.flash = Math.max(effects.flash, amount);
+  effects.flashColor = color;
 }
 
-function addPopup(text, x, y, color = '#fff') {
-  effects.popups.push({ text: String(text), x, y, color, life: 0, maxLife: 1.2 });
+function addPopup(text, x, y, color = '#fff', size = 26) {
+  effects.popups.push({ text: String(text), x, y, color, size, life: 0, maxLife: 1.2 });
 }
 
-function addRing(x, y) {
-  effects.rings.push({ x, y, life: 0, maxLife: 0.3 });
+function addRing(x, y, color = '#fff') {
+  effects.rings.push({ x, y, color, life: 0, maxLife: 0.3 });
 }
 
-function addSlash(x, y) {
-  effects.slashes.push({ x, y, life: 0, maxLife: 0.35 });
+function addSlash(x, y, color = '#ff3030') {
+  effects.slashes.push({ x, y, color, life: 0, maxLife: 0.4 });
+}
+
+function addParticles(x, y, count, { color = '#fff', speed = 160, size = 4, life = 0.9, gravity = 300 } = {}) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const v = speed * (0.4 + Math.random() * 0.8);
+    effects.particles.push({
+      x, y, vx: Math.cos(angle) * v, vy: Math.sin(angle) * v - speed * 0.4,
+      color, size, life: 0, maxLife: life * (0.7 + Math.random() * 0.6), gravity
+    });
+  }
 }
 
 function updateEffects(dt) {
   effects.shake = Math.max(0, effects.shake - dt * 30);
   effects.flash = Math.max(0, effects.flash - dt * 3);
-  effects.susieLunge = Math.max(0, effects.susieLunge - dt);
-  effects.susieHurt = Math.max(0, effects.susieHurt - dt);
 
-  for (const list of [effects.popups, effects.rings, effects.slashes]) {
+  for (const list of [effects.popups, effects.rings, effects.slashes, effects.particles]) {
     for (const fx of list) fx.life += dt;
+  }
+  for (const p of effects.particles) {
+    p.vy += p.gravity * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
   }
   effects.popups = effects.popups.filter(p => p.life < p.maxLife);
   effects.rings = effects.rings.filter(r => r.life < r.maxLife);
   effects.slashes = effects.slashes.filter(s => s.life < s.maxLife);
-}
-
-// Posun Susie: výpad dopředu při útoku, třes při zásahu.
-function getSusieOffset() {
-  let x = 0;
-  if (effects.susieLunge > 0) x += Math.sin((1 - effects.susieLunge / SUSIE_LUNGE_TIME) * Math.PI) * 26;
-  if (effects.susieHurt > 0) x += Math.sin(effects.susieHurt * 70) * 4;
-  return x;
+  effects.particles = effects.particles.filter(p => p.life < p.maxLife);
 }
 
 function getShakeOffset() {
@@ -78,33 +83,36 @@ function drawEffects() {
   for (const r of effects.rings) {
     const k = r.life / r.maxLife;
     ctx.globalAlpha = 1 - k;
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = r.color;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(r.x, r.y, 12 + k * 14, 0, Math.PI * 2);
+    ctx.arc(r.x, r.y, 10 + k * 14, 0, Math.PI * 2);
     ctx.stroke();
   }
 
   for (const s of effects.slashes) {
-    const k = Math.min(1, s.life / (s.maxLife * 0.6));
-    ctx.globalAlpha = 1 - Math.max(0, (s.life / s.maxLife - 0.6) / 0.4);
-    ctx.strokeStyle = '#ff4fd8';
-    ctx.lineWidth = 5;
-    for (let i = -1; i <= 1; i++) {
-      ctx.beginPath();
-      ctx.moveTo(s.x - 50 + i * 18, s.y - 50);
-      ctx.lineTo(s.x - 50 + i * 18 + 100 * k, s.y - 50 + 100 * k);
-      ctx.stroke();
-    }
+    const k = Math.min(1, s.life / (s.maxLife * 0.5));
+    ctx.globalAlpha = 1 - Math.max(0, (s.life / s.maxLife - 0.5) / 0.5);
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(s.x - 45, s.y - 45);
+    ctx.lineTo(s.x - 45 + 90 * k, s.y - 45 + 90 * k);
+    ctx.stroke();
   }
 
-  ctx.font = 'bold 24px "Courier New", Courier, monospace';
+  for (const p of effects.particles) {
+    ctx.globalAlpha = Math.max(0, 1 - p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  }
+
   ctx.textAlign = 'center';
   ctx.lineWidth = 4;
   for (const p of effects.popups) {
     const k = p.life / p.maxLife;
-    // krátký "vyskok" nahoru, pak zůstane a zmizí
     const rise = Math.min(p.life * 90, 22);
+    ctx.font = font(p.size);
     ctx.globalAlpha = k > 0.75 ? 1 - (k - 0.75) / 0.25 : 1;
     ctx.strokeStyle = '#000';
     ctx.strokeText(p.text, p.x, p.y - rise);
@@ -118,8 +126,8 @@ function drawEffects() {
 function drawFlash() {
   if (effects.flash <= 0) return;
   ctx.save();
-  ctx.globalAlpha = effects.flash * 0.25;
-  ctx.fillStyle = '#ff0000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalAlpha = effects.flash * 0.22;
+  ctx.fillStyle = effects.flashColor;
+  ctx.fillRect(0, 0, W, H);
   ctx.restore();
 }

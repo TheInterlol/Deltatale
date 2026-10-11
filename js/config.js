@@ -1,47 +1,65 @@
+// Canvas, screen layouts and shared assets.
+// The canvas is 640x480 like Undertale and Deltarune, so attack layouts can match the originals.
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
 
-const bossSelect = document.getElementById('bossSelect');
-const modeSelect = document.getElementById('modeSelect');
-const startBtn = document.getElementById('startBtn');
-const restartBtn = document.getElementById('restartBtn');
 const muteBtn = document.getElementById('muteBtn');
-
-const hpText = document.getElementById('hpText');
-const hpBar = document.getElementById('hpBar');
-const timeLabel = document.getElementById('timeLabel');
-const timeValue = document.getElementById('timeValue');
-const bestLabel = document.getElementById('bestLabel');
-const bestValue = document.getElementById('bestValue');
+const selectBtn = document.getElementById('selectBtn');
+const retryBtn = document.getElementById('retryBtn');
 const statusText = document.getElementById('statusText');
-const bossName = document.getElementById('bossName');
 
-// -------------- Rozložení plátna (720x405) --------
-// Bitevní box, ve kterém se během útoku pohybuje srdce.
-const arena = { x: 170, y: 150, w: 380, h: 190 };
-// Širší textový box, na který se arena roztáhne v menu (jako v Undertale).
-const TEXT_BOX = { x: 60, y: 190, w: 600, h: 150 };
-// Střed, kolem kterého se kreslí boss, a pozice Susie.
-const BOSS_POS = { x: 600, y: 78 };
-const SUSIE_POS = { x: 70, y: 8 };
+const FONT_FAMILY = '"Determination Mono", "DTM-Mono", "Courier New", Courier, monospace';
+function font(size, weight = 'bold') {
+  return `${weight} ${size}px ${FONT_FAMILY}`;
+}
+const TEXT_FONT = font(22);
+const SMALL_FONT = font(15);
+const BUBBLE_FONT = font(15);
 
-const TEXT_FONT = 'bold 19px "Courier New", Courier, monospace';
-const SMALL_FONT = 'bold 14px "Courier New", Courier, monospace';
+// Undertale screen: enemy at the top, bullet board in the middle, stats + 4 buttons at the bottom.
+const UT = {
+  textBox: { x: 32, y: 250, w: 576, h: 140 },
+  boxBottom: 390,
+  enemy: { x: 320, y: 128 },
+  statsY: 400,
+  buttonY: 432,
+  buttonW: 110,
+  buttonH: 42,
+  buttonX: [32, 185, 345, 500]
+};
 
-// -------------- Default Sprity --------
-const susieSprite = new Image();
-susieSprite.src = 'assets/susie.png';
+// Deltarune screen: party on the left, enemy on the right, board in the centre,
+// party panels + text box at the bottom, TP gauge on the left edge.
+const DR = {
+  board: { cx: 320, cy: 172 },
+  textBox: { x: 0, y: 368, w: 640, h: 112 },
+  panelY: 326,
+  panelH: 42,
+  tp: { x: 22, y: 64, w: 20, h: 196 },
+  enemy: { x: 512, y: 170 },
+  party: [{ x: 120, y: 112 }, { x: 108, y: 196 }, { x: 128, y: 276 }]
+};
 
-const soulRedSprite = new Image();
-soulRedSprite.src = 'assets/soul_red.png';
+// -------------- Shared image/audio assets --------------
+function loadImage(src) {
+  const img = new Image();
+  img.src = src;
+  return img;
+}
 
-//--------------- GERSON ----------------
-const gersonSheet = new Image();
-gersonSheet.src = 'assets/gerson_sheet.png';
+function imageReady(img) {
+  return img && img.complete && img.naturalWidth > 0;
+}
 
-const axe01Sprite = new Image();
-axe01Sprite.src = 'assets/axe01.png';
+const ASSETS = {
+  susie: loadImage('assets/susie.png'),
+  soul: loadImage('assets/soul_red.png'),
+  gersonSheet: loadImage('assets/gerson_sheet.png'),
+  axe: loadImage('assets/axe01.png')
+};
 
 const gersonMusic = new Audio('assets/Hammer of Justice.mp3');
 gersonMusic.loop = true;
-gersonMusic.volume = 0.7;
+gersonMusic.volume = 0.6;
