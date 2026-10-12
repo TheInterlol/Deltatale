@@ -1,7 +1,10 @@
-// Pozadí s pomalu se posouvající mřížkou (jako bitvy v Deltarune).
+// Scene drawing: background, bullet board, bullets, characters, HUD and the boss select screen.
+
+// Deltarune battles have a slowly scrolling grid, Undertale ones are plain black.
 function drawBackground() {
   ctx.fillStyle = '#000';
   ctx.fillRect(-20, -20, canvas.width + 40, canvas.height + 40);
+  if (state.screen === 'fight' && isUndertale()) return;
 
   const size = 40;
   const offset = (state.clock * 12) % size;
@@ -19,7 +22,7 @@ function drawBackground() {
   ctx.stroke();
 }
 
-// Box se plynule animuje mezi arénou (útok) a širokým textovým boxem (menu).
+// The box animates between the bullet board (attacks) and the wide text box (menu).
 function getBoxTarget() {
   if (state.battle) return getBattleBoxTarget(state.battle);
   return state.gameMode === 'battle' ? TEXT_BOX : arena;
@@ -36,117 +39,234 @@ function updateBox(dt) {
 
 function drawArena() {
   const box = state.box;
+  const boss = state.currentBoss;
 
-  ctx.fillStyle = '#0d0d0d';
+  ctx.fillStyle = isUndertale() ? '#000' : '#0d0d0d';
   ctx.fillRect(box.x, box.y, box.w, box.h);
+  if (boss && boss.drawArenaBackground && isSoulVisible()) boss.drawArenaBackground(box);
 
-  // rámeček až po výplni, jinak výplň překryje jeho vnitřní polovinu
-  ctx.strokeStyle = '#fff';
+  // the frame goes on top, otherwise the fill would cover its inner half
+  ctx.strokeStyle = state.player && state.player.mode === 'green' && isSoulVisible() ? '#16c916' : '#fff';
   ctx.lineWidth = 4;
   ctx.strokeRect(box.x, box.y, box.w, box.h);
 }
 
 function isSoulVisible() {
-  if (!state.battle) return state.gameMode === 'survival';
+  if (!state.battle) return state.gameMode === 'survival' && state.screen === 'fight';
   return state.battle.phase === 'enemyTalk' || state.battle.phase === 'attack';
 }
 
-function drawPlayer() {
-  const p = state.player;
-
-  // po zásahu srdce bliká (nezranitelnost)
-  if (p.hurtCooldown > 0 && Math.floor(p.hurtCooldown * 16) % 2 === 0) return;
-
-  ctx.save();
-
-  if(soulRedSprite.complete && soulRedSprite.naturalWidth > 0){
-    const size = 24;
-    ctx.drawImage(soulRedSprite, p.x - size /2, p.y - size /2, size, size);
-  } else{
-    ctx.fillStyle = '#ff3b3b';
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-// Každý druh střely se kreslí právě jednou a s vlastní barvou
-// (dřív se "normal" kreslil barvou pozadí arény, takže byl neviditelný).
+// ---------------- Bullets ----------------
 const BULLET_COLORS = {
   normal: '#ffffff',
   bone: '#f5f5f5',
   card: '#d96cff',
-  blaster: '#5ed0ff'
+  blaster: '#5ed0ff',
+  fire: '#ffffff',
+  spear: '#4dc3ff',
+  arrow: '#4dc3ff'
 };
 
-function drawBullets() {
-  for (const b of state.bullets) {
-    ctx.save();
-    ctx.fillStyle = BULLET_COLORS[b.kind] || BULLET_COLORS.normal;
+const SEMANTIC_COLORS = { cyan: SOUL_COLORS.cyan, orange: SOUL_COLORS.orange };
 
-    if (b.kind === 'axe01' && axe01Sprite.complete && axe01Sprite.naturalWidth > 0) {
-      // sprite 47x55 -> vykreslit se zachovaným poměrem stran, otáčet kolem středu
-      const h = 42;
-      const w = h * axe01Sprite.naturalWidth / axe01Sprite.naturalHeight;
-      ctx.translate(b.x, b.y);
-      ctx.rotate(b.life * 5);
-      ctx.drawImage(axe01Sprite, -w / 2, -h / 2, w, h);
-    } else if (b.kind === 'bone') {
-      const hw = b.hw || 6;
-      const hh = b.hh || 18;
-      ctx.fillRect(b.x - hw, b.y - hh, hw * 2, hh * 2);
-      // "kloubky" na koncích kosti
-      for (const end of [-hh, hh]) {
-        fillCircle(b.x - hw * 0.6, b.y + end, hw * 0.75);
-        fillCircle(b.x + hw * 0.6, b.y + end, hw * 0.75);
-      }
-    } else if (b.kind === 'card') {
-      ctx.translate(b.x, b.y);
-      ctx.rotate(b.life * 6);
-      ctx.fillRect(-6, -10, 12, 20);
-    } else {
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
+function bulletFill(b) {
+  if (SEMANTIC_COLORS[b.color]) return SEMANTIC_COLORS[b.color];
+  return b.color || BULLET_COLORS[b.kind] || BULLET_COLORS.normal;
 }
 
-function drawCharacters(){
-    const boss = state.currentBoss;
-    const battle = state.battle;
-
-    if (boss) {
-        let x = BOSS_POS.x;
-        ctx.save();
-        if (battle) {
-            ctx.globalAlpha = battle.bossAlpha;
-            // po zásahu se boss zatřese
-            if (battle.bossHurt > 0) x += Math.sin(battle.bossHurt * 60) * 12 * battle.bossHurt;
-        }
-        boss.draw(x, BOSS_POS.y, state.clock);
-        ctx.restore();
+// Drawers for each bullet kind. Bosses can register their own (BULLET_DRAWERS.myKind = b => ...).
+const BULLET_DRAWERS = {
+  normal(b, fill) {
+    ctx.fillStyle = fill;
+    if (b.hw) {
+      ctx.translate(b.x, b.y);
+      if (b.angle) ctx.rotate(b.angle);
+      ctx.fillRect(-b.hw, -b.hh, b.hw * 2, b.hh * 2);
+    } else {
+      fillCircle(b.x, b.y, b.r);
     }
+  },
+  axe01(b) {
+    if (!imageReady(axe01Sprite)) {
+      ctx.fillStyle = '#ccc';
+      fillCircle(b.x, b.y, b.r);
+      return;
+    }
+    const h = 42;
+    const w = h * axe01Sprite.naturalWidth / axe01Sprite.naturalHeight;
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.life * 5);
+    ctx.drawImage(axe01Sprite, -w / 2, -h / 2, w, h);
+  },
+  bone(b, fill) {
+    ctx.translate(b.x, b.y);
+    if (b.angle) ctx.rotate(b.angle);
+    const hw = b.hw || 6;
+    const hh = b.hh || 18;
+    if (hw > hh) {
+      ctx.rotate(Math.PI / 2);
+      drawBoneShape(0, 0, hh * 2, hw * 2, fill);
+    } else {
+      drawBoneShape(0, 0, hw * 2, hh * 2, fill);
+    }
+  },
+  card(b, fill) {
+    ctx.translate(b.x, b.y);
+    if (b.suit) {
+      ctx.rotate(b.spinVisual === false ? 0 : (b.angle || 0));
+      drawSuit(b.suit, 0, 0, b.r * 2.6, fill);
+    } else {
+      ctx.rotate(b.life * 6);
+      ctx.fillStyle = fill;
+      ctx.fillRect(-6, -10, 12, 20);
+    }
+  },
+  suit(b, fill) {
+    ctx.translate(b.x, b.y);
+    if (b.angle !== undefined && b.faceVelocity !== false) ctx.rotate(Math.atan2(b.vy, b.vx) + Math.PI / 2);
+    drawSuit(b.suit || 'spade', 0, 0, b.r * 2.6, fill);
+  },
+  fire(b, fill) {
+    ctx.fillStyle = fill;
+    drawFlame(b.x, b.y + b.r * 0.2, b.r * 1.35, state.clock);
+  },
+  spear(b, fill) {
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.angle !== undefined ? b.angle : Math.atan2(b.vy, b.vx));
+    drawSpearShape(0, 0, (b.hw || 20) * 2, fill);
+  },
+  arrow(b) {
+    // green SOUL spear flying at the centre; yellow ones will switch sides
+    const fill = b.reverse && !b.reversed ? '#ffe14d' : '#4dc3ff';
+    ctx.translate(b.x, b.y);
+    ctx.rotate(Math.atan2(b.vy, b.vx));
+    drawSpearShape(0, 0, 34, fill);
+  },
+  beam(b) {
+    const charging = b.life < b.warn;
+    ctx.translate(b.originX, b.originY);
+    ctx.rotate(b.angle);
+    if (charging) {
+      const k = b.life / b.warn;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.25 + 0.35 * k})`;
+      ctx.fillRect(0, -1 - k * 2, 1600, 2 + k * 4);
+    } else {
+      const left = b.warn + b.activeFor - b.life;
+      const width = b.hh * 2 * Math.min(1, Math.max(0.15, left * 6));
+      ctx.fillStyle = b.beamColor || '#fff';
+      ctx.fillRect(0, -width / 2, 1600, width);
+    }
+    if (b.drawEmitter !== false) drawEmitter(b, charging);
+  },
+  zone(b, fill) {
+    const x = b.x - b.hw;
+    const y = b.y - b.hh;
+    if (b.life < b.warn) {
+      const blink = Math.floor(b.life * 14) % 2 === 0;
+      ctx.strokeStyle = blink ? '#ff3030' : '#7a1010';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 1, y + 1, b.hw * 2 - 2, b.hh * 2 - 2);
+      ctx.fillStyle = 'rgba(255, 40, 40, 0.12)';
+      ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
+    } else {
+      ctx.fillStyle = fill;
+      ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
+    }
+  },
+  web(b, fill) {
+    ctx.strokeStyle = fill;
+    ctx.lineWidth = 2;
+    ctx.translate(b.x, b.y);
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 4);
+      ctx.beginPath();
+      ctx.moveTo(-b.r, 0);
+      ctx.lineTo(b.r, 0);
+      ctx.stroke();
+    }
+  }
+};
 
-    // Susie v přirozeném poměru stran (73x139), dřív byla roztažená do šířky
-    const susieX = SUSIE_POS.x + getSusieOffset();
+// The emitter at the start of a beam: a generic charging cannon.
+function drawEmitter(b, charging) {
+  const pulse = charging ? 1 + Math.sin(b.life * 40) * 0.08 : 1.1;
+  ctx.save();
+  ctx.scale(pulse, pulse);
+  ctx.fillStyle = '#e8e8e8';
+  ctx.beginPath();
+  ctx.moveTo(-34, -b.hh - 10);
+  ctx.lineTo(4, -b.hh - 4);
+  ctx.lineTo(4, b.hh + 4);
+  ctx.lineTo(-34, b.hh + 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = charging ? '#55ddff' : '#fff';
+  fillCircle(-10, 0, Math.max(4, b.hh * 0.7));
+  ctx.restore();
+}
+
+function drawWarningOverlay(b) {
+  // generic telegraph for bullets that are not dangerous yet: blink at half opacity
+  return Math.floor(b.life * 12) % 2 === 0 ? 0.55 : 0.25;
+}
+
+function drawBullet(b) {
+  const drawer = BULLET_DRAWERS[b.kind] || BULLET_DRAWERS.normal;
+  const fill = bulletFill(b);
+  ctx.save();
+  if (b.warn && b.life < b.warn && b.kind !== 'zone' && b.kind !== 'beam') ctx.globalAlpha = drawWarningOverlay(b);
+  if (b.alpha !== undefined) ctx.globalAlpha *= b.alpha;
+  if (b.flash) ctx.globalAlpha *= 0.5;
+  drawer(b, fill);
+  ctx.restore();
+}
+
+function drawBullets() {
+  const box = state.box;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(box.x + 2, box.y + 2, box.w - 4, box.h - 4);
+  ctx.clip();
+  for (const b of state.bullets) if (b.clip !== false) drawBullet(b);
+  ctx.restore();
+  for (const b of state.bullets) if (b.clip === false) drawBullet(b);
+}
+
+// ---------------- Characters ----------------
+function drawCharacters() {
+  const boss = state.currentBoss;
+  const battle = state.battle;
+
+  if (boss) {
+    const at = bossPosition(boss);
+    let x = at.x;
     ctx.save();
-    // při zásahu Susie bliká
-    if (effects.susieHurt > 0 && Math.floor(effects.susieHurt * 20) % 2 === 0) ctx.globalAlpha = 0.45;
-    if(typeof susieSprite !== 'undefined' && susieSprite.complete && susieSprite.naturalWidth > 0){
-        ctx.drawImage(susieSprite, susieX, SUSIE_POS.y, susieSprite.naturalWidth, susieSprite.naturalHeight);
-    }else {
-        ctx.fillStyle = '#7a4fd1';
-        ctx.fillRect(susieX, SUSIE_POS.y, 73, 139);
+    if (battle) {
+      ctx.globalAlpha = battle.bossAlpha;
+      // the boss shakes after a hit
+      if (battle.bossHurt > 0) x += Math.sin(battle.bossHurt * 60) * 12 * battle.bossHurt;
     }
+    drawBossFigure(boss, x, at.y, state.clock);
     ctx.restore();
+  }
+
+  // Susie only fights Deltarune bosses; in Undertale the player is just the SOUL
+  if (isUndertale()) return;
+  const susieX = SUSIE_POS.x + getSusieOffset();
+  ctx.save();
+  if (effects.susieHurt > 0 && Math.floor(effects.susieHurt * 20) % 2 === 0) ctx.globalAlpha = 0.45;
+  if (imageReady(susieSprite)) {
+    ctx.drawImage(susieSprite, susieX, SUSIE_POS.y, susieSprite.naturalWidth, susieSprite.naturalHeight);
+  } else {
+    ctx.fillStyle = '#7a4fd1';
+    ctx.fillRect(susieX, SUSIE_POS.y, 73, 139);
+  }
+  ctx.restore();
 }
 
 function drawHud() {
-  drawPartyPanel();
+  if (isUndertale()) drawUtStats();
+  else drawPartyPanel();
 
   if (state.battle) drawBattleUi(state.battle);
   else if (state.gameMode === 'battle') drawCommandButtons(null);
@@ -154,6 +274,13 @@ function drawHud() {
 }
 
 function render() {
+  if (state.screen === 'select') {
+    drawBackground();
+    drawBossSelect();
+    drawOverlays();
+    return;
+  }
+
   const shake = getShakeOffset();
 
   ctx.save();
@@ -163,6 +290,7 @@ function render() {
   drawArena();
   if (isSoulVisible()) {
     drawBullets();
+    drawShots();
     drawPlayer();
   }
   drawEffects();

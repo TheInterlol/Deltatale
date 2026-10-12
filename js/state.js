@@ -1,4 +1,5 @@
 const state = {
+  screen: 'select',       // 'select' (boss select menu) or 'fight'
   running: false,
   gameOver: false,
   paused: false,
@@ -7,53 +8,46 @@ const state = {
   clock: 0,
   player: null,
   bullets: [],
+  shots: [],              // yellow SOUL shots
   lastTime: 0,
-  mode: 'dummy',          // id aktuálního bosse
-  gameMode: 'battle',     // 'battle' (tahová bitva) nebo 'survival' (přežití na čas)
+  mode: 'toriel',         // id of the current boss
+  gameMode: 'battle',     // 'battle' (turn-based fight) or 'survival' (endless dodging)
   best: 0,
   currentBoss: null,
-  battle: null,           // běžící tahová bitva, viz battle.js
-  box: { ...arena }       // aktuálně vykreslený box (animuje se mezi arénou a textovým boxem)
+  battle: null,           // the running turn-based fight, see battle.js
+  survival: null,         // survival mode playing a boss' attacks back to back
+  record: null,
+  box: { ...arena }       // the drawn box (animates between the bullet board and the text box)
 };
 
-// Délka nezranitelnosti po zásahu. V bitvě je zásah dražší, proto je delší.
+// Invincibility after a hit. Bosses can override it in battle (boss.iframes).
 const HURT_COOLDOWN = { survival: 0.45, battle: 0.9 };
 
-function makePlayer() {
-  return {
-    x: arena.x + arena.w / 2,
-    y: arena.y + arena.h / 2,
-    r: 8,
-    speed: 190,
-    hp: 20,
-    maxHp: 20,
-    hurtCooldown: 0
-  };
-}
-
 function isGameActive() {
-  return state.running || state.battle !== null;
+  return state.screen === 'fight' && (state.running || state.battle !== null);
 }
 
 function updateUi() {
   const p = state.player;
   hpText.textContent = `${Math.max(0, p.hp)} / ${p.maxHp}`;
   hpBar.style.width = `${Math.max(0, (p.hp / p.maxHp) * 100)}%`;
+  bossName.textContent = state.currentBoss ? state.currentBoss.name : '-';
 
   if (state.gameMode === 'battle') {
     const record = state.record || getBossRecord(state.mode);
-    timeLabel.textContent = 'Kolo';
-    timeValue.textContent = state.battle ? String(state.battle.turn + 1) : '–';
-    bestLabel.textContent = 'Poražen / ušetřen';
+    timeLabel.textContent = 'Turn';
+    timeValue.textContent = state.battle ? String(state.battle.turn + 1) : '-';
+    bestLabel.textContent = 'Defeated / spared';
     bestValue.textContent = `${record.defeated}× / ${record.spared}×`;
   } else {
-    timeLabel.textContent = 'Čas přežití';
+    timeLabel.textContent = 'Survived';
     timeValue.textContent = `${state.timer.toFixed(1)} s`;
-    bestLabel.textContent = 'Nejlepší čas';
+    bestLabel.textContent = 'Best time';
     bestValue.textContent = `${state.best.toFixed(1)} s`;
   }
 }
 
+// Prepare a fresh fight against the boss chosen in #bossSelect (without starting it).
 function resetGame() {
   state.running = false;
   state.gameOver = false;
@@ -61,15 +55,19 @@ function resetGame() {
   state.timer = 0;
   state.idleTime = 0;
   state.bullets = [];
+  state.shots = [];
   state.battle = null;
-  state.player = makePlayer();
+  state.survival = null;
 
   state.gameMode = modeSelect.value === 'survival' ? 'survival' : 'battle';
-  state.currentBoss = getBoss(bossSelect.value) || getBoss('dummy');
-  state.currentBoss.init();
+  state.currentBoss = getBoss(bossSelect.value) || getBoss('toriel') || Object.values(BOSSES)[0];
+  if (state.currentBoss.init) state.currentBoss.init();
   state.mode = state.currentBoss.id;
+  state.player = makePlayer(state.gameMode === 'battle' ? playerStats(state.currentBoss) : { maxHp: 20 });
   state.best = getBestTime(state.mode);
   state.record = getBossRecord(state.mode);
+
+  resetArena();
   state.box = { ...(state.gameMode === 'battle' ? TEXT_BOX : arena) };
 
   settings.boss = state.mode;
@@ -77,15 +75,15 @@ function resetGame() {
   saveSettings();
 
   resetEffects();
-  bossName.textContent = state.currentBoss.name;
   updateUi();
-  statusText.textContent = 'Připraveno. Stiskni Start (nebo Z / Enter).';
+  statusText.textContent = 'Ready. Press Z / Enter (or Start) to fight.';
 
-  // hudbu zastavit vždy - i při přepnutí z Gersona na jiného bosse
+  // always stop the music - so it never leaks from one boss into another
   stopMusic();
 }
 
 function startGame() {
+  state.screen = 'fight';
   resetGame();
   state.running = true;
   pressedKeys.clear();
@@ -93,10 +91,20 @@ function startGame() {
   if (state.gameMode === 'battle') {
     startBattle();
   } else {
-    statusText.textContent = 'Bojuj a uhýbej.';
+    startSurvival();
+    statusText.textContent = 'Survive as long as you can.';
   }
 
-  if (state.currentBoss.music) playMusic(state.currentBoss.music);
+  const music = getBossMusic(state.currentBoss);
+  if (music) playMusic(music);
+}
+
+// Back to the boss select menu, with the cursor on `focusId` (default: the current boss).
+function openBossSelect(focusId = state.mode) {
+  resetGame();
+  state.screen = 'select';
+  focusBossInMenu(focusId);
+  statusText.textContent = 'Choose a boss: arrows to move, Z / Enter to fight, ← → to switch game.';
 }
 
 function endGame() {
@@ -116,18 +124,58 @@ function endGame() {
   if (state.timer > state.best) {
     state.best = state.timer;
     saveBestTime(state.mode, state.best);
-    statusText.innerHTML = `Konec. <span class="success">Nový rekord!</span> Z / Enter = znovu.`;
+    statusText.innerHTML = 'Game over. <span class="success">New record!</span> Z / Enter = again.';
   } else {
-    statusText.innerHTML = `Konec. Zkus to znovu (Z / Enter).`;
+    statusText.innerHTML = 'Game over. Try again (Z / Enter).';
   }
 
   updateUi();
 }
 
 function togglePause() {
-  if (!state.running) return;
+  if (!state.running && !(state.battle && !state.gameOver)) return;
   state.paused = !state.paused;
   releaseAllKeys();
   if (state.paused) pauseMusic();
   else resumeMusic();
+}
+
+// ---------------- Survival mode ----------------
+// Bosses with their own init()/update() keep their original endless pattern.
+// Everyone else plays their battle attacks back to back, getting faster each loop.
+function startSurvival() {
+  const boss = state.currentBoss;
+  if (boss.update) {
+    state.player.x = arena.x + arena.w / 2;
+    state.player.y = arena.y + arena.h / 2;
+    return;
+  }
+  state.survival = { index: 0, loop: 0 };
+  nextSurvivalAttack();
+}
+
+function nextSurvivalAttack() {
+  const boss = state.currentBoss;
+  const s = state.survival;
+  const attack = boss.attacks[s.index % boss.attacks.length];
+  const loop = Math.floor(s.index / boss.attacks.length);
+  s.index += 1;
+  s.run = beginAttackRun(attack, { level: loop, speed: 1 + 0.1 * Math.min(loop, 4), battle: null });
+}
+
+function updateSurvival(dt) {
+  const boss = state.currentBoss;
+  if (boss.update) {
+    updateSoul(dt);
+    boss.update(dt);
+    updateBullets(dt);
+    return;
+  }
+  const run = state.survival.run;
+  stepAttackRun(run, dt);
+  if (!state.running) return;
+  if (attackRunFinished(run)) {
+    finishAttackRun(run);
+    nextSurvivalAttack();
+  }
 }

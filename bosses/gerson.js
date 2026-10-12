@@ -1,61 +1,65 @@
 const Gerson = registerBoss({
     id: "gerson",
     name: "Old Man Gerson",
+    game: "deltarune",
+    color: "#7fd18b",
+    emblem: "spear",
     music: gersonMusic,
 
-    // ---------- Bitva ----------
+    // ---------- Battle ----------
+    player: { name: "SUSIE", maxHp: 120, power: 46 },
     maxHp: 400,
-    attack: 4,
+    attack: 24,
     defense: 4,
     gold: 120,
-    check: "Legendární hrdina a želví stařec. Kladivo spravedlnosti pořád zvoní.",
-    intro: "* Old Man Gerson pozvedl kladivo.\n* \"Hohoho! Tak ukaž, co v tobě je, mladá!\"",
+    check: "A legendary hero and an old turtle. The Hammer of Justice still rings.",
+    intro: "* Old Man Gerson raised his hammer.\n* \"Hohoho! Let's see what you've got, youngster!\"",
     flavor: [
-        "* Gerson se opírá o kladivo a supí.",
-        "* Pancíř se blýská jako za starých časů.",
-        "* Vzduchem se nese vůně čaje a dávné slávy.",
-        "* Gerson si mumlá něco o dnešní mládeži."
+        "* Gerson leans on his hammer, wheezing.",
+        "* His shell shines like in the good old days.",
+        "* The air smells of tea and old glory.",
+        "* Gerson mutters something about kids these days."
     ],
-    lowHpFlavor: "* Gerson těžce oddechuje, ale pořád se usmívá.",
+    lowHpFlavor: "* Gerson is breathing heavily, but still smiling.",
     dialogue: [
-        "Hohoho! Za mých časů jsme uhýbali i sekerám!",
-        "Nenech se zastrašit, mladá! Hýbej se!",
-        "Spravedlnost má těžké kladivo!",
-        "Ještě ti dám pár lekcí!",
-        "Hah! Takovou kuráž jsem dlouho neviděl!"
+        "Hohoho! In my day we dodged axes for breakfast!",
+        "Don't be scared, youngster! Move those feet!",
+        "Justice swings a heavy hammer!",
+        "I've still got a few lessons for you!",
+        "Hah! Haven't seen guts like that in ages!"
     ],
     acts: [
         {
-            name: "Poslouchat",
+            name: "Listen",
             mercy: 25,
             repeatMercy: 10,
-            text: "* Susie poslouchala Gersonův příběh o dávných hrdinech.\n* Gerson se zasnil.",
-            repeatText: "* Susie poslouchala další příběh.\n* Ten už ale slyšela..."
+            text: "* Susie listened to Gerson's story about old heroes.\n* Gerson got lost in his memories.",
+            repeatText: "* Susie listened to another story.\n* ...She's heard this one before."
         },
         {
-            name: "Pochválit",
+            name: "Praise",
             mercy: 20,
             repeatMercy: 10,
-            text: "* Susie řekla, že Gersonovo kladivo je fakt drsný.\n* \"Hohoho! Konečně někdo s vkusem!\""
+            text: "* Susie said Gerson's hammer is pretty badass.\n* \"Hohoho! Finally someone with taste!\""
         }
     ],
     attacks: [
         {
-            name: "Padající sekery",
+            name: "Falling axes",
             duration: 6,
             update(run) {
                 every(run, "axes", 1.2 / run.speed, () => spawnGersonSpears(run.speed), 0.4);
             }
         },
         {
-            name: "Bumerangy",
+            name: "Boomerangs",
             duration: 6.5,
             update(run) {
                 every(run, "boomerang", 0.9 / run.speed, () => spawnGersonBoomerang(run.speed), 0.3);
             }
         },
         {
-            name: "Kladivo spravedlnosti",
+            name: "Hammer of Justice",
             duration: 8,
             update(run) {
                 every(run, "axes", 1.4 / run.speed, () => spawnGersonSpears(run.speed), 0.4);
@@ -64,7 +68,7 @@ const Gerson = registerBoss({
         }
     ],
 
-    // ---------- Přežití ----------
+    // ---------- Survival ----------
     attackTimer: 0,
 
     init(){
@@ -111,7 +115,7 @@ const Gerson = registerBoss({
         const sw = anim.frameWidth;
         const sh = anim.frameHeight;
 
-        // 2x zvětšení bez deformace (snímek je 81x63)
+        // 2x scale without distortion (a frame is 81x63)
         const drawWidth = sw * 2;
         const drawHeight = sh * 2;
 
@@ -138,9 +142,9 @@ function spawnGersonSpears(speedMult = 1){
     }
 }
 
-// Sekera hozená zboku, která se zpomalí, otočí a vrátí zpátky (jako bumerang).
-// Doletí asi 300 px, tedy přes střed arény - jinak by byl střed bezpečné místo.
-// Každá druhá míří do řádku, kde je zrovna srdce.
+// An axe thrown from the side that slows down, turns around and comes back (a boomerang).
+// It flies about 300 px, past the middle of the board - otherwise the middle would be safe.
+// Every other one aims at the row the SOUL is in.
 function spawnGersonBoomerang(speedMult = 1){
     const fromRight = Math.random() > 0.5;
     const x = fromRight ? arena.x + arena.w + 40 : arena.x - 40;

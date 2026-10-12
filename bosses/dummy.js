@@ -1,44 +1,48 @@
+// Training Dummy - the Ruins warm-up. In Undertale it never attacks; here it throws a few
+// shots so new players can learn the controls. Talk to it to spare it.
 const TrainingDummy = registerBoss({
   id: 'dummy',
   name: 'Training Dummy',
+  game: 'undertale',
+  color: '#d9b77e',
+  emblem: 'dummy',
 
-  // ---------- Bitva ----------
+  player: { name: 'FRISK', lv: 1, maxHp: 20, power: 46 },
   maxHp: 60,
   attack: 2,
   defense: 0,
   gold: 5,
-  check: 'Stará cvičná figurína. Prý vydrží úplně všechno.',
-  intro: '* Cvičná figurína se ti postavila do cesty.\n* (Tohle je jen zahřívací kolo.)',
+  checkAttack: 0,
+  checkDefense: 0,
+  check: 'A cotton heart and a button eye. You are the apple of my eye.',
+  intro: '* You encountered the Dummy.',
   flavor: [
-    '* Figurína stojí. Je v tom fakt dobrá.',
-    '* Z figuríny trčí sláma.',
-    '* Susie si protahuje klouby.',
-    '* Figurína na tebe zírá. Asi.'
+    '* The Dummy stands around absentmindedly.',
+    '* The Dummy looks like it\'s about to fall over.',
+    '* Cotton is sticking out of the Dummy.',
+    '* The Dummy stares at you. Probably.'
   ],
-  lowHpFlavor: '* Figurína se nebezpečně kymácí.',
-  dialogue: ['...', '. . .', '(Figurína mlčí.)', '...?'],
+  lowHpFlavor: '* The Dummy is wobbling dangerously.',
+  dialogue: ['...', '. . .', '(It doesn\'t say anything.)', '...?'],
   acts: [
     {
-      name: 'Promluvit',
-      mercy: 50,
-      text: '* Susie na figurínu promluvila.\n* Figurína vypadá, že poslouchá.'
-    },
-    {
-      name: 'Obejmout',
-      mercy: 50,
-      text: '* Susie figurínu neohrabaně objala.\n* ...Nikdo to neviděl, jasný?'
+      name: 'Talk',
+      mercy: 100,
+      text: '* You talk to the DUMMY.\n* ...\n* It doesn\'t seem much for conversation.\n* It seems happy with you.'
     }
   ],
+  showMercy: true,
+  box: { w: 260, h: 150 },
   attacks: [
     {
-      name: 'Ze všech stran',
+      name: 'From every side',
       duration: 5,
       update(run) {
         every(run, 'shot', 0.55 / run.speed, () => spawnDummy(run.speed));
       }
     },
     {
-      name: 'Rychlá palba',
+      name: 'Rapid fire',
       duration: 5.5,
       update(run) {
         every(run, 'shot', 0.4 / run.speed, () => spawnDummy(run.speed));
@@ -46,7 +50,7 @@ const TrainingDummy = registerBoss({
     }
   ],
 
-  // ---------- Přežití ----------
+  // ---------- Survival (the original endless pattern) ----------
   attackTimer: 0,
 
   init() {
@@ -61,10 +65,10 @@ const TrainingDummy = registerBoss({
     }
   },
 
-  // ---------- Vzhled ----------
+  // ---------- Look: a generic straw training dummy ----------
   draw(x, y, t) {
     ctx.save();
-    // kývá se kolem paty sloupku
+    // sways around the foot of its post
     ctx.translate(x, y + 60);
     ctx.rotate(Math.sin(t * 2) * 0.04);
 
@@ -79,7 +83,7 @@ const TrainingDummy = registerBoss({
     fillRoundRect(24, -90, 24, 12, 5);
     fillCircle(0, -116, 20);
 
-    // švy a oči z křížkových stehů
+    // seams and cross-stitched eyes
     ctx.strokeStyle = '#8b6b3e';
     ctx.lineWidth = 2;
     ctx.beginPath();

@@ -1,16 +1,24 @@
-// Klávesy, které fungují kdykoli: pauza a ztlumení zvuku.
+// Keys that work at any time: pause and mute.
 function handleGlobalKeys() {
-  if (consumePress(['escape', 'p'])) togglePause();
+  if (state.screen === 'fight' && consumePress(['escape', 'p'])) togglePause();
   if (consumePress(['m'])) toggleMute();
+  if (state.paused && cancelPressed()) openBossSelect();
 }
 
-// Jeden krok herní logiky. Oddělený od kreslení, aby ho testy mohly volat s pevným dt.
+// One step of game logic. Separate from drawing so tests can call it with a fixed dt.
 function updateGame(dt) {
   handleGlobalKeys();
   if (state.paused) return;
 
   state.clock += dt;
   if (state.currentBoss.animate) state.currentBoss.animate(dt);
+
+  if (state.screen === 'select') {
+    updateBossSelect();
+    updateUi();
+    return;
+  }
+
   updateBox(dt);
   updateEffects(dt);
 
@@ -19,13 +27,12 @@ function updateGame(dt) {
   if (state.battle) {
     updateBattle(dt);
   } else if (state.running) {
-    updatePlayer(dt);
-    state.currentBoss.update(dt);
-    updateBullets(dt);
+    updateSurvival(dt);
   } else {
-    // klid před startem nebo po GAME OVER v režimu přežití
+    // idle before the start, or after GAME OVER in survival
     state.idleTime += dt;
     if (state.idleTime > 0.4 && confirmPressed()) startGame();
+    else if (state.idleTime > 0.4 && cancelPressed()) openBossSelect();
   }
 
   updateUi();
@@ -42,33 +49,61 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 
-// Obnoví poslední výběr bosse a režimu, pokud v <select> existuje.
-function restoreSelection(select, value) {
-  if ([...select.options].some(option => option.value === value)) select.value = value;
+// Fill the <select> from the roster: one optgroup per area/chapter, unfinished bosses disabled.
+function populateBossSelect() {
+  bossSelect.innerHTML = '';
+  for (const section of ROSTER) {
+    for (const group of section.groups) {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = `${section.title} · ${group.name}`;
+      for (const entry of group.bosses) {
+        const option = document.createElement('option');
+        option.value = entry.id;
+        const boss = getBoss(entry.id);
+        option.textContent = boss ? boss.name : `${entry.name} (coming soon)`;
+        option.disabled = !boss;
+        optgroup.appendChild(option);
+      }
+      bossSelect.appendChild(optgroup);
+    }
+  }
 }
 
+// Restore the last chosen boss and mode, if they still exist.
+function restoreSelection(select, value) {
+  if ([...select.options].some(option => option.value === value && !option.disabled)) select.value = value;
+}
+
+populateBossSelect();
 restoreSelection(bossSelect, settings.boss);
 restoreSelection(modeSelect, settings.gameMode);
 updateMuteButton();
 
-bossSelect.addEventListener('change', resetGame);
+bossSelect.addEventListener('change', () => {
+  resetGame();
+  focusBossInMenu(bossSelect.value);
+});
 modeSelect.addEventListener('change', resetGame);
 startBtn.addEventListener('click', () => {
   startGame();
-  // fokus pryč z tlačítka, jinak by ho Enter/mezerník během hry znovu "zmáčkl"
+  // move focus away from the button, or Enter/Space would "press" it again during the fight
   canvas.focus();
 });
 restartBtn.addEventListener('click', () => {
-  resetGame();
+  startGame();
+  canvas.focus();
+});
+menuBtn.addEventListener('click', () => {
+  openBossSelect();
   canvas.focus();
 });
 muteBtn.addEventListener('click', toggleMute);
 bindTouchControls();
 
-// Při přepnutí na jiný panel hru pozastavit, ať hráč nepřijde o HP.
+// Pause when the player switches to another tab, so they don't lose HP.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && state.running && !state.paused) togglePause();
 });
 
-resetGame();
+openBossSelect(bossSelect.value);
 requestAnimationFrame(frame);

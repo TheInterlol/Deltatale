@@ -1,0 +1,466 @@
+// The player's SOUL and its modes. Each mode changes how the SOUL is controlled:
+//   red     free movement (default)
+//   blue    gravity: falls towards a wall, jumps with the key pointing away from it,
+//           lands on platforms; attacks can "slam" it into a wall (Sans, Papyrus)
+//   green   fixed in the centre, blocks incoming spears with a shield (Undyne)
+//   yellow  free movement and shoots with Z; Deltarune version charges a BIG SHOT (Mettaton, Spamton NEO)
+//   purple  stuck on horizontal strings, up/down jumps between them (Muffet)
+// Attacks pick the mode with attack.soul / setSoulMode().
+
+const SOUL_COLORS = {
+  red: '#ff1a1a',
+  blue: '#1f4dff',
+  green: '#16c916',
+  yellow: '#ffe11a',
+  purple: '#d52fd9',
+  cyan: '#2ad8ff',
+  orange: '#ff9a1a'
+};
+
+const SOUL_SPEED = 190;
+const BLUE_PHYSICS = { gravity: 1500, jump: 470, jumpCut: 150, maxFall: 620, slamSpeed: 1100 };
+const SHIELD_RADIUS = 26;
+const SHOT_SPEED = 520;
+const BIG_SHOT_CHARGE = 0.55;   // seconds Z has to be held for a BIG SHOT
+const LANE_SWITCH_SPEED = 900;
+
+// Unit vectors of the four gravity directions and the key that jumps "up" against them.
+const GRAVITY = {
+  down: { x: 0, y: 1, jumpKeys: UP_KEYS },
+  up: { x: 0, y: -1, jumpKeys: DOWN_KEYS },
+  left: { x: -1, y: 0, jumpKeys: RIGHT_KEYS },
+  right: { x: 1, y: 0, jumpKeys: LEFT_KEYS }
+};
+
+function makePlayer(stats = {}) {
+  const maxHp = stats.maxHp || 20;
+  return {
+    x: arena.x + arena.w / 2,
+    y: arena.y + arena.h / 2,
+    r: 8,
+    speed: SOUL_SPEED,
+    hp: maxHp,
+    maxHp,
+    hurtCooldown: 0,
+    mode: 'red',
+    moving: false,
+    // blue
+    gravity: 'down',
+    fall: 0,
+    grounded: false,
+    slamming: false,
+    platform: null,
+    // green
+    shield: 'up',
+    // yellow
+    facing: 'up',
+    bigShot: false,
+    charge: 0,
+    chargeHeld: false,
+    shotCooldown: 0,
+    // purple
+    lanes: 3,
+    lane: 1,
+    // Sans' KARMA
+    karma: 0,
+    karmaTimer: 0
+  };
+}
+
+function isHeld(list) {
+  return list.some(k => keys[k]);
+}
+
+function inputVector() {
+  let dx = 0;
+  let dy = 0;
+  if (isHeld(LEFT_KEYS)) dx -= 1;
+  if (isHeld(RIGHT_KEYS)) dx += 1;
+  if (isHeld(UP_KEYS)) dy -= 1;
+  if (isHeld(DOWN_KEYS)) dy += 1;
+  return { dx, dy };
+}
+
+function confirmHeld() {
+  return isHeld(CONFIRM_KEYS);
+}
+
+// Switch the SOUL's mode. Options depend on the mode:
+//   blue: { gravity: 'down' }   yellow: { facing: 'up' | 'right', bigShot: bool }   purple: { lanes: 3 }
+function setSoulMode(mode, options = {}) {
+  const p = state.player;
+  p.mode = mode;
+  p.fall = 0;
+  p.grounded = false;
+  p.slamming = false;
+  p.platform = null;
+  p.charge = 0;
+  p.chargeHeld = false;
+
+  if (mode === 'blue') p.gravity = options.gravity || 'down';
+  if (mode === 'yellow') {
+    p.facing = options.facing || 'up';
+    p.bigShot = Boolean(options.bigShot);
+  }
+  if (mode === 'green') {
+    const c = arenaCenter();
+    p.x = c.x;
+    p.y = c.y;
+    p.shield = options.shield || 'up';
+  }
+  if (mode === 'purple') {
+    p.lanes = options.lanes || 3;
+    p.lane = Math.floor(p.lanes / 2);
+    p.y = laneY(p.lane);
+  }
+}
+
+function soulColor() {
+  return SOUL_COLORS[state.player.mode] || SOUL_COLORS.red;
+}
+
+function laneY(lane) {
+  const p = state.player;
+  return arena.y + (arena.h * (lane + 1)) / (p.lanes + 1);
+}
+
+function clampToArena(p) {
+  p.x = Math.max(arena.x + p.r, Math.min(arena.x + arena.w - p.r, p.x));
+  p.y = Math.max(arena.y + p.r, Math.min(arena.y + arena.h - p.r, p.y));
+}
+
+function updateSoul(dt) {
+  const p = state.player;
+
+  switch (p.mode) {
+    case 'blue': updateBlueSoul(p, dt); break;
+    case 'green': updateGreenSoul(p); break;
+    case 'yellow': updateFreeSoul(p, dt); updateShooting(p, dt); break;
+    case 'purple': updatePurpleSoul(p, dt); break;
+    default: updateFreeSoul(p, dt);
+  }
+
+  // Blue/orange attacks care about whether the player is *trying* to move.
+  // (Falling on its own doesn't count, holding a direction key does - like in Undertale.)
+  const { dx, dy } = inputVector();
+  p.moving = p.mode !== 'green' && (dx !== 0 || dy !== 0);
+
+  if (p.hurtCooldown > 0) p.hurtCooldown -= dt;
+}
+
+function updateFreeSoul(p, dt) {
+  let { dx, dy } = inputVector();
+  const length = Math.hypot(dx, dy) || 1;
+  p.x += (dx / length) * p.speed * dt;
+  p.y += (dy / length) * p.speed * dt;
+  clampToArena(p);
+}
+
+// ---------------- Blue SOUL ----------------
+function updateBlueSoul(p, dt) {
+  const g = GRAVITY[p.gravity];
+  const vertical = g.y !== 0;
+
+  // sideways movement (perpendicular to gravity)
+  const { dx, dy } = inputVector();
+  const side = vertical ? dx : dy;
+  if (vertical) p.x += side * p.speed * dt;
+  else p.y += side * p.speed * dt;
+
+  // ride a moving platform
+  if (p.platform && p.grounded) {
+    if (p.platform.dead || !isOnPlatform(p, p.platform)) {
+      p.platform = null;
+      p.grounded = false;
+    } else {
+      p.x += p.platform.vx * dt;
+      p.y = p.platform.y - p.platform.hh - p.r;
+    }
+  }
+
+  const jumpHeld = isHeld(g.jumpKeys);
+  if (p.grounded && jumpHeld && !p.slamming) {
+    p.fall = -BLUE_PHYSICS.jump;
+    p.grounded = false;
+    p.platform = null;
+  }
+  // releasing the key early cuts the jump short
+  if (!jumpHeld && p.fall < -BLUE_PHYSICS.jumpCut) p.fall = -BLUE_PHYSICS.jumpCut;
+
+  if (!p.grounded) {
+    const maxFall = p.slamming ? BLUE_PHYSICS.slamSpeed : BLUE_PHYSICS.maxFall;
+    p.fall = Math.min(maxFall, p.fall + BLUE_PHYSICS.gravity * dt);
+    p.x += g.x * p.fall * dt;
+    p.y += g.y * p.fall * dt;
+  }
+
+  // platforms only exist for normal (downward) gravity
+  if (p.gravity === 'down' && p.fall >= 0 && !p.grounded) landOnPlatforms(p);
+
+  // walls: the one gravity pulls towards is the floor
+  const floorHit =
+    (g.y > 0 && p.y >= arena.y + arena.h - p.r) ||
+    (g.y < 0 && p.y <= arena.y + p.r) ||
+    (g.x > 0 && p.x >= arena.x + arena.w - p.r) ||
+    (g.x < 0 && p.x <= arena.x + p.r);
+  const ceilingHit =
+    (g.y > 0 && p.y <= arena.y + p.r) ||
+    (g.y < 0 && p.y >= arena.y + arena.h - p.r) ||
+    (g.x > 0 && p.x <= arena.x + p.r) ||
+    (g.x < 0 && p.x >= arena.x + arena.w - p.r);
+
+  clampToArena(p);
+
+  if (floorHit && p.fall >= 0) {
+    if (p.slamming) {
+      p.slamming = false;
+      addShake(6);
+      sfx.slam();
+    }
+    p.fall = 0;
+    p.grounded = true;
+  } else if (!p.platform && !floorHit) {
+    p.grounded = false;
+  }
+  if (ceilingHit && p.fall < 0) p.fall = 0;
+}
+
+function isOnPlatform(p, plat) {
+  return Math.abs(p.x - plat.x) <= plat.hw + p.r * 0.5;
+}
+
+function landOnPlatforms(p) {
+  for (const b of state.bullets) {
+    if (!b.platform) continue;
+    const top = b.y - b.hh;
+    const feet = p.y + p.r;
+    if (isOnPlatform(p, b) && feet >= top && feet <= top + Math.max(10, p.fall / 40)) {
+      p.y = top - p.r;
+      p.fall = 0;
+      p.grounded = true;
+      p.platform = b;
+      return;
+    }
+  }
+}
+
+// Throw the blue SOUL into a wall (Sans' slams). Gravity then stays in that direction.
+function slamSoul(direction) {
+  const p = state.player;
+  if (p.mode !== 'blue') setSoulMode('blue');
+  p.gravity = direction;
+  p.fall = BLUE_PHYSICS.slamSpeed;
+  p.grounded = false;
+  p.platform = null;
+  p.slamming = true;
+}
+
+// ---------------- Green SOUL ----------------
+function updateGreenSoul(p) {
+  const c = arenaCenter();
+  p.x = c.x;
+  p.y = c.y;
+  // the most recently pressed direction wins, holding keeps it
+  if (isHeld(UP_KEYS)) p.shield = 'up';
+  else if (isHeld(DOWN_KEYS)) p.shield = 'down';
+  else if (isHeld(LEFT_KEYS)) p.shield = 'left';
+  else if (isHeld(RIGHT_KEYS)) p.shield = 'right';
+}
+
+// ---------------- Purple SOUL ----------------
+function updatePurpleSoul(p, dt) {
+  const { dx } = inputVector();
+  p.x += dx * p.speed * dt;
+  if (consumePress(UP_KEYS) && p.lane > 0) p.lane -= 1;
+  if (consumePress(DOWN_KEYS) && p.lane < p.lanes - 1) p.lane += 1;
+
+  const target = laneY(p.lane);
+  const step = LANE_SWITCH_SPEED * dt;
+  p.y = Math.abs(target - p.y) <= step ? target : p.y + Math.sign(target - p.y) * step;
+  p.x = Math.max(arena.x + p.r, Math.min(arena.x + arena.w - p.r, p.x));
+}
+
+// ---------------- Yellow SOUL ----------------
+function updateShooting(p, dt) {
+  p.shotCooldown = Math.max(0, p.shotCooldown - dt);
+  const pressed = consumePress(CONFIRM_KEYS);
+  const held = confirmHeld();
+
+  if (!p.bigShot) {
+    if (pressed && p.shotCooldown <= 0) fireShot(p, false);
+    return;
+  }
+
+  // Deltarune: tap = small shot, hold and release = BIG SHOT
+  if (pressed) {
+    p.chargeHeld = true;
+    p.charge = 0;
+  }
+  if (p.chargeHeld && held) p.charge += dt;
+  if (p.chargeHeld && !held) {
+    fireShot(p, p.charge >= BIG_SHOT_CHARGE);
+    p.chargeHeld = false;
+    p.charge = 0;
+  }
+}
+
+function fireShot(p, big) {
+  const dir = p.facing === 'right' ? { x: 1, y: 0 } : { x: 0, y: -1 };
+  state.shots.push({ x: p.x, y: p.y, vx: dir.x * SHOT_SPEED, vy: dir.y * SHOT_SPEED, big, r: big ? 11 : 4, life: 0 });
+  p.shotCooldown = 0.14;
+  if (big) sfx.bigShot();
+  else sfx.shot();
+}
+
+// Player shots hit bullets that have `shootHp`. BIG SHOTs do 4 damage and go through
+// whatever they destroy; armoured targets (`bigOnly`) ignore small shots.
+function updateShots(dt) {
+  for (const s of state.shots) {
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.life += dt;
+
+    for (const b of state.bullets) {
+      // harmless targets (Spamton's face) can still be shot; only not-yet-appeared ones can't
+      if (!b.shootHp || b.dead || (b.warn && b.life < b.warn)) continue;
+      if (distanceToBullet(b, s.x, s.y) > s.r) continue;
+
+      if (b.bigOnly && !s.big) {
+        s.dead = true;
+        break;
+      }
+      b.shootHp -= s.big ? 4 : 1;
+      b.flash = 0.08;
+      if (!s.big) s.dead = true;
+      if (b.shootHp <= 0) {
+        b.dead = true;
+        addBurst(b.x, b.y, b.color || '#ffe11a');
+        sfx.pop();
+        if (b.onDestroyed) b.onDestroyed(b, s);
+      }
+      if (s.dead) break;
+    }
+  }
+  state.shots = state.shots.filter(s => !s.dead && s.x > -40 && s.x < canvas.width + 40 && s.y > -40 && s.y < canvas.height + 40);
+}
+
+// ---------------- KARMA ----------------
+// Sans' hits add KR. KR keeps draining 1 HP at a time, faster the more KR there is,
+// but it can never take the last HP - only a direct hit can.
+function karmaInterval(karma) {
+  if (karma >= 40) return 1 / 30;
+  if (karma >= 30) return 2 / 30;
+  if (karma >= 20) return 5 / 30;
+  if (karma >= 10) return 15 / 30;
+  return 1;
+}
+
+function updateKarma(dt) {
+  const p = state.player;
+  if (p.karma <= 0) return;
+  p.karmaTimer += dt;
+  while (p.karma > 0 && p.karmaTimer >= karmaInterval(p.karma)) {
+    p.karmaTimer -= karmaInterval(p.karma);
+    p.karma -= 1;
+    if (p.hp > 1) p.hp -= 1;
+  }
+  if (p.karma <= 0) p.karmaTimer = 0;
+}
+
+// ---------------- Drawing ----------------
+function drawSoulShape(x, y, size, color) {
+  // the heart sprite is red; other modes are drawn as a tinted vector heart
+  if (color === SOUL_COLORS.red && imageReady(soulRedSprite)) {
+    ctx.drawImage(soulRedSprite, x - size / 2, y - size / 2, size, size);
+    return;
+  }
+  const s = size / 24;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, 10);
+  ctx.bezierCurveTo(-14, 0, -13, -11, -6, -11);
+  ctx.bezierCurveTo(-2, -11, 0, -8, 0, -5);
+  ctx.bezierCurveTo(0, -8, 2, -11, 6, -11);
+  ctx.bezierCurveTo(13, -11, 14, 0, 0, 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPlayer() {
+  const p = state.player;
+  if (p.hurtCooldown > 0.05 && Math.floor(p.hurtCooldown * 16) % 2 === 0) return;
+
+  ctx.save();
+  if (p.mode === 'purple') drawLanes(p);
+  if (p.mode === 'green') drawShield(p);
+
+  // The yellow SOUL points where it shoots; blue rotates with gravity.
+  let angle = 0;
+  if (p.mode === 'yellow') angle = p.facing === 'right' ? -Math.PI / 2 : Math.PI;
+  if (p.mode === 'blue') angle = { down: 0, up: Math.PI, left: Math.PI / 2, right: -Math.PI / 2 }[p.gravity];
+  ctx.translate(p.x, p.y);
+  ctx.rotate(angle);
+  drawSoulShape(0, 0, 22, soulColor());
+  ctx.restore();
+
+  if (p.mode === 'yellow' && p.chargeHeld && p.charge > 0.1) {
+    const k = Math.min(1, p.charge / BIG_SHOT_CHARGE);
+    ctx.save();
+    ctx.strokeStyle = k >= 1 ? '#fff' : '#ffe11a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 16 - k * 4, 0, Math.PI * 2 * k);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawShield(p) {
+  const angle = { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 }[p.shield];
+  ctx.save();
+  ctx.strokeStyle = '#3d7cff';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, SHIELD_RADIUS, angle - 0.75, angle + 0.75);
+  ctx.stroke();
+  // a faint circle shows the block ring
+  ctx.strokeStyle = 'rgba(22, 201, 22, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, SHIELD_RADIUS + 8, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLanes(p) {
+  ctx.save();
+  ctx.strokeStyle = '#a23aa6';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < p.lanes; i++) {
+    const y = Math.round(laneY(i)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(arena.x, y);
+    ctx.lineTo(arena.x + arena.w, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawShots() {
+  ctx.save();
+  for (const s of state.shots) {
+    ctx.fillStyle = s.big ? '#fff59a' : '#ffe11a';
+    if (s.big) {
+      fillCircle(s.x, s.y, s.r);
+    } else if (s.vx) {
+      ctx.fillRect(s.x - 7, s.y - 2, 14, 4);
+    } else {
+      ctx.fillRect(s.x - 2, s.y - 7, 4, 14);
+    }
+  }
+  ctx.restore();
+}

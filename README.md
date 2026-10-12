@@ -1,93 +1,137 @@
 # Deltatale
 
-Bitevní demo ve stylu Undertale/Deltarune v čistém HTML5 canvasu – bez frameworků a bez build kroku.
-Susie čelí pěti bossům buď v **tahové bitvě** (ÚTOK / AKCE / VĚCI / UŠETŘIT / OBRANA), nebo v režimu
-**přežití**, kde se jen uhýbá a sbírají se rekordy.
+A fan-made **Undertale / Deltarune boss rush** in plain HTML5 canvas – no frameworks, no build step.
 
-## Spuštění
+> "I loved fighting this boss and I want to fight them again immediately."
 
-Stačí otevřít `index.html` v prohlížeči. Případně přes lokální server:
+Pick a boss, fight it, and retry instantly. Each boss recreates the mechanics of its original
+encounter: its SOUL mode, attack patterns, phases, ACTs and how the fight ends.
+
+Deltatale is an unofficial fan project and is not affiliated with Toby Fox or the official games.
+
+## Running
+
+Open `index.html` in a browser, or use the tiny local server:
 
 ```bash
-npm start            # http://localhost:8080 (bez závislostí, jen Node)
+npm start            # http://localhost:8080 (no dependencies, just Node)
 ```
 
-## Ovládání
+## Controls
 
-| Klávesa | Akce |
+| Key | Action |
 | --- | --- |
-| `WASD` / šipky | pohyb srdce, výběr v menu |
-| `Z` / `Enter` / mezerník | potvrdit, spustit hru |
-| `X` / `Shift` | zpět z podmenu |
-| `Esc` / `P` | pauza (hra se pozastaví i při přepnutí panelu) |
-| `M` | zvuk zap/vyp |
+| `WASD` / arrows | move the SOUL, navigate menus |
+| `Z` / `Enter` / `Space` | confirm, start a fight, shoot (yellow SOUL) |
+| `X` / `Shift` | back, boss select |
+| `Esc` / `P` | pause (X in the pause screen quits to the boss select) |
+| `M` | sound on/off |
 
-Na dotykových zařízeních se pod plátnem objeví D-pad a tlačítka Z/X.
+On touch devices a D-pad and Z/X buttons appear under the canvas.
 
-## Herní režimy
+## How a fight works
 
-**Bitva (tahová)** – každé kolo vybereš příkaz:
+**Boss select** – `←` `→` switch between UNDERTALE and DELTARUNE, `↑` `↓` pick a boss, `Z` fights.
+Bosses that aren't implemented yet are listed as *coming soon*.
 
-- **ÚTOK** – zastav kurzor co nejblíž středu terče; perfektní zásah dává bonus.
-- **AKCE** – *Prověřit* ukáže statistiky, akce konkrétního bosse zvyšují **MILOST**.
-  *Rude Buster* je silné kouzlo za 50 % TP.
-- **VĚCI** – léčivé předměty (inventář se doplní každou bitvu).
-- **UŠETŘIT** – funguje, když je MILOST 100 % (jméno bosse zežloutne).
-- **OBRANA** – příští útok ubere polovinu HP a přidá TP.
+**Undertale bosses** use Undertale's UI: `FIGHT` / `ACT` / `ITEM` / `MERCY`, you are just the SOUL.
+**Deltarune bosses** use Deltarune's: `FIGHT` / `ACT` / `ITEM` / `SPARE` / `DEFEND`, Susie fights,
+grazing bullets charges TP (for Rude Buster and TP-costing ACTs), `DEFEND` halves the next attack.
 
-Pak boss promluví a zaútočí – srdce uhýbá v aréně. Těsné míjení střel (*graze*) nabíjí TP.
-Útoky jdou podle časové osy bosse a s každým dalším kolem (a při nízkém HP bosse) zrychlují.
-Bitva končí poražením bosse, ušetřením, nebo GAME OVER (Z = znovu, X = zpět).
+After winning: `Z` = back to the boss select (with the next boss highlighted), `X` = fight again.
+After a GAME OVER: `Z` = retry immediately, `X` = boss select.
 
-**Přežití (na čas)** – původní režim: bez menu, každý zásah ubere 1 HP, ukládá se nejlepší čas.
+**Survival mode** (mode selector under the canvas) plays a boss' attacks back to back forever.
 
-## Bossové
+### SOUL modes and bullet colours
 
-| Boss | HP | Útoky v bitvě |
+| Mode | Control |
+| --- | --- |
+| Red | moves freely |
+| Blue | gravity; the key pointing away from the floor jumps (hold for higher). Can be slammed into walls and stand on platforms |
+| Green | can't move; arrow keys turn the shield – block spears from the side they come from (yellow spears swap sides) |
+| Yellow | moves and shoots with `Z`; in Deltarune hold and release `Z` for a BIG SHOT that breaks armoured targets |
+| Purple | stuck on horizontal strings; `↑` `↓` hop between them |
+
+Cyan attacks only hurt you while you move, orange ones only while you stand still.
+Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP over time
+(but can never take the last point).
+
+## Bosses
+
+| Boss | Game | Signature mechanics implemented |
 | --- | --- | --- |
-| Training Dummy | 60 | střely ze všech stran, rychlá palba |
-| Bone Rain | 200 | kostěný déšť, kostěné zdi s mezerou, kombinace |
-| Jevil-ish Cards | 260 | rozhoz karet, kývající se vějíř, svírající se kruh |
-| Spamton-ish Blasters | 240 | boční palba, mířené střely, křížová palba |
-| Old Man Gerson | 400 | padající sekery, bumerangy, Kladivo spravedlnosti (+ hudba) |
+| Training Dummy | Undertale – Ruins | warm-up shots; Talk to spare |
+| Toriel | Undertale – Ruins | fire waves, paw sweep with bouncing fire, fire helix, faltering fire that avoids you, can't kill you, spare her again and again |
+| Papyrus | Undertale – Snowdin | red warm-up, then permanent blue SOUL, the blue attack, six scripted bone sequences, the "absolutely normal attack" (dog, COOL DUDE, skateboard), spares you after it, captures instead of killing |
+| Undyne | Undertale – Waterfall | green SOUL shield vs. 4-way spears incl. reversing yellow spears, rising spears, spear volleys, speeds up every turn, Plead/Challenge, flee once the red phase starts |
+| Sans | Undertale – Genocide | KARMA, opening attack, bone lines, cyan bones, platforms over bones, beam cannons, gravity slams, false mercy trap, final barrage, falls asleep – only then can be hit |
+| Old Man Gerson | Deltarune – Chapter 4 | falling axes, boomerangs, combined attack (uses the project's own sprite and music) |
+| Jevil | Deltarune – secret | 4 phases by HP or tiredness, suit bullets, spirals, bombs, scythes, carousel, CHAOS BOMB, FINAL CHAOS; Pirouette/Hypnosis tire him for a pacify |
+| Spamton NEO | Deltarune – secret | yellow SOUL with BIG SHOT, flying heads, mail trucks, chained heart, pipis, gripping phones, eyes/nose/mouth, POWER OF NEO; Snap wires to spare |
 
-## Struktura
+The full roster (every major, optional and secret boss of both games) is listed in
+`js/roster.js` and in the boss select screen.
 
-```
-index.html          stránka, ovládací prvky, pořadí skriptů
-style.css           vzhled stránky a dotykového ovládání
-js/config.js        canvas, DOM prvky, rozložení plátna, sprity a hudba
-js/storage.js       bezpečný localStorage, rekordy a nastavení
-js/input.js         klávesnice a dotyková tlačítka (držené i zmáčknuté klávesy)
-js/audio.js         syntetizované zvukové efekty, správa hudby, ztlumení
-js/state.js         herní stav, start/reset/konec hry, pauza
-js/player.js        pohyb srdce
-js/bullets.js       střely, kolize, poškození, graze
-js/patterns.js      sdílené vzory střel a pomocník every() pro časovou osu útoků
-js/effects.js       otřesy, záblesky, plovoucí čísla, seky
-js/textbox.js       zalamování textu a postupné vypisování
-js/items.js         léčivé předměty
-js/bosses.js        registr bossů a popis jejich rozhraní
-js/hud.js           rozhraní bitvy (panel Susie, příkazy, TP, bublina, překryvy)
-js/render.js        kreslení scény
-js/battle.js        stavový automat tahové bitvy
-js/game.js          herní smyčka (updateGame + render)
-bosses/*.js         jeden soubor na bosse
-tests/              automatické testy (Playwright) a statický server
+## Art and music
+
+The repository only ships the project's own Susie/Gerson sprites and Gerson's music. Every
+other boss is drawn as a **placeholder card** (its name and a small generic emblem) until you
+give it art – the projectiles (bones, spears, fire, cards…) are drawn in code.
+
+To add art or music for a boss, put the files in `assets/bosses/<boss id>/` and list them in
+`assets/bosses/manifest.js`:
+
+```js
+const BOSS_ASSETS = {
+  toriel: { sprite: 'idle.png', frames: 1, scale: 2, music: 'music.mp3' },
+};
 ```
 
-## Jak přidat bosse
+A sprite is a horizontal strip of equally wide frames. Only listed files are requested.
 
-1. Vytvoř `bosses/muj-boss.js` a zaregistruj ho přes `registerBoss({...})` – vzorem je
-   `bosses/dummy.js`, celé rozhraní je popsané v `js/bosses.js`.
-2. Přidej `<script src="bosses/muj-boss.js">` do `index.html` (před `js/game.js`)
-   a `<option value="...">` do `#bossSelect` – `name` bosse musí odpovídat textu volby.
-3. Útok v bitvě je `{ name, duration, update(run) }`. Pro pravidelné střílení použij
-   `every(run, 'klic', interval, () => spawnNeco(run.speed))`; `run.speed` roste s koly.
-4. Spusť `npm test` – testy samy zkontrolují, že boss má kompletní data, že se všechny jeho
-   texty vejdou do boxu i bubliny a že každý jeho útok doběhne až do konce.
+## Structure
 
-## Testy
+```
+index.html            page, controls, script order
+style.css             page and touch-control styles
+assets/bosses/        per-boss art/music slots + manifest.js
+js/config.js          canvas, layout, bullet board (setArena)
+js/storage.js         safe localStorage, records and settings
+js/input.js           keyboard and touch input (held and pressed keys)
+js/audio.js           synthesized sound effects, music, mute
+js/textbox.js         word wrap and typewriter text
+js/bosses.js          boss registry and the full boss interface description
+js/bossart.js         boss sprites/placeholders, shared projectile shapes
+js/roster.js          the complete Undertale + Deltarune roster
+js/items.js           healing items per game
+js/state.js           game state, start/reset/end, survival mode
+js/soul.js            SOUL modes (red, blue, green, yellow, purple), shots, KARMA
+js/bullets.js         bullets, hitboxes, colours, damage, graze, shield blocks
+js/patterns.js        shared attack building blocks (every, timeline, bones, beams, rings…)
+js/effects.js         shake, flash, popups, slashes, particles
+js/hud.js             battle UI for both games
+js/render.js          scene and bullet drawing
+js/menu.js            boss select screen
+js/battle.js          the turn-based battle state machine and attack runner
+js/game.js            game loop
+bosses/*.js           one file per boss
+tests/                automated tests (Playwright) and a static server
+```
+
+## Adding a boss
+
+1. Create `bosses/<id>.js` and call `registerBoss({...})` – the interface (stats, texts, ACTs,
+   attacks, phases via `chooseAttack`, hooks like `onSpare`, `onFight`, `onLethal`…) is described
+   at the top of `js/bosses.js`. The id must match its entry in `js/roster.js`.
+2. Add `<script src="bosses/<id>.js">` to `index.html` (before `js/game.js`).
+3. An attack is `{ name, duration, box: { w, h }, soul: 'blue', start(run), update(run, dt) }`.
+   Build patterns from `every()`, `timeline()`, `floorBone()`, `warnZone()`, `spawnBeam()`,
+   `spawnRing()`… in `js/patterns.js`. Custom bullet looks go into `BULLET_DRAWERS`.
+4. Run `npm test` – the tests run every attack of every boss to the end, and check that every
+   boss can hurt you, kill you, be retried and be beaten.
+
+## Tests
 
 ```bash
 npm install
@@ -95,13 +139,13 @@ npx playwright install chromium
 npm test
 ```
 
-Testy běží v headless Chromiu přes vestavěný `node:test`. Většina z nich vypne vlastní herní
-smyčku a krokuje hru přes `updateGame(dt)`, takže výsledky nezávisí na rychlosti stroje.
+The tests run in headless Chromium with the built-in `node:test`. Most of them switch off the
+real game loop and step the game with `updateGame(dt)`, so results don't depend on machine speed.
 
-## Ukládání
+## Saving
 
-Vše je v `localStorage` prohlížeče a hra funguje i bez něj:
+Everything lives in the browser's `localStorage`, and the game works without it:
 
-- `battle_best_<boss>` – nejlepší čas v režimu přežití (původní formát klíče),
-- `deltatale_records` – výsledky bitev (poražen / ušetřen / nejméně kol),
-- `deltatale_settings` – poslední boss, režim a ztlumení zvuku.
+- `battle_best_<boss>` – best survival time (original key format),
+- `deltatale_records` – battle results (defeated / spared / fewest turns),
+- `deltatale_settings` – last boss, mode and mute.

@@ -1,4 +1,4 @@
-// Minimální statický server bez závislostí. Používají ho testy a `npm start`.
+// A minimal static file server without dependencies. Used by the tests and `npm start`.
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,7 +10,9 @@ const CONTENT_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.png': 'image/png',
   '.gif': 'image/gif',
-  '.mp3': 'audio/mpeg'
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav'
 };
 
 function createServer() {
@@ -18,7 +20,7 @@ function createServer() {
     const url = new URL(req.url, 'http://localhost');
     let filePath = path.join(ROOT, decodeURIComponent(url.pathname));
 
-    // nepustit požadavky mimo složku projektu
+    // never serve anything outside the project folder
     if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) {
       res.writeHead(403);
       res.end('Forbidden');
@@ -46,6 +48,6 @@ module.exports = { createServer };
 if (require.main === module) {
   const port = Number(process.env.PORT) || 8080;
   createServer().listen(port, '127.0.0.1', () => {
-    console.log(`Deltatale běží na http://localhost:${port}`);
+    console.log(`Deltatale is running at http://localhost:${port}`);
   });
 }

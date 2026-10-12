@@ -1,5 +1,5 @@
-// Bezpečný přístup k localStorage. V anonymním okně nebo se zakázaným úložištěm
-// localStorage hází výjimky - hra musí běžet dál, jen bez ukládání.
+// Safe localStorage access. In private windows or with storage disabled localStorage
+// throws - the game must keep running, just without saving.
 function storageGet(key, fallback = null) {
   try {
     const value = localStorage.getItem(key);
@@ -13,7 +13,7 @@ function storageSet(key, value) {
   try {
     localStorage.setItem(key, value);
   } catch (e) {
-    // ukládání není k dispozici, hra pokračuje bez něj
+    // saving is not available, the game continues without it
   }
 }
 
@@ -32,8 +32,8 @@ function saveJson(key, value) {
   storageSet(key, JSON.stringify(value));
 }
 
-// -------------- Přežití: nejlepší čas --------
-// Formát klíče zůstává původní, aby se neztratily už uložené rekordy.
+// -------------- Survival: best time --------
+// The key format is the original one, so already saved records are kept.
 function getBestTime(bossId) {
   const value = Number(storageGet(`battle_best_${bossId}`, 0));
   return Number.isFinite(value) ? value : 0;
@@ -43,7 +43,7 @@ function saveBestTime(bossId, seconds) {
   storageSet(`battle_best_${bossId}`, String(seconds));
 }
 
-// -------------- Bitva: výsledky --------
+// -------------- Battle: results --------
 const RECORDS_KEY = 'deltatale_records';
 
 function getBossRecord(bossId) {
@@ -68,10 +68,10 @@ function recordBattleResult(bossId, outcome, turns) {
   return record;
 }
 
-// -------------- Nastavení --------
+// -------------- Settings --------
 const SETTINGS_KEY = 'deltatale_settings';
 const settings = Object.assign(
-  { muted: false, gameMode: 'battle', boss: 'gerson' },
+  { muted: false, gameMode: 'battle', boss: 'toriel' },
   loadJson(SETTINGS_KEY, {})
 );
 

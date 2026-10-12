@@ -1,4 +1,4 @@
-// Držené klávesy (pohyb srdce) a klávesy zmáčknuté od posledního snímku (menu, potvrzení).
+// Held keys (SOUL movement) and keys pressed since the last frame (menus, confirm).
 const keys = {};
 const pressedKeys = new Set();
 
@@ -9,7 +9,7 @@ const RIGHT_KEYS = ['arrowright', 'd'];
 const UP_KEYS = ['arrowup', 'w'];
 const DOWN_KEYS = ['arrowdown', 's'];
 
-// Klávesy, které během hry nesmí scrollovat stránkou ani "kliknout" na tlačítko s fokusem.
+// Keys that must not scroll the page or "click" a focused button while playing.
 const GAME_KEYS = new Set([
   ...CONFIRM_KEYS, ...CANCEL_KEYS, ...LEFT_KEYS, ...RIGHT_KEYS, ...UP_KEYS, ...DOWN_KEYS
 ]);
@@ -21,11 +21,12 @@ function isFormField(target) {
 window.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   const playing = typeof isGameActive === 'function' && isGameActive();
+  const inMenu = typeof state !== 'undefined' && state.screen === 'select';
 
-  if (playing && GAME_KEYS.has(key)) e.preventDefault();
-
-  // Mimo hru patří klávesy formulářovým prvkům (výběr bosse, tlačítka).
+  // Outside a fight, keys belong to form controls (boss select, buttons).
   if (!playing && isFormField(e.target)) return;
+
+  if ((playing || inMenu) && GAME_KEYS.has(key)) e.preventDefault();
 
   if (!e.repeat) pressedKeys.add(key);
   keys[key] = true;
@@ -35,7 +36,7 @@ window.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()] = false;
 }, true);
 
-// Po ztrátě fokusu (alt-tab) by klávesa zůstala "držená" a srdce by ujíždělo.
+// After losing focus (alt-tab) a key would stay "held" and the SOUL would drift.
 window.addEventListener('blur', releaseAllKeys);
 
 function releaseAllKeys() {
@@ -43,7 +44,7 @@ function releaseAllKeys() {
   pressedKeys.clear();
 }
 
-// Vrátí true, pokud byla některá z kláves zmáčknutá, a stisk "spotřebuje".
+// Returns true if one of the keys was pressed, and "consumes" the press.
 function consumePress(names) {
   let hit = false;
   for (const name of names) {
@@ -60,7 +61,7 @@ function cancelPressed() {
   return consumePress(CANCEL_KEYS);
 }
 
-// Směr pro navigaci v menu: { dx, dy } v rozsahu -1..1.
+// Direction for menu navigation: { dx, dy } in -1..1.
 function directionPressed() {
   const dir = { dx: 0, dy: 0 };
   if (consumePress(LEFT_KEYS)) dir.dx -= 1;
@@ -74,7 +75,7 @@ function endInputFrame() {
   pressedKeys.clear();
 }
 
-// Dotyková tlačítka (data-key) se chovají jako klávesy: stisk = keydown, puštění = keyup.
+// Touch buttons (data-key) behave like keys: press = keydown, release = keyup.
 function bindTouchControls() {
   for (const button of document.querySelectorAll('.touch-controls [data-key]')) {
     const key = button.dataset.key;
@@ -93,7 +94,7 @@ function bindTouchControls() {
     button.addEventListener('pointerup', release);
     button.addEventListener('pointercancel', release);
     button.addEventListener('lostpointercapture', release);
-    // dlouhý stisk nesmí otevřít kontextové menu
+    // a long press must not open the context menu
     button.addEventListener('contextmenu', e => e.preventDefault());
   }
 }

@@ -1,8 +1,8 @@
-// Text v boxu a bublinách: zalamování a postupné vypisování (typewriter).
-const TEXT_SPEED = 45; // znaků za sekundu
+// Text in the box and speech bubbles: word wrapping and the typewriter effect.
+const TEXT_SPEED = 45; // characters per second
 
-// Zalomí text do řádků podle šířky. Odstavce začínající "* " mají odsazené
-// pokračovací řádky, aby hvězdička zůstala sama vlevo jako v Undertale.
+// Wrap text into lines that fit maxWidth. Paragraphs starting with "* " get indented
+// continuation lines so the asterisk stays alone on the left, like in Undertale.
 function wrapText(text, maxWidth, font = TEXT_FONT) {
   ctx.save();
   ctx.font = font;
@@ -45,7 +45,7 @@ function updateTyper(typer, dt, sound = true) {
   const before = Math.floor(typer.shown);
   typer.shown = Math.min(typer.total, typer.shown + TEXT_SPEED * dt);
   const after = Math.floor(typer.shown);
-  // pípnutí na každý druhý nový znak, ať to nezní jako kulomet
+  // beep on every second new character so it doesn't sound like a machine gun
   if (sound && after !== before && after % 2 === 0) sfx.text();
 }
 
@@ -73,9 +73,6 @@ function drawTyper(typer, x, y, lineHeight, color = '#fff') {
   ctx.restore();
 }
 
-// České skloňování podle čísla: plural(1, 'kolo', 'kola', 'kol').
-function plural(n, one, few, many) {
-  if (n === 1) return one;
-  if (n >= 2 && n <= 4) return few;
-  return many;
+function plural(n, word) {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
 }

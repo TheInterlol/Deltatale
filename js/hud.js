@@ -1,23 +1,39 @@
-// Kreslení rozhraní: spodní panel se Susie, tlačítka příkazů, TP, stav bosse,
-// obsah textového boxu, bublina a překryvy (start, game over, pauza).
-const BUBBLE = { x: 318, y: 16, w: 186, h: 92 };
+// Battle UI: the player panel, command buttons, TP gauge, boss status, the text box contents,
+// speech bubble and overlays (start, game over, pause). Undertale and Deltarune bosses get
+// the UI of their own game.
+const BUBBLE_DR = { x: 318, y: 16, w: 186, h: 92 };
 const BUBBLE_FONT = SMALL_FONT;
 const PARTY_PANEL = { x: 14, y: 350, w: 236, h: 48 };
-const COMMAND_BUTTON = { x: 262, y: 354, w: 82, h: 40, gap: 6 };
+const COMMAND_BUTTON_DR = { x: 262, y: 354, w: 82, h: 40, gap: 6 };
+const COMMAND_BUTTON_UT = { x: 40, y: 366, w: 146, h: 34, gap: 14 };
 const TP_GAUGE = { x: 22, y: 166, w: 18, h: 146 };
 const SUSIE_COLOR = '#d462d9';
-const BIG_FONT = 'bold 28px "Courier New", Courier, monospace';
-const HUGE_FONT = 'bold 52px "Courier New", Courier, monospace';
+const UT_ORANGE = '#ff8c1a';
+const UT_YELLOW = '#ffe14d';
+const BIG_FONT = `bold 28px ${FONT_FAMILY}`;
+const HUGE_FONT = `bold 52px ${FONT_FAMILY}`;
 
-function drawSoulIcon(cx, cy, size) {
-  if (soulRedSprite.complete && soulRedSprite.naturalWidth > 0) {
-    ctx.drawImage(soulRedSprite, cx - size / 2, cy - size / 2, size, size);
-  } else {
-    ctx.fillStyle = '#ff3b3b';
-    fillCircle(cx, cy, size / 2.5);
-  }
+function isUndertale() {
+  return state.currentBoss && state.currentBoss.game === 'undertale';
 }
 
+function bubbleRect(battle) {
+  if (battle.boss.game !== 'undertale') return BUBBLE_DR;
+  const at = bossPosition(battle.boss);
+  return { x: at.x + 70, y: 14, w: 190, h: 92 };
+}
+
+// Where heal / damage numbers for the player appear.
+function partyPopupPos() {
+  if (isUndertale()) return { x: 250, y: 346 };
+  return { x: SUSIE_POS.x + 36, y: SUSIE_POS.y + 40 };
+}
+
+function drawSoulIcon(cx, cy, size) {
+  drawSoulShape(cx, cy, size, SOUL_COLORS.red);
+}
+
+// ---------------- Deltarune: Susie's panel ----------------
 function drawPartyPanel() {
   const p = state.player;
   const panel = PARTY_PANEL;
@@ -35,7 +51,7 @@ function drawPartyPanel() {
   ctx.fillText('SUSIE', panel.x + 10, panel.y + 19);
   if (state.battle && state.battle.defending) {
     ctx.fillStyle = '#7fd4ff';
-    ctx.fillText('KRYJE SE', panel.x + 80, panel.y + 19);
+    ctx.fillText('DEFENDING', panel.x + 80, panel.y + 19);
   }
 
   ctx.fillStyle = '#fff';
@@ -52,33 +68,72 @@ function drawPartyPanel() {
   ctx.restore();
 }
 
-function drawCommandButtons(battle) {
-  const choosing = battle && ['menu', 'actList', 'itemList'].includes(battle.phase);
-  const b = COMMAND_BUTTON;
+// ---------------- Undertale: name, LV, HP (and KR) ----------------
+function drawUtStats() {
+  const p = state.player;
+  const stats = playerStats(state.currentBoss);
+  const hp = Math.max(0, p.hp);
+  const y = 357;
 
   ctx.save();
-  ctx.font = 'bold 13px "Courier New", Courier, monospace';
+  ctx.font = SMALL_FONT;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(stats.name, 40, y);
+  ctx.fillText(`LV ${stats.lv}`, 130, y);
+  ctx.fillText('HP', 210, y);
+
+  // bar width grows with max HP like in Undertale (capped to fit)
+  const barW = Math.min(180, 30 + p.maxHp * 1.2);
+  const bar = { x: 240, y: y - 12, w: barW, h: 14 };
+  ctx.fillStyle = '#c00000';
+  ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
+  ctx.fillStyle = '#ffe600';
+  ctx.fillRect(bar.x, bar.y, (bar.w * hp) / p.maxHp, bar.h);
+  let textX = bar.x + bar.w + 12;
+  if (state.currentBoss.karma) {
+    // KR eats into the HP bar from the right
+    const kr = Math.min(p.karma, hp);
+    ctx.fillStyle = '#ff00ff';
+    ctx.fillRect(bar.x + (bar.w * (hp - kr)) / p.maxHp, bar.y, (bar.w * kr) / p.maxHp, bar.h);
+    ctx.fillStyle = p.karma > 0 ? '#ff00ff' : '#fff';
+    ctx.fillText('KR', textX, y);
+    textX += 30;
+  }
+  ctx.fillStyle = p.karma > 0 ? '#ff00ff' : hp <= p.maxHp * 0.2 ? '#ff5e5e' : '#fff';
+  ctx.fillText(`${hp} / ${p.maxHp}`, textX, y);
+  ctx.restore();
+}
+
+function drawCommandButtons(battle) {
+  const boss = state.currentBoss;
+  const commands = COMMAND_SETS[boss.game] || COMMAND_SETS.deltarune;
+  const choosing = battle && ['menu', 'actList', 'itemList', 'mercyList'].includes(battle.phase);
+  const ut = boss.game === 'undertale';
+  const b = ut ? COMMAND_BUTTON_UT : COMMAND_BUTTON_DR;
+
+  ctx.save();
+  ctx.font = ut ? `bold 17px ${FONT_FAMILY}` : `bold 13px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.lineWidth = 2;
 
-  COMMANDS.forEach((command, i) => {
+  commands.forEach((command, i) => {
     const x = b.x + i * (b.w + b.gap);
     const selected = choosing && i === battle.command;
-    const color = selected ? '#ffd34d' : '#d17f1f';
+    const color = ut ? (selected ? UT_YELLOW : UT_ORANGE) : (selected ? '#ffd34d' : '#d17f1f');
 
-    ctx.globalAlpha = choosing ? 1 : 0.45;
-    ctx.fillStyle = selected ? '#2a1c00' : '#000';
+    ctx.globalAlpha = choosing || !battle ? 1 : 0.45;
+    ctx.fillStyle = selected && !ut ? '#2a1c00' : '#000';
     ctx.fillRect(x, b.y, b.w, b.h);
     ctx.strokeStyle = color;
     ctx.strokeRect(x + 1, b.y + 1, b.w - 2, b.h - 2);
 
     ctx.fillStyle = color;
     if (selected) {
-      drawSoulIcon(x + 12, b.y + b.h / 2, 12);
+      drawSoulIcon(x + 14, b.y + b.h / 2, 13);
       ctx.fillStyle = color;
-      ctx.fillText(command.label, x + 48, b.y + b.h / 2 + 5);
+      ctx.fillText(command.label, x + b.w / 2 + 10, b.y + b.h / 2 + 6);
     } else {
-      ctx.fillText(command.label, x + b.w / 2, b.y + b.h / 2 + 5);
+      ctx.fillText(command.label, x + b.w / 2, b.y + b.h / 2 + 6);
     }
   });
 
@@ -100,7 +155,7 @@ function drawTpGauge(battle) {
   ctx.fillStyle = battle.tp >= 100 ? '#ffd34d' : '#ff8c1a';
   ctx.fillRect(g.x, g.y + g.h - fill, g.w, fill);
 
-  // značka, od které jde seslat Rude Buster
+  // mark from which Rude Buster can be cast
   const markY = g.y + g.h - (g.h * RUDE_BUSTER_COST) / 100;
   ctx.fillStyle = '#fff';
   ctx.fillRect(g.x - 3, markY - 1, g.w + 6, 2);
@@ -114,22 +169,39 @@ function drawTpGauge(battle) {
 
 function drawBossStatus(battle) {
   const boss = battle.boss;
-  const x = 196;
-  const y = 122;
+  const ut = boss.game === 'undertale';
+  const x = ut ? 60 : 196;
+  const y = ut ? 166 : 122;
   const barW = 120;
+
+  // Undertale only shows the enemy HP bar between attacks.
+  if (ut && !['menu', 'actList', 'itemList', 'mercyList', 'fight', 'fightResult', 'result'].includes(battle.phase)) return;
+  // a board that fills the screen (Jevil's FINAL CHAOS) would be covered by the status
+  if (state.box.y < y + 30) return;
 
   ctx.save();
   ctx.font = SMALL_FONT;
   ctx.fillStyle = isSpareable(battle) ? '#ffe14d' : '#fff';
   ctx.fillText(boss.name, x, y);
 
-  ctx.fillStyle = '#5a0000';
-  ctx.fillRect(x, y + 8, barW, 8);
-  ctx.fillStyle = '#3bd16f';
-  ctx.fillRect(x, y + 8, (barW * battle.bossHp) / boss.maxHp, 8);
-
-  ctx.fillStyle = '#ffe14d';
-  ctx.fillText(`MILOST ${battle.mercy}%`, x + barW + 12, y + 17);
+  if (!boss.hideHp) {
+    const barX = x + ctx.measureText(boss.name).width + 12;
+    ctx.fillStyle = ut ? '#5a0000' : '#5a0000';
+    ctx.fillRect(barX, y - 9, barW, 10);
+    ctx.fillStyle = ut ? '#3bd16f' : '#3bd16f';
+    ctx.fillRect(barX, y - 9, (barW * battle.bossHp) / boss.maxHp, 10);
+    if (!ut || boss.showMercy) {
+      ctx.fillStyle = '#ffe14d';
+      ctx.fillText(`MERCY ${battle.mercy}%`, barX + barW + 12, y);
+    }
+  }
+  if (boss.statusText) {
+    const extra = boss.statusText(battle);
+    if (extra) {
+      ctx.fillStyle = '#9fd8ff';
+      ctx.fillText(extra, x, y + 18);
+    }
+  }
   ctx.restore();
 }
 
@@ -154,6 +226,9 @@ function drawBattleBoxContents(battle) {
     case 'itemList':
       drawOptionList(battle, getItemOptions(battle));
       break;
+    case 'mercyList':
+      drawOptionList(battle, getMercyOptions(battle));
+      break;
     case 'fight':
     case 'fightResult':
       drawFightBar(battle);
@@ -171,7 +246,7 @@ function drawOptionList(battle, options) {
   options.forEach((option, i) => {
     const x = box.x + TEXT_PADDING + (i % LIST_COLUMNS) * columnWidth;
     const y = box.y + 36 + Math.floor(i / LIST_COLUMNS) * 30;
-    const textColor = option.disabled ? '#666' : '#fff';
+    const textColor = option.disabled ? '#666' : option.spareable ? '#ffe14d' : '#fff';
 
     if (i === battle.listIndex) {
       drawSoulIcon(x + 6, y - 6, 14);
@@ -210,7 +285,7 @@ function drawFightBar(battle) {
   const cy = box.y + box.h / 2;
 
   ctx.save();
-  // terč ze soustředných elips, uprostřed zelená čára = nejsilnější zásah
+  // target of concentric ellipses, the green line in the middle is the strongest hit
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2;
   for (let i = 0; i < 4; i++) {
@@ -229,27 +304,36 @@ function drawFightBar(battle) {
   ctx.strokeStyle = '#000';
   ctx.strokeRect(cursorX - 5, cy - 58, 10, 116);
 
-  if (battle.phase === 'fightResult' && fight.perfect) {
+  if (battle.phase === 'fightResult' && fight.perfect && !fight.missed) {
     ctx.font = TEXT_FONT;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd34d';
-    ctx.fillText('PERFEKTNÍ!', cx, box.y - 12);
+    ctx.fillText('PERFECT!', cx, box.y - 12);
   }
   ctx.restore();
 }
 
 function drawSpeechBubble(battle) {
   if (!battle.bubble) return;
-  const b = BUBBLE;
+  const b = { ...bubbleRect(battle) };
+  // long lines make the bubble taller
+  b.h = Math.max(b.h, 16 + battle.bubble.lines.length * 18);
+  const ut = battle.boss.game === 'undertale';
 
   ctx.save();
   ctx.fillStyle = '#fff';
   fillRoundRect(b.x, b.y, b.w, b.h, 10);
-  // ocásek bubliny míří k bossovi
+  // the tail points at the boss
   ctx.beginPath();
-  ctx.moveTo(b.x + b.w - 2, b.y + 30);
-  ctx.lineTo(b.x + b.w + 16, b.y + 44);
-  ctx.lineTo(b.x + b.w - 2, b.y + 54);
+  if (ut) {
+    ctx.moveTo(b.x + 2, b.y + 30);
+    ctx.lineTo(b.x - 16, b.y + 44);
+    ctx.lineTo(b.x + 2, b.y + 54);
+  } else {
+    ctx.moveTo(b.x + b.w - 2, b.y + 30);
+    ctx.lineTo(b.x + b.w + 16, b.y + 44);
+    ctx.lineTo(b.x + b.w - 2, b.y + 54);
+  }
   ctx.closePath();
   ctx.fill();
   ctx.restore();
@@ -258,7 +342,7 @@ function drawSpeechBubble(battle) {
 }
 
 function drawBattleUi(battle) {
-  drawTpGauge(battle);
+  if (battle.boss.game !== 'undertale') drawTpGauge(battle);
   drawBossStatus(battle);
   drawCommandButtons(battle);
   drawBattleBoxContents(battle);
@@ -268,10 +352,15 @@ function drawBattleUi(battle) {
 function drawSurvivalHud() {
   ctx.save();
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 18px "Courier New", Courier, monospace';
+  ctx.font = `bold 18px ${FONT_FAMILY}`;
   ctx.fillText(`TIME ${state.timer.toFixed(1)}s`, 272, 380);
   ctx.textAlign = 'right';
   ctx.fillText(state.currentBoss.name, canvas.width - 18, 380);
+  if (state.survival && state.survival.run) {
+    ctx.font = TINY_FONT;
+    ctx.fillStyle = '#9c9c9c';
+    ctx.fillText(state.survival.run.attack.name, canvas.width - 18, 396);
+  }
   ctx.restore();
 }
 
@@ -283,14 +372,14 @@ function drawOverlays() {
   ctx.save();
   ctx.textAlign = 'center';
 
-  if (!state.running && !state.gameOver && !state.battle) {
+  if (state.screen === 'fight' && !state.running && !state.gameOver && !state.battle) {
     ctx.fillStyle = '#fff';
     ctx.font = BIG_FONT;
-    ctx.fillText('STISKNI START', cx, cy);
+    ctx.fillText('PRESS START', cx, cy);
     ctx.font = SMALL_FONT;
     ctx.fillStyle = '#9c9c9c';
     ctx.fillText(
-      state.gameMode === 'battle' ? 'Z / Enter · tahová bitva' : 'Z / Enter · přežij co nejdéle',
+      state.gameMode === 'battle' ? 'Z / Enter · fight   X · boss select' : 'Z / Enter · survive as long as you can',
       cx,
       cy + 28
     );
@@ -305,17 +394,14 @@ function drawOverlays() {
     ctx.font = HUGE_FONT;
     ctx.fillText('GAME OVER', canvas.width / 2, 215);
     ctx.font = TEXT_FONT;
-    ctx.fillText(
-      state.gameMode === 'battle'
-        ? 'Susie, zůstaň odhodlaná!'
-        : `Přežila jsi ${state.timer.toFixed(1)} s.`,
-      canvas.width / 2,
-      262
-    );
+    const line = state.gameMode === 'battle'
+      ? (state.currentBoss.gameOverText || (isUndertale() ? 'Stay determined...' : 'Susie, get back up!'))
+      : `You survived ${state.timer.toFixed(1)} s.`;
+    ctx.fillText(line, canvas.width / 2, 262);
     ctx.font = SMALL_FONT;
     ctx.fillStyle = '#9c9c9c';
     ctx.fillText(
-      state.gameMode === 'battle' ? 'Z / Enter = znovu · X = zpět' : 'Z / Enter = znovu',
+      state.gameMode === 'battle' ? 'Z / Enter = retry · X = boss select' : 'Z / Enter = again',
       canvas.width / 2,
       300
     );
@@ -326,9 +412,9 @@ function drawOverlays() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#fff';
     ctx.font = HUGE_FONT;
-    ctx.fillText('PAUZA', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
     ctx.font = SMALL_FONT;
-    ctx.fillText('Esc / P = pokračovat', canvas.width / 2, canvas.height / 2 + 34);
+    ctx.fillText('Esc / P = continue · X = boss select', canvas.width / 2, canvas.height / 2 + 34);
   }
 
   ctx.restore();
@@ -337,7 +423,7 @@ function drawOverlays() {
 function drawBrokenSoul(cx, cy) {
   ctx.save();
   drawSoulIcon(cx, cy, 48);
-  // prasklina přes srdce
+  // a crack through the heart
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 3;
   ctx.beginPath();

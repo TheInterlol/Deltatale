@@ -1,5 +1,5 @@
-// -------------- Zvukové efekty --------
-// Krátké syntetizované zvuky přes Web Audio, takže nepotřebují žádné soubory.
+// -------------- Sound effects --------
+// Short synthesized sounds via Web Audio, so no sound files are needed.
 let audioCtx = null;
 
 function getAudioContext() {
@@ -56,10 +56,18 @@ const sfx = {
   buster() { playTone({ freq: 90, to: 600, duration: 0.35, type: 'sawtooth', volume: 0.06 }); },
   victory() { playArpeggio([523, 659, 784, 1047], 0.1, { type: 'square', volume: 0.04 }); },
   spare() { playArpeggio([784, 988, 1175, 1568], 0.08, { type: 'triangle', volume: 0.05 }); },
-  gameOver() { playArpeggio([392, 330, 262, 196], 0.18, { type: 'triangle', volume: 0.06 }); }
+  gameOver() { playArpeggio([392, 330, 262, 196], 0.18, { type: 'triangle', volume: 0.06 }); },
+  slam() { playTone({ freq: 110, to: 45, duration: 0.18, volume: 0.07 }); },
+  warn() { playTone({ freq: 880, duration: 0.05, type: 'square', volume: 0.025 }); },
+  beam() { playTone({ freq: 140, to: 900, duration: 0.25, type: 'sawtooth', volume: 0.05 }); },
+  shot() { playTone({ freq: 1200, to: 900, duration: 0.04, type: 'square', volume: 0.02 }); },
+  bigShot() { playTone({ freq: 300, to: 1400, duration: 0.2, type: 'sawtooth', volume: 0.05 }); },
+  pop() { playTone({ freq: 600, to: 200, duration: 0.08, type: 'triangle', volume: 0.04 }); },
+  block() { playTone({ freq: 1500, duration: 0.05, type: 'triangle', volume: 0.04 }); },
+  phase() { playArpeggio([220, 330, 440], 0.08, { type: 'sawtooth', volume: 0.04 }); }
 };
 
-// -------------- Hudba --------
+// -------------- Music --------
 const musicTracks = new Set();
 let currentMusic = null;
 
@@ -68,12 +76,12 @@ function playMusic(track) {
   currentMusic = track;
   track.muted = settings.muted;
   track.currentTime = 0;
-  // play() vrací promise, která selže např. při blokovaném autoplay
+  // play() returns a promise that rejects e.g. when autoplay is blocked
   const result = track.play();
   if (result && typeof result.catch === 'function') result.catch(() => {});
 }
 
-// Zastaví veškerou hudbu - volá se při každém resetu, aby hudba nepřetekla k jinému bossovi.
+// Stops all music - called on every reset so one boss' music never leaks into another fight.
 function stopMusic() {
   for (const track of musicTracks) {
     track.pause();
@@ -101,6 +109,6 @@ function toggleMute() {
 
 function updateMuteButton() {
   if (!muteBtn) return;
-  muteBtn.textContent = settings.muted ? 'Zvuk: vyp' : 'Zvuk: zap';
+  muteBtn.textContent = settings.muted ? 'Sound: off' : 'Sound: on';
   muteBtn.setAttribute('aria-pressed', String(settings.muted));
 }

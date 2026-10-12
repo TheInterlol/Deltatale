@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deltatale – battle demo</title>
+  <title>Deltatale – boss rush</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,60 +11,55 @@
     <section class="panel top">
       <div>
         <h1 class="title">Deltatale</h1>
-        <p class="subtitle">Undertale/Deltarune-style battle demo: tahová bitva, uhýbání v aréně, milost i rekordy.</p>
+        <p class="subtitle">A fan-made Undertale / Deltarune boss rush: pick a boss, fight it, retry instantly.</p>
       </div>
 
       <div class="stats">
         <div class="stat">
           <div class="stat-label">Boss</div>
-          <div class="stat-value" id="bossName">Training Dummy</div>
+          <div class="stat-value" id="bossName">-</div>
         </div>
         <div class="stat">
-          <div class="stat-label" id="timeLabel">Čas přežití</div>
-          <div class="stat-value" id="timeValue">0.0 s</div>
+          <div class="stat-label" id="timeLabel">Turn</div>
+          <div class="stat-value" id="timeValue">-</div>
         </div>
         <div class="stat">
-          <div class="stat-label" id="bestLabel">Nejlepší čas</div>
-          <div class="stat-value" id="bestValue">0.0 s</div>
+          <div class="stat-label" id="bestLabel">Defeated / spared</div>
+          <div class="stat-value" id="bestValue">0× / 0×</div>
         </div>
       </div>
     </section>
 
     <section class="panel arena-shell">
-      <canvas id="game" width="720" height="405" tabindex="0" aria-label="Herní plocha"></canvas>
+      <canvas id="game" width="720" height="405" tabindex="0" aria-label="Game screen"></canvas>
     </section>
 
-    <!-- Dotykové ovládání: zobrazí se jen na zařízeních bez myši (viz style.css) -->
-    <section class="panel touch-controls" aria-label="Dotykové ovládání">
+    <!-- Touch controls: only shown on devices without a mouse (see style.css) -->
+    <section class="panel touch-controls" aria-label="Touch controls">
       <div class="dpad">
-        <button type="button" tabindex="-1" data-key="arrowup" class="dpad-up" aria-label="Nahoru">▲</button>
-        <button type="button" tabindex="-1" data-key="arrowleft" class="dpad-left" aria-label="Doleva">◀</button>
-        <button type="button" tabindex="-1" data-key="p" class="dpad-center" aria-label="Pauza">II</button>
-        <button type="button" tabindex="-1" data-key="arrowright" class="dpad-right" aria-label="Doprava">▶</button>
-        <button type="button" tabindex="-1" data-key="arrowdown" class="dpad-down" aria-label="Dolů">▼</button>
+        <button type="button" tabindex="-1" data-key="arrowup" class="dpad-up" aria-label="Up">▲</button>
+        <button type="button" tabindex="-1" data-key="arrowleft" class="dpad-left" aria-label="Left">◀</button>
+        <button type="button" tabindex="-1" data-key="p" class="dpad-center" aria-label="Pause">II</button>
+        <button type="button" tabindex="-1" data-key="arrowright" class="dpad-right" aria-label="Right">▶</button>
+        <button type="button" tabindex="-1" data-key="arrowdown" class="dpad-down" aria-label="Down">▼</button>
       </div>
       <div class="touch-actions">
-        <button type="button" tabindex="-1" data-key="x" class="touch-action" aria-label="Zpět">X</button>
-        <button type="button" tabindex="-1" data-key="z" class="touch-action touch-confirm" aria-label="Potvrdit">Z</button>
+        <button type="button" tabindex="-1" data-key="x" class="touch-action" aria-label="Back">X</button>
+        <button type="button" tabindex="-1" data-key="z" class="touch-action touch-confirm" aria-label="Confirm">Z</button>
       </div>
     </section>
 
     <section class="panel">
       <div class="controls">
-        <select id="bossSelect" aria-label="Boss">
-          <option value="gerson">Old Man Gerson</option>
-          <option value="dummy">Training Dummy</option>
-          <option value="bones">Bone Rain</option>
-          <option value="cards">Jevil-ish Cards</option>
-          <option value="neo">Spamton-ish Blasters</option>
+        <select id="bossSelect" aria-label="Boss"></select>
+        <select id="modeSelect" aria-label="Game mode">
+          <option value="battle">Battle (turn-based)</option>
+          <option value="survival">Survival (endless)</option>
         </select>
-        <select id="modeSelect" aria-label="Herní režim">
-          <option value="battle">Bitva (tahová)</option>
-          <option value="survival">Přežití (na čas)</option>
-        </select>
-        <button id="startBtn">Start</button>
-        <button id="restartBtn">Restart</button>
-        <button id="muteBtn" aria-pressed="false">Zvuk: zap</button>
+        <button id="startBtn">Fight</button>
+        <button id="restartBtn">Retry</button>
+        <button id="menuBtn">Boss select</button>
+        <button id="muteBtn" aria-pressed="false">Sound: on</button>
       </div>
 
       <div style="margin-top:14px;">
@@ -72,29 +67,29 @@
         <div class="meter"><div id="hpBar" class="meter-fill"></div></div>
       </div>
 
-      <p class="note" id="statusText" style="margin-top:14px;">Stiskni Start. Pohyb: WASD nebo šipky. Cíl je přežít.</p>
+      <p class="note" id="statusText" style="margin-top:14px;">Choose a boss and press Z.</p>
     </section>
 
     <section class="panel help">
       <div class="help-card">
-        <h3>Ovládání</h3>
+        <h3>Controls</h3>
         <p class="note">
-          <kbd>WASD</kbd> / šipky – pohyb srdce a výběr v menu<br>
-          <kbd>Z</kbd> / <kbd>Enter</kbd> – potvrdit, <kbd>X</kbd> / <kbd>Shift</kbd> – zpět<br>
-          <kbd>Esc</kbd> / <kbd>P</kbd> – pauza, <kbd>M</kbd> – zvuk
+          <kbd>WASD</kbd> / arrows – move the SOUL, menus<br>
+          <kbd>Z</kbd> / <kbd>Enter</kbd> – confirm (and shoot), <kbd>X</kbd> / <kbd>Shift</kbd> – back<br>
+          <kbd>Esc</kbd> / <kbd>P</kbd> – pause, <kbd>M</kbd> – sound
         </p>
       </div>
       <div class="help-card">
-        <h3>Bitva</h3>
-        <p class="note"><strong>ÚTOK</strong> – zastav kurzor uprostřed terče. <strong>AKCE</strong> zvyšují MILOST; na 100 % zežloutne jméno a jde <strong>UŠETŘIT</strong>. <strong>VĚCI</strong> léčí, <strong>OBRANA</strong> půlí poškození. Těsné míjení střel (graze) nabíjí TP na kouzlo Rude Buster.</p>
+        <h3>SOUL modes</h3>
+        <p class="note"><span style="color:#ff4040">RED</span> moves freely. <span style="color:#4d7dff">BLUE</span> has gravity – <kbd>↑</kbd> jumps. <span style="color:#22d022">GREEN</span> can't move – turn the shield towards the spears. <span style="color:#ffe11a">YELLOW</span> shoots with <kbd>Z</kbd> (hold for a BIG SHOT in Deltarune). <span style="color:#d52fd9">PURPLE</span> is stuck on strings.</p>
       </div>
       <div class="help-card">
-        <h3>Přežití</h3>
-        <p class="note">Původní režim: žádné menu, jen uhýbání. Každý zásah ubere 1 HP a nejlepší čas pro každého bosse se ukládá přes <code>localStorage</code>.</p>
+        <h3>Bullets</h3>
+        <p class="note"><span style="color:#2ad8ff">Cyan</span> attacks only hurt you while you move – stand still. <span style="color:#ff9a1a">Orange</span> attacks only hurt you while you stand still – keep moving. Flashing red areas are about to be hit.</p>
       </div>
       <div class="help-card">
-        <h3>Jak to rozšířit</h3>
-        <p class="note">Každý boss má vlastní soubor v <code>bosses/</code> a registruje se přes <code>registerBoss()</code>: <code>init()</code> a <code>update()</code> pro přežití, <code>attacks</code>, <code>acts</code> a <code>dialogue</code> pro bitvu. Popis rozhraní je v <code>js/bosses.js</code>.</p>
+        <h3>Art &amp; music</h3>
+        <p class="note">Bosses without art show a placeholder card. Put your own sprites and music in <code>assets/bosses/&lt;id&gt;/</code> and list them in <code>assets/bosses/manifest.js</code>.</p>
       </div>
     </section>
   </div>
@@ -103,22 +98,29 @@
   <script src="js/storage.js"></script>
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/textbox.js"></script>
+  <script src="js/bosses.js"></script>
+  <script src="assets/bosses/manifest.js"></script>
+  <script src="js/bossart.js"></script>
+  <script src="js/roster.js"></script>
+  <script src="js/items.js"></script>
   <script src="js/state.js"></script>
-  <script src="js/player.js"></script>
+  <script src="js/soul.js"></script>
   <script src="js/bullets.js"></script>
   <script src="js/patterns.js"></script>
   <script src="js/effects.js"></script>
-  <script src="js/textbox.js"></script>
-  <script src="js/items.js"></script>
-  <script src="js/bosses.js"></script>
   <script src="js/hud.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/menu.js"></script>
   <script src="js/battle.js"></script>
-  <script src="bosses/gerson.js"></script>
   <script src="bosses/dummy.js"></script>
-  <script src="bosses/bones.js"></script>
-  <script src="bosses/cards.js"></script>
-  <script src="bosses/neo.js"></script>
+  <script src="bosses/toriel.js"></script>
+  <script src="bosses/papyrus.js"></script>
+  <script src="bosses/undyne.js"></script>
+  <script src="bosses/sans.js"></script>
+  <script src="bosses/gerson.js"></script>
+  <script src="bosses/jevil.js"></script>
+  <script src="bosses/spamton_neo.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

@@ -1,8 +1,7 @@
-// Sdílené vzory střel. Parametr speedMult (výchozí 1 = původní chování v režimu přežití)
-// používají útoky v bitvě, které se s každým kolem zrychlují.
+// Shared building blocks for attacks. Boss files combine these into their own patterns.
 
-// Spustí fn každých `interval` sekund během útoku. Časovač je uložený v run.timers[key],
-// takže jeden útok může kombinovat víc nezávislých vzorů.
+// Run fn every `interval` seconds of an attack. The timer lives in run.timers[key],
+// so one attack can mix several independent rhythms.
 function every(run, key, interval, fn, firstDelay = interval) {
   if (!(key in run.timers)) run.timers[key] = interval - firstDelay;
   run.timers[key] += run.dt;
@@ -12,37 +11,109 @@ function every(run, key, interval, fn, firstDelay = interval) {
   }
 }
 
+// A scripted timeline: events = [[time, fn], ...] sorted by time. Each fn runs once,
+// in order, as soon as the attack clock passes its time. Call it every frame.
+function timeline(run, events, key = 'timeline') {
+  let index = run.data[key] || 0;
+  while (index < events.length && run.t >= events[index][0]) {
+    events[index][1]();
+    index++;
+  }
+  run.data[key] = index;
+}
+
+// Run fn once, the first frame the attack clock passes `time`.
+function once(run, key, time, fn) {
+  const done = run.data.once || (run.data.once = {});
+  if (!done[key] && run.t >= time) {
+    done[key] = true;
+    fn();
+  }
+}
+
+function rand(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function randInt(min, max) {
+  return Math.floor(rand(min, max + 1));
+}
+
+function pick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function chance(p) {
+  return Math.random() < p;
+}
+
+// Velocity of `speed` pointing from (x, y) at the SOUL.
+function aimAt(x, y, speed, spread = 0) {
+  const p = state.player;
+  const angle = Math.atan2(p.y - y, p.x - x) + spread;
+  return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, angle };
+}
+
+// ---------------- Bones ----------------
 function spawnBone(x, y, vx, vy) {
   const bone = spawnBullet(x, y, vx, vy, 10, 'bone');
-  // obdélníkový hitbox přesně podle vykreslené kosti (12x36)
   bone.hw = 6;
   bone.hh = 18;
   return bone;
 }
 
-function spawnBoneRain(speedMult = 1) {
-  for (let i = 0; i < 5; i++) {
-    const x = arena.x + 20 + Math.random() * (arena.w - 40);
-    const speed = (120 + Math.random() * 90) * speedMult;
-    spawnBone(x, arena.y - 20 - Math.random() * 60, 0, speed);
-  }
+// A vertical bone of a given height standing on the floor (or hanging from the ceiling).
+function floorBone(x, height, vx, options = {}) {
+  return spawn({
+    kind: 'bone', x, y: arena.y + arena.h - height / 2, vx, hw: 5, hh: height / 2, noCull: true,
+    maxLife: options.maxLife || 12, ...options
+  });
 }
 
-// Stěna z kostí, která projede arénou zboku. Má jednu mezeru, kterou se dá proklouznout.
-function spawnBoneWall(speedMult = 1) {
-  const fromLeft = Math.random() > 0.5;
-  const x = fromLeft ? arena.x - 20 : arena.x + arena.w + 20;
-  const vx = (fromLeft ? 150 : -150) * speedMult;
-  const slots = Math.ceil(arena.h / 36);
-  const gap = Math.floor(Math.random() * (slots - 1));
-
-  for (let i = 0; i < slots; i++) {
-    if (i === gap || i === gap + 1) continue;
-    spawnBone(x, arena.y + 18 + i * 36, vx, 0);
-  }
+function ceilingBone(x, height, vx, options = {}) {
+  return spawn({
+    kind: 'bone', x, y: arena.y + height / 2, vx, hw: 5, hh: height / 2, noCull: true,
+    maxLife: options.maxLife || 12, ...options
+  });
 }
 
-// Najde bod v aréně, který je od hráče aspoň minDist daleko (aby burst nevznikl přímo na srdci).
+// A horizontal bone (lying down), used for walls sliding up/down.
+function lyingBone(x, y, length, vx, vy, options = {}) {
+  return spawn({ kind: 'bone', x, y, vx, vy, hw: length / 2, hh: 5, noCull: true, maxLife: 12, ...options });
+}
+
+// ---------------- Telegraphed hazards ----------------
+// A rectangle that flashes as a warning for `warn` s, then hurts for `activeFor` s.
+function warnZone(x, y, w, h, warn, activeFor, options = {}) {
+  sfx.warn();
+  return spawn({
+    kind: options.kind || 'zone', x: x + w / 2, y: y + h / 2, hw: w / 2, hh: h / 2,
+    warn, activeFor, noCull: true, ...options
+  });
+}
+
+// A straight beam from (x, y) in direction `angle`. Warns first (thin line), then fires.
+function spawnBeam(x, y, angle, width, warn, activeFor, options = {}) {
+  const length = 1600;
+  sfx.warn();
+  return spawn({
+    kind: 'beam', x: x + Math.cos(angle) * length / 2, y: y + Math.sin(angle) * length / 2,
+    originX: x, originY: y, angle, hw: length / 2, hh: width / 2,
+    warn, activeFor, noCull: true, clip: false, ...options
+  });
+}
+
+// ---------------- Rings and bursts ----------------
+function spawnRing(cx, cy, count, speed, r, kind, offset = 0, options = {}) {
+  const list = [];
+  for (let i = 0; i < count; i++) {
+    const angle = offset + (Math.PI * 2 * i) / count;
+    list.push(spawn({ x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r, kind, angle, ...options }));
+  }
+  return list;
+}
+
+// A point in the board at least `minDist` from the SOUL.
 function pickPointAwayFromPlayer(minDist, margin = 30) {
   const p = state.player;
   let best = null;
@@ -61,27 +132,13 @@ function pickPointAwayFromPlayer(minDist, margin = 30) {
   return best;
 }
 
-function spawnCards(speedMult = 1) {
-  // dřív burst vznikal ve středu arény = přesně tam, kde hráč začíná
-  const origin = pickPointAwayFromPlayer(110);
-  const centerX = origin.x;
-  const centerY = origin.y;
-
-  for (let i = 0; i < 12; i++) {
-    // patternClock se před voláním nuloval, takže otočení se bere z celkového času
-    const angle = (Math.PI * 2 * i) / 12 + state.timer * 0.7;
-    const speed = 120 * speedMult;
-    spawnBullet(centerX, centerY, Math.cos(angle) * speed, Math.sin(angle) * speed, 7, 'card');
+// ---------------- Survival-mode patterns of the original demo ----------------
+function spawnBoneRain(speedMult = 1) {
+  for (let i = 0; i < 5; i++) {
+    const x = arena.x + 20 + Math.random() * (arena.w - 40);
+    const speed = (120 + Math.random() * 90) * speedMult;
+    spawnBone(x, arena.y - 20 - Math.random() * 60, 0, speed);
   }
-}
-
-function spawnBlasters(speedMult = 1) {
-  const fromLeft = Math.random() > 0.5;
-  const y = arena.y + 20 + Math.random() * (arena.h - 40);
-  const x = fromLeft ? arena.x - 40 : arena.x + arena.w + 40;
-  const vx = (fromLeft ? 260 : -260) * speedMult;
-
-  spawnBullet(x, y, vx, 0, 14, 'blaster');
 }
 
 function spawnDummy(speedMult = 1) {

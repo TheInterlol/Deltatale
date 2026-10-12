@@ -1,12 +1,13 @@
-// Vizuální odezva: otřesy, záblesk po zásahu, plovoucí čísla, kroužky při grazu a seky.
+// Visual feedback: screen shake, hit flash, floating numbers, graze rings, slashes and bursts.
 const effects = {
   shake: 0,
   flash: 0,
   popups: [],
   rings: [],
   slashes: [],
-  susieLunge: 0,   // výpad Susie při útoku (zbývající čas)
-  susieHurt: 0     // Susie sebou trhne, když srdce dostane zásah
+  bursts: [],
+  susieLunge: 0,   // Susie lunges forward when she attacks (time left)
+  susieHurt: 0     // Susie flinches when the SOUL is hit
 };
 
 const SUSIE_LUNGE_TIME = 0.35;
@@ -18,6 +19,7 @@ function resetEffects() {
   effects.popups = [];
   effects.rings = [];
   effects.slashes = [];
+  effects.bursts = [];
   effects.susieLunge = 0;
   effects.susieHurt = 0;
 }
@@ -42,21 +44,36 @@ function addSlash(x, y) {
   effects.slashes.push({ x, y, life: 0, maxLife: 0.35 });
 }
 
+// A small explosion of square particles (destroyed bullets, defeated bosses).
+function addBurst(x, y, color = '#fff', count = 10, speed = 140) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = speed * (0.4 + Math.random() * 0.8);
+    effects.bursts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, color, life: 0, maxLife: 0.45 + Math.random() * 0.3 });
+  }
+}
+
 function updateEffects(dt) {
   effects.shake = Math.max(0, effects.shake - dt * 30);
   effects.flash = Math.max(0, effects.flash - dt * 3);
   effects.susieLunge = Math.max(0, effects.susieLunge - dt);
   effects.susieHurt = Math.max(0, effects.susieHurt - dt);
 
-  for (const list of [effects.popups, effects.rings, effects.slashes]) {
+  for (const list of [effects.popups, effects.rings, effects.slashes, effects.bursts]) {
     for (const fx of list) fx.life += dt;
   }
+  for (const b of effects.bursts) {
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.vy += 200 * dt;
+  }
+  effects.bursts = effects.bursts.filter(b => b.life < b.maxLife);
   effects.popups = effects.popups.filter(p => p.life < p.maxLife);
   effects.rings = effects.rings.filter(r => r.life < r.maxLife);
   effects.slashes = effects.slashes.filter(s => s.life < s.maxLife);
 }
 
-// Posun Susie: výpad dopředu při útoku, třes při zásahu.
+// Susie's offset: lunge forward when attacking, shake when hurt.
 function getSusieOffset() {
   let x = 0;
   if (effects.susieLunge > 0) x += Math.sin((1 - effects.susieLunge / SUSIE_LUNGE_TIME) * Math.PI) * 26;
@@ -98,12 +115,18 @@ function drawEffects() {
     }
   }
 
+  for (const b of effects.bursts) {
+    ctx.globalAlpha = 1 - b.life / b.maxLife;
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x - 2, b.y - 2, 4, 4);
+  }
+
   ctx.font = 'bold 24px "Courier New", Courier, monospace';
   ctx.textAlign = 'center';
   ctx.lineWidth = 4;
   for (const p of effects.popups) {
     const k = p.life / p.maxLife;
-    // krátký "vyskok" nahoru, pak zůstane a zmizí
+    // a short hop upwards, then it stays and fades
     const rise = Math.min(p.life * 90, 22);
     ctx.globalAlpha = k > 0.75 ? 1 - (k - 0.75) / 0.25 : 1;
     ctx.strokeStyle = '#000';
