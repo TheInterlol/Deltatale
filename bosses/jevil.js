@@ -299,7 +299,7 @@ function spinningScythes(count, radiusMin, radiusMax, spin) {
   }
 }
 
-function carouselRow(y, dir, speed, kinds, spacing, startOffset = 0) {
+function carouselRow(y, dir, speed, kinds, spacing, startOffset = 0, bob = 12) {
   const count = Math.ceil((arena.w + 200) / spacing) + 2;
   for (let i = 0; i < count; i++) {
     const kind = kinds[i % kinds.length];
@@ -309,7 +309,7 @@ function carouselRow(y, dir, speed, kinds, spacing, startOffset = 0) {
       kind, x: x0, y, vx: dir * speed, hw: 15, hh: 9, noCull: true, maxLife: 14, flip: dir < 0, baseY: y,
       update(b, dt) {
         b.x += b.vx * dt;
-        b.y = b.baseY + Math.sin(b.life * 3 + phase) * 12;
+        b.y = b.baseY + Math.sin(b.life * 3 + phase) * bob;
       }
     });
   }
@@ -355,7 +355,8 @@ const JEVIL_ATTACKS = {
   scythes: {
     name: 'Spinning scythes', duration: 6,
     start() {
-      spinningScythes(4, 28, 92, 1.5);
+      // the scythes swing in through the middle and back out - there is no safe centre
+      spinningScythes(4, 4, 92, 1.5);
     },
     update() {}
   },
@@ -364,8 +365,8 @@ const JEVIL_ATTACKS = {
     line: 'ROUND AND ROUND THE CAROUSEL GOES!',
     update(run) {
       once(run, 'rows', 0, () => {
-        carouselRow(arena.y + arena.h * 0.3, 1, 105 * run.speed, ['horse'], 92);
-        carouselRow(arena.y + arena.h * 0.72, 1, 105 * run.speed, ['horse'], 92, 46);
+        carouselRow(arena.y + arena.h * 0.28, 1, 105 * run.speed, ['horse'], 92);
+        carouselRow(arena.y + arena.h * 0.62, 1, 105 * run.speed, ['horse'], 92, 46, 18);
       });
     }
   },
@@ -423,7 +424,7 @@ const JEVIL_ATTACKS = {
   scythes2: {
     name: 'Scythes and the red scythe', duration: 7.5,
     start(run) {
-      spinningScythes(4, 26, 84, 1.7);
+      spinningScythes(4, 4, 84, 1.7);
       run.data.sweeps = 0;
     },
     update(run) {

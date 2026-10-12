@@ -48,6 +48,7 @@ const Toriel = registerBoss({
   checkDefense: 80,
   gold: 0,
   canFlee: true,
+  cannotLose: true,
   box: { w: 200, h: 150 },
   fixedSpeed: true,
   check: 'Knows best for you.',

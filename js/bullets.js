@@ -77,6 +77,7 @@ function isBulletAlive(b) {
 function getHitDamage(b) {
   if (state.gameMode !== 'battle' || !state.battle) return 1;
   const battle = state.battle;
+  if (battle.noDamage || b.damage === 0) return 0;
   let damage = b.damage !== undefined ? b.damage : battle.boss.attack;
   if (battle.attackMult) damage = Math.max(1, Math.round(damage * battle.attackMult));
   return battle.defending ? Math.ceil(damage / 2) : damage;
@@ -93,6 +94,9 @@ function hurtPlayer(damage, b = {}) {
   const p = state.player;
   const battle = state.battle;
   const boss = battle && battle.boss;
+
+  // Asgore: with more than 1 HP left, a hit that would kill leaves you at 1 HP instead
+  if (boss && boss.hitsLeaveOne && p.hp > 1 && p.hp - damage <= 0) damage = p.hp - 1;
 
   p.hp -= damage;
   if (boss && boss.karma) p.karma = Math.min(40, p.karma + (b.karma !== undefined ? b.karma : 1));

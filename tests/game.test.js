@@ -251,7 +251,8 @@ test('battle: for every boss a hit hurts, dying shows GAME OVER, Z retries and X
       });
       assert.ok(hit > 0, `${id}: a hit did no damage`);
 
-      // Toriel never kills you - every other boss does
+      // Toriel and Asriel can't kill you - every other boss can
+      const cannotLose = await page.evaluate(() => Boolean(state.currentBoss.cannotLose));
       const result = await page.evaluate(() => {
         const p = state.player;
         p.hp = 1;
@@ -260,8 +261,9 @@ test('battle: for every boss a hit hurts, dying shows GAME OVER, Z retries and X
         updateBullets(0);
         return { phase: state.battle.phase, over: state.gameOver, hp: p.hp };
       });
-      if (id === 'toriel') {
-        assert.deepEqual(result, { phase: 'attack', over: false, hp: 1 }, id);
+      if (cannotLose) {
+        assert.equal(result.over, false, `${id} should not be able to kill`);
+        assert.ok(result.hp >= 1, `${id} hp`);
         continue;
       }
       assert.deepEqual({ phase: result.phase, over: result.over }, { phase: 'gameover', over: true }, id);
@@ -293,11 +295,27 @@ test('battle: for every boss a hit hurts, dying shows GAME OVER, Z retries and X
   }
 });
 
-test('battle: every boss can be beaten with FIGHT, and Z then returns to the boss select', async () => {
+// Play enemy turns (without dodging) until the fight is over.
+function playOutFight(page, maxTurns = 14) {
+  return page.evaluate(maxTurns => {
+    const b = state.battle;
+    for (let i = 0; i < maxTurns && !b.outcome; i++) {
+      if (b.phase === 'fightResult' || b.phase === 'result') afterPlayerAction(b);
+      if (b.outcome) break;
+      if (b.phase === 'menu') startEnemyTalk(b);
+      if (b.phase === 'enemyTalk') startAttack(b);
+      if (b.phase === 'attack') endAttack(b);
+    }
+    return { phase: b.phase, outcome: b.outcome };
+  }, maxTurns);
+}
+
+test('battle: every boss that can be fought is beaten with FIGHT, and Z then returns to the boss select', async () => {
   const { page, errors, close } = await openGame();
   try {
     for (const id of BOSS_IDS) {
       await startMode(page, 'battle', id);
+      if (await page.evaluate(() => Boolean(state.currentBoss.cannotBeFought))) continue;
       await page.evaluate(() => {
         const b = state.battle;
         if (b.boss.id === 'sans') b.flags.asleep = true;
@@ -305,8 +323,10 @@ test('battle: every boss can be beaten with FIGHT, and Z then returns to the bos
       });
       await perfectFight(page);
       await step(page, 1.2);
-      const result = await page.evaluate(() => ({ phase: state.battle.phase, outcome: state.battle.outcome }));
-      assert.deepEqual(result, { phase: 'victory', outcome: 'defeated' }, id);
+      // a few bosses keep going for a while after reaching 0 HP (Undyne the Undying)
+      const result = await playOutFight(page);
+      assert.equal(result.phase, 'victory', id);
+      assert.ok(['defeated', 'survived'].includes(result.outcome), `${id}: ${result.outcome}`);
 
       const record = await page.evaluate(id => getBossRecord(id).defeated, id);
       assert.equal(record, 1, `${id} record`);
@@ -676,19 +696,233 @@ test('Spamton NEO: snapping wires fills MERCY and SPARE then frees him', async (
   }
 });
 
+test('Napstablook: cheering it up three times ends the fight', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'napstablook');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      const cheer = Napstablook.acts.find(a => a.name === 'Cheer');
+      for (let i = 0; i < 3; i++) chooseAct(b, { kind: 'act', act: cheer });
+      startEnemyTalk(b);
+      startAttack(b);
+      const attack = b.attack.attack.name;
+      endAttack(b);
+      return { attack, outcome: b.outcome };
+    });
+    assert.deepEqual(result, { attack: 'Dapper blook', outcome: 'spared' });
+  } finally {
+    await close();
+  }
+});
+
+test('Mad Dummy: FIGHT fails, dodged scribbles hurt it, and it leaves after the robots, knife and rain', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'mad_dummy');
+    await perfectFight(page);
+    assert.equal(await page.evaluate(() => state.battle.fight.missed), true);
+    await step(page, 1.2);
+
+    const selfHit = await page.evaluate(() => {
+      const b = state.battle;
+      if (b.attack) endAttack(b);
+      b.phase = 'menu';
+      startEnemyTalk(b);
+      startAttack(b);
+      state.bullets = [];
+      // a scribble flying straight up at Mad Dummy
+      const at = MadDummy.pos;
+      madShot(spawn({ kind: 'scribble', x: at.x, y: arena.y, vx: 0, vy: -300, r: 6 }));
+      const before = b.bossHp;
+      for (let i = 0; i < 60; i++) updateBullets(1 / 60);
+      return before - b.bossHp;
+    });
+    assert.equal(selfHit, 1);
+
+    await page.evaluate(() => { state.battle.bossHp = 0; });
+    const result = await playOutFight(page, 12);
+    assert.deepEqual(result, { phase: 'victory', outcome: 'survived' });
+  } finally {
+    await close();
+  }
+});
+
+test('Muffet: the SOUL is purple and a Spider Donut makes her spare you', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'muffet');
+    await startNextAttack(page);
+    assert.equal(await page.evaluate(() => state.player.mode), 'purple');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      endAttack(b);
+      const donut = b.inventory.find(s => s.id === 'spiderDonut');
+      chooseItem(b, { stack: donut });
+      b.phase = 'menu';
+      trySpare(b);
+      return b.outcome;
+    });
+    assert.equal(result, 'spared');
+  } finally {
+    await close();
+  }
+});
+
+test('Muffet: during the pet attack the strings scroll down into its mouth', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'muffet');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      b.turn = MUFFET_PET_TURNS[0];
+      startEnemyTalk(b);
+      startAttack(b);
+      state.player.hp = 999;
+      const first = state.player.laneList[0];
+      for (let i = 0; i < 18; i++) updateGame(1 / 60);
+      const moved = state.player.laneList[0] > first;
+      // keep going: the bottom string gets eaten and a new one appears on top
+      const count = state.player.laneList.length;
+      for (let i = 0; i < 120; i++) updateGame(1 / 60);
+      return { attack: b.attack.attack.name, moved, sameCount: state.player.laneList.length === count, newTop: state.player.laneList[0] < first };
+    });
+    assert.deepEqual(result, { attack: 'Pet attack', moved: true, sameCount: true, newTop: true });
+  } finally {
+    await close();
+  }
+});
+
+test('Mettaton EX: posing raises the ratings and 10000 ratings end the show', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'mettaton_ex');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      const pose = MettatonEx.acts.find(a => a.name === 'Pose');
+      const before = b.flags.ratings;
+      chooseAct(b, { kind: 'act', act: pose });
+      const after = b.flags.ratings;
+      b.flags.ratings = 9990;
+      startEnemyTalk(b);
+      startAttack(b);
+      mttRatings(b, 50);
+      endAttack(b);
+      return { rose: after > before, outcome: b.outcome };
+    });
+    assert.deepEqual(result, { rose: true, outcome: 'survived' });
+  } finally {
+    await close();
+  }
+});
+
+test('Asgore: MERCY is destroyed and a lethal hit leaves you at 1 HP', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'asgore');
+    await page.evaluate(() => { state.battle.command = 3; });
+    await press(page, 'z');
+    assert.equal(await page.evaluate(() => state.battle.phase), 'menu');
+
+    await startNextAttack(page);
+    const hp = await page.evaluate(() => {
+      const p = state.player;
+      p.hp = 5;
+      p.hurtCooldown = 0;
+      spawn({ x: p.x, y: p.y, r: 10, damage: 99 });
+      updateBullets(0);
+      return { hp: p.hp, phase: state.battle.phase };
+    });
+    assert.deepEqual(hp, { hp: 1, phase: 'attack' });
+  } finally {
+    await close();
+  }
+});
+
+test('Asriel: FIGHT misses, you cannot die, and STRUGGLE -> SAVE the lost souls -> SAVE him wins', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'asriel');
+    await perfectFight(page);
+    assert.equal(await page.evaluate(() => state.battle.fight.missed), true);
+    await step(page, 1.2);
+
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      if (b.attack) endAttack(b);
+      // play through phase 1 up to Hyper Goner
+      for (let i = 0; i < ASRIEL_PHASE1.length; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      const labels = [getCommands(b)[0].label];
+      // press the single command until the fight ends
+      for (let i = 0; i < 40 && !b.outcome; i++) {
+        b.phase = 'menu';
+        getCommands(b)[0].run(b);
+        labels.push(getCommands(b)[0].label);
+        if (b.outcome) break;
+        afterPlayerAction(b);
+        if (b.phase === 'enemyTalk') startAttack(b);
+        if (b.phase === 'attack') endAttack(b);
+      }
+      return { first: labels[0], sawSave: labels.includes('SAVE'), outcome: b.outcome };
+    });
+    assert.deepEqual(result, { first: 'STRUGGLE', sawSave: true, outcome: 'spared' });
+  } finally {
+    await close();
+  }
+});
+
+test('Undyne the Undying: at 0 HP she keeps fighting with slower spears, then melts', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'undyne_undying');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      b.bossHp = 0;
+      const paces = [];
+      for (let i = 0; i < 6 && !b.outcome; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        paces.push(b.attack.data.pace);
+        endAttack(b);
+      }
+      return { outcome: b.outcome, slower: paces[2] < paces[0], turns: paces.length };
+    });
+    assert.deepEqual(result, { outcome: 'defeated', slower: true, turns: 3 });
+  } finally {
+    await close();
+  }
+});
+
 // ---------------------------------------------------------------- menus & UI
 
 test('boss select: arrow keys and Z start the chosen boss, unfinished bosses do not start', async () => {
   const { page, close } = await openGame();
   try {
     await page.focus('#game');
-    await page.evaluate(() => focusBossInMenu('dummy'));
-    await press(page, 'ArrowDown'); // Napstablook - coming soon
+    // find an unfinished boss right after a playable one in the same tab
+    const pair = await page.evaluate(() => {
+      for (let tab = 0; tab < ROSTER.length; tab++) {
+        const rows = menuBossRows(tab).map(r => r.row.entry.id);
+        for (let i = 1; i < rows.length; i++) {
+          if (isPlayable(rows[i - 1]) && !isPlayable(rows[i])) return { playable: rows[i - 1], missing: rows[i] };
+        }
+      }
+      return null;
+    });
+    assert.ok(pair, 'every boss is playable - nothing to test');
+    await page.evaluate(id => focusBossInMenu(id), pair.playable);
+    await press(page, 'ArrowDown'); // the unfinished boss
     await press(page, 'z');
     assert.equal(await page.evaluate(() => state.screen), 'select');
-    await press(page, 'ArrowDown'); // Toriel
+    await press(page, 'ArrowUp'); // back to the playable one
     await press(page, 'z');
-    assert.deepEqual(await page.evaluate(() => [state.screen, state.mode]), ['fight', 'toriel']);
+    assert.deepEqual(await page.evaluate(() => [state.screen, state.mode]), ['fight', pair.playable]);
   } finally {
     await close();
   }

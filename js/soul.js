@@ -108,6 +108,7 @@ function setSoulMode(mode, options = {}) {
     p.y = c.y;
     p.shield = options.shield || 'up';
   }
+  p.laneList = null;
   if (mode === 'purple') {
     p.lanes = options.lanes || 3;
     p.lane = Math.floor(p.lanes / 2);
@@ -119,9 +120,16 @@ function soulColor() {
   return SOUL_COLORS[state.player.mode] || SOUL_COLORS.red;
 }
 
+// Strings are evenly spaced, unless an attack manages its own list (p.laneList, Muffet's pet).
 function laneY(lane) {
   const p = state.player;
+  if (p.laneList) return p.laneList[Math.max(0, Math.min(p.laneList.length - 1, lane))];
   return arena.y + (arena.h * (lane + 1)) / (p.lanes + 1);
+}
+
+function laneCount() {
+  const p = state.player;
+  return p.laneList ? p.laneList.length : p.lanes;
 }
 
 function clampToArena(p) {
@@ -272,7 +280,7 @@ function updatePurpleSoul(p, dt) {
   const { dx } = inputVector();
   p.x += dx * p.speed * dt;
   if (consumePress(UP_KEYS) && p.lane > 0) p.lane -= 1;
-  if (consumePress(DOWN_KEYS) && p.lane < p.lanes - 1) p.lane += 1;
+  if (consumePress(DOWN_KEYS) && p.lane < laneCount() - 1) p.lane += 1;
 
   const target = laneY(p.lane);
   const step = LANE_SWITCH_SPEED * dt;
@@ -440,7 +448,7 @@ function drawLanes(p) {
   ctx.save();
   ctx.strokeStyle = '#a23aa6';
   ctx.lineWidth = 2;
-  for (let i = 0; i < p.lanes; i++) {
+  for (let i = 0; i < laneCount(); i++) {
     const y = Math.round(laneY(i)) + 0.5;
     ctx.beginPath();
     ctx.moveTo(arena.x, y);

@@ -50,8 +50,15 @@ const SOUL_HINTS = {
   purple: 'Your SOUL is PURPLE: ← → to move, ↑ ↓ to jump between strings.'
 };
 
+// Bosses can replace the menu (Asriel's STRUGGLE / SAVE) or break a button (Asgore's MERCY).
+// A command may have `disabled: 'reason'` or its own `run(battle)`.
 function getCommands(battle) {
-  return COMMAND_SETS[battle.boss.game] || COMMAND_SETS.deltarune;
+  if (battle.boss.getCommands) return battle.boss.getCommands(battle);
+  const base = COMMAND_SETS[battle.boss.game] || COMMAND_SETS.deltarune;
+  if (battle.boss.noMercy) {
+    return base.map(c => (c.id === 'mercy' || c.id === 'spare') ? { ...c, disabled: 'MERCY was destroyed.' } : c);
+  }
+  return base;
 }
 
 function createBattle(boss) {
@@ -172,7 +179,19 @@ function updateMenu(battle) {
   }
   if (!confirmPressed()) return;
 
-  const command = commands[battle.command].id;
+  battle.command = Math.min(battle.command, commands.length - 1);
+  const chosen = commands[battle.command];
+  const command = chosen.id;
+  if (chosen.disabled) {
+    sfx.cancel();
+    statusText.textContent = chosen.disabled;
+    return;
+  }
+  if (chosen.run) {
+    sfx.select();
+    chosen.run(battle);
+    return;
+  }
   if (command === 'item' && !hasItems(battle.inventory)) {
     sfx.cancel();
     statusText.textContent = 'You have no items left.';
@@ -226,7 +245,8 @@ function showResult(battle, text) {
 
 function afterPlayerAction(battle) {
   if (battle.outcome) return;
-  if (battle.bossHp <= 0) {
+  // some bosses use their HP bar for something else and don't lose at 0 (Mad Dummy)
+  if (battle.bossHp <= 0 && !battle.boss.noHpDefeat) {
     winBattle(battle, 'defeated');
     return;
   }

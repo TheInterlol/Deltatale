@@ -62,9 +62,16 @@ Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP ov
 | Boss | Game | Signature mechanics implemented |
 | --- | --- | --- |
 | Training Dummy | Undertale – Ruins | warm-up shots; Talk to spare |
+| Napstablook | Undertale – Ruins | falling tears, slowing tears; Cheer three times for the "dapper blook" |
 | Toriel | Undertale – Ruins | fire waves, paw sweep with bouncing fire, fire helix, faltering fire that avoids you, can't kill you, spare her again and again |
 | Papyrus | Undertale – Snowdin | red warm-up, then permanent blue SOUL, the blue attack, six scripted bone sequences, the "absolutely normal attack" (dog, COOL DUDE, skateboard), spares you after it, captures instead of killing |
+| Mad Dummy | Undertale – Waterfall | immune to FIGHT; dodged scribbles hit it, dummy lines, robot rockets, knife, Napstablook's rain |
 | Undyne | Undertale – Waterfall | green SOUL shield vs. 4-way spears incl. reversing yellow spears, rising spears, spear volleys, speeds up every turn, Plead/Challenge, flee once the red phase starts |
+| Muffet | Undertale – Hotland | purple SOUL on strings, spiders, boomerang croissants, bouncing donuts, three pet attacks with scrolling strings; Pay/Struggle; Spider Donut or enough turns to be let go |
+| Mettaton EX | Undertale – CORE | RATINGS show, yellow SOUL shooting up, leg kicks, bombs with plus explosions vs. blocks, disco lasers, mini Mettatons, shoot his heart and legs off, lightning; 10000 ratings ends the show |
+| Asgore | Undertale – Finale | MERCY destroyed, cyan/orange trident sweeps telegraphed by eye flashes, fire helix, fire clouds, spiralling rings, hand chasers, corner rings; lethal hits leave 1 HP |
+| Asriel Dreemurr | Undertale – Finale | Star/Galacta Blazing, Shocker Breaker I/II, Chaos Saber/Slicer, Chaos Buster/Blaster, Hyper Goner vortex, "But it refused", STRUGGLE → SAVE the lost souls (their own attacks) → SAVE Asriel |
+| Undyne the Undying | Undertale – Genocide | faster green spears with more reversals, rotating spear rings, spear barrages, rising spears; keeps fighting at 0 HP with slowing spears, then melts |
 | Sans | Undertale – Genocide | KARMA, opening attack, bone lines, cyan bones, platforms over bones, beam cannons, gravity slams, false mercy trap, final barrage, falls asleep – only then can be hit |
 | Old Man Gerson | Deltarune – Chapter 4 | falling axes, boomerangs, combined attack (uses the project's own sprite and music) |
 | Jevil | Deltarune – secret | 4 phases by HP or tiredness, suit bullets, spirals, bombs, scythes, carousel, CHAOS BOMB, FINAL CHAOS; Pirouette/Hypnosis tire him for a pacify |

@@ -106,10 +106,14 @@ function drawUtStats() {
 
 function drawCommandButtons(battle) {
   const boss = state.currentBoss;
-  const commands = COMMAND_SETS[boss.game] || COMMAND_SETS.deltarune;
+  const commands = battle ? getCommands(battle) : COMMAND_SETS[boss.game] || COMMAND_SETS.deltarune;
   const choosing = battle && ['menu', 'actList', 'itemList', 'mercyList'].includes(battle.phase);
   const ut = boss.game === 'undertale';
-  const b = ut ? COMMAND_BUTTON_UT : COMMAND_BUTTON_DR;
+  const b = { ...(ut ? COMMAND_BUTTON_UT : COMMAND_BUTTON_DR) };
+  // fewer buttons get wider (Asriel's final form has a single one)
+  const fullWidth = commands.length * b.w + (commands.length - 1) * b.gap;
+  const normalWidth = (ut ? 4 : 5) * b.w + ((ut ? 4 : 5) - 1) * b.gap;
+  if (commands.length < (ut ? 4 : 5)) b.x += (normalWidth - fullWidth) / 2;
 
   ctx.save();
   ctx.font = ut ? `bold 17px ${FONT_FAMILY}` : `bold 13px ${FONT_FAMILY}`;
@@ -134,6 +138,16 @@ function drawCommandButtons(battle) {
       ctx.fillText(command.label, x + b.w / 2 + 10, b.y + b.h / 2 + 6);
     } else {
       ctx.fillText(command.label, x + b.w / 2, b.y + b.h / 2 + 6);
+    }
+    if (command.disabled) {
+      // a broken button: crossed out
+      ctx.strokeStyle = '#ff3030';
+      ctx.beginPath();
+      ctx.moveTo(x + 6, b.y + 6);
+      ctx.lineTo(x + b.w - 6, b.y + b.h - 6);
+      ctx.moveTo(x + b.w - 6, b.y + 6);
+      ctx.lineTo(x + 6, b.y + b.h - 6);
+      ctx.stroke();
     }
   });
 
