@@ -353,7 +353,7 @@ function drawWarningOverlay(b) {
 }
 
 // Kinds that are big, static or draw their own telegraph: no pop-in and no motion trail.
-const NO_FX_KINDS = new Set(['beam', 'zone', 'wall', 'key', 'treasure', 'exit', 'lightPillar', 'boneField', 'risingSpear']);
+const NO_FX_KINDS = new Set(['beam', 'zone', 'wall', 'key', 'treasure', 'exit', 'lightPillar', 'boneField', 'risingSpear', 'crack', 'slashLine', 'knightStar', 'knightSword', 'tunnelSword']);
 
 function drawBullet(b, fx = true) {
   const drawer = BULLET_DRAWERS[b.kind] || BULLET_DRAWERS.normal;

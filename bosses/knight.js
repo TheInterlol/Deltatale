@@ -119,72 +119,138 @@ function knightPhase(run) {
   return run.attack.phase || 1 + Math.min(2, run.level);
 }
 
+// Where the Knight stands (top right); its attacks come from there.
+function knightOrigin() {
+  return { x: arena.x + arena.w + 70, y: arena.y - 50 };
+}
+
+// A six-pointed star fired from the Knight's cone: it flies in, grows, slows and drifts back,
+// turns red, then bursts into shards. Thin light beams show where the shards will go.
+function knightStar(target, phase, delay = 0) {
+  const o = knightOrigin();
+  const ang = Math.atan2(target.y - o.y, target.x - o.x);
+  const dist = Math.hypot(target.x - o.x, target.y - o.y);
+  const shardCount = phase === 3 ? 2 : 6;
+  const offset = Math.random() * Math.PI * 2;
+  const burstAt = 1.35 + delay;
+  return spawn({
+    kind: 'knightStar', x: o.x, y: o.y, r: 6, noCull: true, clip: false, maxLife: burstAt + 0.05, damage: 30,
+    update(b) {
+      const t = b.life;
+      // in quickly, overshoot, then drift back a little
+      const k = Math.min(1, t / 0.7);
+      const ease = 1 - Math.pow(1 - k, 3);
+      const back = t > 0.7 ? Math.min(1, (t - 0.7) / 0.6) * 18 : 0;
+      b.x = o.x + Math.cos(ang) * (dist * ease - back);
+      b.y = o.y + Math.sin(ang) * (dist * ease - back);
+      b.r = 6 + Math.min(1, t / 0.9) * 6;
+      b.red = t > burstAt - 0.45;
+      b.rays = t > burstAt - 0.45 ? { count: shardCount, offset } : null;
+      if (t >= burstAt && !b.burst) {
+        b.burst = true;
+        b.dead = true;
+        sfx.pop();
+        addBurst(b.x, b.y, '#ff6b6b', 6, 80);
+        for (let i = 0; i < shardCount; i++) {
+          const a = offset + (Math.PI * 2 * i) / shardCount;
+          const far = phase === 1 && i % 2 ? 0.55 : 1;
+          if (phase === 3) {
+            // two red shards that home in on the SOUL one after another
+            spawn({
+              kind: 'suit', suit: 'diamond', x: b.x, y: b.y, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, r: 5,
+              color: '#ff5050', maxLife: 3, faceVelocity: true, damage: 30, noCull: true,
+              update(s, dt) {
+                if (s.life > 0.35 + i * 0.35 && !s.locked) {
+                  s.locked = true;
+                  const v = aimAt(s.x, s.y, 260);
+                  s.vx = v.vx;
+                  s.vy = v.vy;
+                }
+                s.x += s.vx * dt;
+                s.y += s.vy * dt;
+              }
+            });
+          } else {
+            spawn({
+              kind: 'suit', suit: 'diamond', x: b.x, y: b.y, vx: Math.cos(a) * 200, vy: Math.sin(a) * 200, r: 5,
+              color: '#e0e0ff', maxLife: far < 1 ? 0.55 : 3, faceVelocity: true, damage: 30
+            });
+          }
+        }
+      }
+    }
+  });
+}
+
 const KNIGHT_ATTACKS = {
   stars: {
-    name: 'Stars', duration: 6.5,
+    name: 'Stars', duration: 7,
     update(run) {
       const phase = knightPhase(run);
-      every(run, 'cluster', 0.8, () => {
-        const p = pickPointAwayFromPlayer(60, 20);
-        spawn({
-          kind: 'star', x: p.x, y: p.y, r: 9, warn: 0.6, activeFor: 0, noCull: true, maxLife: 0.62, color: '#ffffff',
-          update(b) {
-            if (b.life >= 0.6 && !b.burst) {
-              b.burst = true;
-              const count = phase === 1 ? 3 : phase === 2 ? 6 : 2;
-              const base = phase === 3 ? aimAt(b.x, b.y, 1).angle : Math.random() * Math.PI * 2;
-              for (let i = 0; i < count; i++) {
-                const a = phase === 3 ? base + (i - 0.5) * 0.2 : base + (Math.PI * 2 * i) / count;
-                spawn({ kind: 'suit', suit: 'diamond', x: b.x, y: b.y, vx: Math.cos(a) * 170, vy: Math.sin(a) * 170, r: 5, color: '#e0e0ff', maxLife: 3, faceVelocity: true, damage: 30 });
-              }
-            }
-          }
-        });
+      every(run, 'volley', phase >= 2 ? 1.25 : 1.5, () => {
+        // a cone of 2-3 stars aimed around the board
+        const count = phase >= 2 ? 3 : 2;
+        for (let i = 0; i < count; i++) {
+          const target = pickPointAwayFromPlayer(55, 22);
+          knightStar(target, phase, phase === 2 ? i * 0.25 : 0);
+        }
       }, 0.2);
     }
   },
   tracking: {
-    name: 'Tracking swords', duration: 7,
+    name: 'Tracking swords', duration: 9,
+    start(run) {
+      run.data.count = 0;
+    },
     update(run) {
       const phase = knightPhase(run);
-      every(run, 'sword', 0.7, () => {
-        // a sword appears near the SOUL, aims, then fires
-        const p = state.player;
-        const a = Math.random() * Math.PI * 2;
-        const x = p.x + Math.cos(a) * 90;
-        const y = p.y + Math.sin(a) * 90;
-        const aim = Math.atan2(p.y - y, p.x - x);
+      // ten swords, each faster than the last
+      const gap = Math.max(0.45, (phase >= 3 ? 0.75 : 0.95) - run.data.count * 0.04);
+      every(run, 'sword', gap, () => {
+        if (run.data.count >= 10) return;
+        run.data.count++;
+        const dirs = [0, 1, 2, 3, 4, 5, 6, 7].map(i => (i * Math.PI) / 4);
+        const a = pick(dirs);
+        const countdown = Math.max(0.45, 1.0 - run.data.count * 0.05);
+        // the sword hovers at a fixed offset from the SOUL and follows it, pointing at it
         spawn({
-          kind: 'spear', x, y, hw: 16, hh: 3, angle: aim, warn: 0.5, noCull: true, maxLife: 2, color: '#e0e0ff', damage: 50,
-          update(b, dt) {
-            if (b.life < b.warn) {
-              b.angle = Math.atan2(state.player.y - b.y, state.player.x - b.x);
-              return;
+          kind: 'knightSword', x: state.player.x, y: state.player.y, len: 34, angle: a + Math.PI, harmless: true,
+          noCull: true, clip: false, maxLife: countdown + 0.2,
+          update(b) {
+            const p = state.player;
+            if (b.life < countdown) {
+              b.x = p.x + Math.cos(a) * 56;
+              b.y = p.y + Math.sin(a) * 56;
+              b.red = b.life > countdown - 0.25;
+            } else if (!b.cut) {
+              // it freezes, vanishes and leaves a white slash along its line
+              b.cut = true;
+              b.dead = true;
+              spawn({ kind: 'slashLine', x: b.x, y: b.y, hw: 420, hh: 5, angle: a, warn: 0.12, activeFor: 0.18, noCull: true, damage: 40 });
+              sfx.slash();
             }
-            b.x += Math.cos(b.angle) * 380 * dt;
-            b.y += Math.sin(b.angle) * 380 * dt;
           }
         });
-      }, 0.2);
-      if (phase >= 2) {
-        every(run, 'ring', 2.4, () => {
-          const c = { x: state.player.x, y: state.player.y };
-          const gap = randInt(0, 11);
-          for (let i = 0; i < 12; i++) {
-            if (i === gap) continue;
-            const a0 = (Math.PI * 2 * i) / 12;
+      }, 0.3);
+      // phase 2: a ring of swords around the board breathes in and out
+      if (phase === 2) {
+        once(run, 'ring', 0.2, () => {
+          const c = arenaCenter();
+          const n = 16;
+          for (let i = 0; i < n; i++) {
+            const a0 = (Math.PI * 2 * i) / n;
             spawn({
-              kind: 'spear', x: c.x, y: c.y, hw: 12, hh: 2, warn: 0.4, noCull: true, maxLife: 2.2, color: '#c8c8ff', damage: 40,
+              kind: 'knightSword', x: c.x, y: c.y, len: 22, angle: a0 + Math.PI, noCull: true, maxLife: 9, damage: 30, hw: 10, hh: 3,
               update(b) {
-                const r = 120 - Math.max(0, b.life - b.warn) * 75;
-                b.x = c.x + Math.cos(a0) * r;
-                b.y = c.y + Math.sin(a0) * r;
-                b.angle = a0 + Math.PI;
-                if (r < 0) b.dead = true;
+                const r = 92 + Math.sin(b.life * 1.4) * 34;
+                const a = a0 + b.life * 0.25;
+                b.x = c.x + Math.cos(a) * r;
+                b.y = c.y + Math.sin(a) * r;
+                b.angle = a + Math.PI;
               }
             });
           }
-        }, 1.2);
+        });
       }
     }
   },
@@ -212,15 +278,23 @@ const KNIGHT_ATTACKS = {
       run.data.bursts = (run.data.bursts || []).filter(burst => {
         if (run.t < burst.at) return true;
         addShake(6);
+        // the board splits open along the cut for a moment
+        const c = arenaCenter();
+        spawn({
+          kind: 'crack', x: burst.vertical ? burst.line : c.x, y: burst.vertical ? c.y : burst.line,
+          vertical: burst.vertical, harmless: true, noCull: true, maxLife: 1.1
+        });
         for (let i = 0; i < 6; i++) {
           const along = burst.vertical ? arena.y + (arena.h * (i + 0.5)) / 6 : arena.x + (arena.w * (i + 0.5)) / 6;
           for (const dir of [-1, 1]) {
             const x = burst.vertical ? burst.line : along;
             const y = burst.vertical ? along : burst.line;
             const sideways = burst.diag ? rand(-60, 60) : 0;
+            // fast and slow diamonds alternate, never more than two of the same speed in a row
+            const speed = [210, 210, 110][(i + (dir > 0 ? 1 : 0)) % 3];
             spawn({
               kind: 'suit', suit: 'diamond', x, y,
-              vx: burst.vertical ? dir * 150 : sideways, vy: burst.vertical ? sideways : dir * 150,
+              vx: burst.vertical ? dir * speed : sideways, vy: burst.vertical ? sideways : dir * speed,
               r: 5, color: '#e0e0ff', maxLife: 2.5, faceVelocity: true, damage: 40
             });
           }
@@ -230,29 +304,47 @@ const KNIGHT_ATTACKS = {
     }
   },
   tunnel: {
-    name: 'Sword tunnel', duration: 7,
+    name: 'Sword tunnel', duration: 7.5,
     update(run) {
       const phase = knightPhase(run);
       const gapSize = phase >= 3 ? 34 : 46;
       every(run, 'pair', 0.2, () => {
-        // the gap drifts: follow it
+        // swords from above and below, shifting together: stay in the tunnel between them
         const centre = arena.y + arena.h / 2 + Math.sin(run.t * 1.3) * (arena.h / 2 - gapSize);
         const x = arena.x + arena.w + 20;
         const topH = centre - gapSize / 2 - arena.y;
         const bottomH = arena.y + arena.h - (centre + gapSize / 2);
         const tilt = phase >= 2 ? Math.sin(run.t) * 0.2 : 0;
-        if (topH > 4) spawn({ kind: 'normal', x, y: arena.y + topH / 2, vx: -230, hw: 7, hh: topH / 2, angle: tilt, color: '#e0e0ff', damage: 20, noCull: true, maxLife: 3 });
-        if (bottomH > 4) spawn({ kind: 'normal', x, y: arena.y + arena.h - bottomH / 2, vx: -230, hw: 7, hh: bottomH / 2, angle: tilt, color: '#e0e0ff', damage: 20, noCull: true, maxLife: 3 });
+        if (topH > 4) spawn({ kind: 'tunnelSword', x, y: arena.y + topH / 2, vx: -230, hw: 6, hh: topH / 2, angle: tilt, down: true, damage: 20, noCull: true, maxLife: 3 });
+        if (bottomH > 4) spawn({ kind: 'tunnelSword', x, y: arena.y + arena.h - bottomH / 2, vx: -230, hw: 6, hh: bottomH / 2, angle: tilt, down: false, damage: 20, noCull: true, maxLife: 3 });
       }, 0.1);
-      once(run, 'finisher', 6.2, () => spawnBeam(arena.x - 60, state.player.y, 0, 26, 0.5, 0.2, { beamColor: '#ffffff', drawEmitter: false, damage: 60 }));
+      // the finisher: swords line up outside the board, show red lines, then fly across
+      once(run, 'finisher', 5.9, () => {
+        for (let i = 0; i < 5; i++) {
+          const y = arena.y + (arena.h * (i + 0.5)) / 5;
+          const fromLeft = i % 2 === 0;
+          const x0 = fromLeft ? arena.x - 30 : arena.x + arena.w + 30;
+          spawn({
+            kind: 'knightSword', x: x0, y, len: 30, angle: fromLeft ? 0 : Math.PI, warn: 0.7, noCull: true, clip: false, maxLife: 2.4,
+            damage: 60, hw: 15, hh: 3, warnLine: true,
+            update(b, dt) {
+              if (b.life >= b.warn) b.x += (fromLeft ? 1 : -1) * 520 * dt;
+            }
+          });
+        }
+      });
     }
   },
   slash: {
-    name: 'Rotating slash', duration: 7,
+    name: 'Rotating slash', duration: 8,
     update(run) {
       const phase = knightPhase(run);
-      const count = 1 + Math.min(3, Math.floor(run.t / 2)) + (phase >= 3 ? 1 : 0);
-      every(run, 'slash', 1.3, () => {
+      // six slashes; the number of lines in each follows the original's sequence
+      const counts = { 1: [1, 2, 2, 3, 3, 4], 2: [3, 3, 4, 4, 4, 4], 3: [3, 4, 4, 4, 4, 4] }[phase];
+      every(run, 'slash', 1.2, () => {
+        run.data.cut = (run.data.cut || 0) + 1;
+        if (run.data.cut > 6) return;
+        const count = counts[run.data.cut - 1];
         const c = arenaCenter();
         for (let i = 0; i < count; i++) {
           const start = Math.random() * Math.PI;
@@ -303,11 +395,100 @@ const KNIGHT_ATTACKS = {
           }
         }]);
       }
-      run.data.events.push([7.2, () => spawnBeam(arena.x + arena.w / 2 + rand(-120, 120), arena.y - 80, Math.PI / 2, 60, 0.8, 0.3, { beamColor: '#ffffff', drawEmitter: false, damage: 60 })]);
+      run.data.events.push([7.2, () => spawnBeam(arena.x + arena.w / 2, arena.y - 80, Math.PI / 2, 70, 0.8, 0.3, { beamColor: '#ffffff', drawEmitter: false, damage: 60 })]);
     },
     update(run) {
       timeline(run, run.data.events);
     }
+  }
+};
+
+function drawKnightBlade(len, red) {
+  // a long, thin blade with a cross guard (pointing +x)
+  ctx.fillStyle = red ? '#ff4040' : '#e8e8ff';
+  ctx.beginPath();
+  ctx.moveTo(len / 2 + 6, 0);
+  ctx.lineTo(-len / 2 + 6, -3);
+  ctx.lineTo(-len / 2 + 6, 3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = red ? '#ffffff' : '#ffffff';
+  ctx.fillRect(-len / 2 + 6, -0.6, len - 4, 1.2);
+  ctx.fillStyle = '#6a6a8a';
+  ctx.fillRect(-len / 2 + 3, -7, 3, 14);
+  ctx.fillRect(-len / 2 - 6, -1.5, 9, 3);
+}
+
+BULLET_DRAWERS.knightSword = b => {
+  ctx.save();
+  if (b.warnLine && b.life < b.warn) {
+    ctx.strokeStyle = Math.floor(b.life * 14) % 2 ? 'rgba(255, 60, 60, 0.8)' : 'rgba(255, 60, 60, 0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(b.x + Math.cos(b.angle) * 600, b.y + Math.sin(b.angle) * 600);
+    ctx.stroke();
+  }
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.angle);
+  drawKnightBlade(b.len || 30, b.red);
+  ctx.restore();
+};
+
+BULLET_DRAWERS.tunnelSword = b => {
+  // a column of the tunnel: a blade pointing at the gap; it glows red when the SOUL is close
+  const p = state.player;
+  const near = Math.abs(p.x - b.x) < 26;
+  ctx.translate(b.x, b.y);
+  if (b.angle) ctx.rotate(b.angle);
+  ctx.rotate(b.down ? Math.PI / 2 : -Math.PI / 2);
+  drawKnightBlade(b.hh * 2, near);
+};
+
+BULLET_DRAWERS.knightStar = b => {
+  ctx.translate(b.x, b.y);
+  if (b.rays) {
+    // light beams telegraph where the shards will fly
+    ctx.strokeStyle = 'rgba(255, 220, 220, 0.35)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < b.rays.count; i++) {
+      const a = b.rays.offset + (Math.PI * 2 * i) / b.rays.count;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * 300, Math.sin(a) * 300);
+      ctx.stroke();
+    }
+  }
+  ctx.rotate(b.life * 3);
+  const color = b.red ? '#ff4d4d' : '#ffffff';
+  ctx.fillStyle = withAlpha(b.red ? '#ff4d4d' : '#c8c8ff', 0.3);
+  fillCircle(0, 0, b.r * 1.5);
+  // a six-pointed star: two triangles
+  ctx.fillStyle = color;
+  for (const rot of [0, Math.PI]) {
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+      const a = rot - Math.PI / 2 + (i * Math.PI * 2) / 3;
+      ctx.lineTo(Math.cos(a) * b.r, Math.sin(a) * b.r);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+};
+
+BULLET_DRAWERS.crack = b => {
+  // the two halves of the board pushed apart: a dark gap with bright edges
+  const k = Math.sin(Math.min(1, b.life / 1.1) * Math.PI);
+  const gap = 4 + k * 16;
+  ctx.fillStyle = '#000';
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  if (b.vertical) {
+    ctx.fillRect(b.x - gap / 2, arena.y - 2, gap, arena.h + 4);
+    ctx.strokeRect(b.x - gap / 2, arena.y - 2, gap, arena.h + 4);
+  } else {
+    ctx.fillRect(arena.x - 2, b.y - gap / 2, arena.w + 4, gap);
+    ctx.strokeRect(arena.x - 2, b.y - gap / 2, arena.w + 4, gap);
   }
 };
 

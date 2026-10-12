@@ -24,15 +24,20 @@ npm start            # http://localhost:8080 (no dependencies, just Node)
 | `WASD` / arrows | move the SOUL, navigate menus |
 | `Z` / `Enter` / `Space` | confirm, start a fight, shoot (yellow SOUL) |
 | `X` / `Shift` | back, boss select |
-| `Esc` / `P` | pause (X in the pause screen quits to the boss select) |
+| `Esc` / `P` | pause menu (resume, retry, settings, boss select, title) |
 | `M` | sound on/off |
+| `F` | fullscreen |
 
 On touch devices a D-pad and Z/X buttons appear under the canvas.
 
 ## How a fight works
 
-**Boss select** – `←` `→` switch between UNDERTALE and DELTARUNE, `↑` `↓` pick a boss, `Z` fights.
-Bosses that aren't implemented yet are listed as *coming soon*.
+The page is just the game: a 16:9 screen that fills the window. The **title screen** offers
+BOSS RUSH, SURVIVAL and SETTINGS (music and sound-effect volume, sound on/off, screen shake,
+fullscreen - all saved in the browser).
+
+**Boss select** – `←` `→` switch between UNDERTALE and DELTARUNE, `↑` `↓` pick a boss, `Z` fights,
+`X` goes back to the title.
 
 **Undertale bosses** use Undertale's UI: `FIGHT` / `ACT` / `ITEM` / `MERCY`, you are just the SOUL.
 **Deltarune bosses** use Deltarune's: `FIGHT` / `ACT` / `ITEM` / `SPARE` / `DEFEND`, Susie fights,
@@ -41,7 +46,7 @@ grazing bullets charges TP (for Rude Buster and TP-costing ACTs), `DEFEND` halve
 After winning: `Z` = back to the boss select (with the next boss highlighted), `X` = fight again.
 After a GAME OVER: `Z` = retry immediately, `X` = boss select.
 
-**Survival mode** (mode selector under the canvas) plays a boss' attacks back to back forever.
+**Survival mode** (picked on the title screen) plays a boss' attacks back to back forever.
 
 ### SOUL modes and bullet colours
 
@@ -82,7 +87,7 @@ Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP ov
 | Glad Dummy | Undertale – Genocide | spares you right away |
 | Mettaton NEO | Undertale – Genocide | falls to a single hit |
 | Undyne the Undying | Undertale – Genocide | faster green spears with more reversals, rotating spear rings, spear barrages, rising spears; keeps fighting at 0 HP with slowing spears, then melts |
-| Sans | Undertale – Genocide | KARMA, opening attack, bone lines, cyan bones, platforms over bones, beam cannons, gravity slams, false mercy trap, final barrage, falls asleep – only then can be hit |
+| Sans | Undertale – Genocide | KARMA, opening attack, bone lines from both sides, cyan bones, three platform sections, beam cannons, gravity slams, false mercy trap, bones across the command buttons in the second half, final barrage, the special attack: push the board onto FIGHT once he dozes off |
 | So Sorry | Undertale – optional | cyan/orange tail swings, crumpled paper, Doodlebogs; ends after 10 peaceful turns or 11 hits |
 | Glyde | Undertale – optional | star waves and exploding "COOL" stars; Applaud ×2 then Nothing ×3 |
 | Mad Mew Mew | Undertale – optional (Switch) | split SOUL (A/D + ←/→), half-coloured circles, cat bullets, plus-shaped board; immune until she calms down, Talk, then spare or attack |
@@ -98,7 +103,7 @@ Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP ov
 | Lanino & Elnina | Deltarune – Chapter 3 | forecast each turn, sun/moon vs. rain/snow from opposite sides that turn into hearts in the middle; ILoveTV, then choose a favourite who stays and gets stronger |
 | Shuttah | Deltarune – Chapter 3 | drops that freeze on the photo flash, crossing drops, aimed diamonds; EasyPhoto / ToughPhoto timed viewfinder challenges, PowerPhoto, group photo ends it |
 | Tenna | Deltarune – Chapter 3 | SCORE to 1000 (ILoveTV, S-Action, Bet, grazing, minigames), All-Star Cast with dark zones, Smash Cut lightning, Rimshot stars, minigames, FINAL EPISODE and DEFEAT TENNA |
-| The Roaring Knight | Deltarune – Chapter 3 | 15-turn cycle: stars, tracking swords, box splitter (huge cut that never kills), sword tunnel, rotating slashes; below 80 % it charges and ROARS; HoldBreath |
+| The Roaring Knight | Deltarune – Chapter 3 | 15-turn cycle: stars from a cone that turn red and burst (light beams show the shards), swords that shadow the SOUL and leave slashes (a breathing ring of swords in phase 2), box splitter (the board cracks open, fast/slow diamonds; the cut never kills), a tunnel of blades with a finisher, rotating slashes (1-2-2-3-3-4 lines…); below 80 % it charges and ROARS; HoldBreath |
 | Jackenstein | Deltarune – Chapter 4 | dark mazes with solid walls and a light radius: key and treasure for TP, exit, pumpkin chasing you once you hold the key; LightUp; Unleash ×3 to spare; bullet rain afterwards |
 | Old Man Gerson | Deltarune – Chapter 4 | falling axes, boomerangs, combined attack (uses the project's own sprite and music) |
 | Sound of Justice | Deltarune – Chapter 4 | nine fixed attacks: green SOUL arrows from left/right/top (called out, later silent), then red SOUL hammer strikes on marked areas; can't be damaged, ends after the nine attacks or on OKHeal |
@@ -111,12 +116,18 @@ The full roster (every major, optional and secret boss of both games) is listed 
 
 ## Art and music
 
-The repository only ships the project's own Susie/Gerson sprites and Gerson's music. Every
-other boss is drawn as a **placeholder card** (its name and a small generic emblem) until you
-give it art – the projectiles (bones, spears, fire, cards…) are drawn in code.
+- **Bosses** are drawn as original animated sigils (`js/presence.js`): an aura, a halo, the
+  boss' emblem (its weapon or theme - never the character) and particles in its style. They
+  flash when hit and burn hotter when the fight heats up.
+- **Projectiles** (bones, spears, fire, beams, suits, swords…) are drawn in code.
+- **Music**: every boss and the menu have an original chiptune song (`js/songs.js`), played by a
+  small Web Audio sequencer (`js/music.js`). The songs get fuller when the fight heats up (low
+  boss HP or late turns). Nothing copies a melody from the games.
+- **Fonts**: DotGothic16 and Pixelify Sans (SIL Open Font License, `assets/fonts/`).
+- The repository also contains the Susie/Gerson sprites and Gerson's music that were already in it.
 
-To add art or music for a boss, put the files in `assets/bosses/<boss id>/` and list them in
-`assets/bosses/manifest.js`:
+To use your own art or music for a boss, put the files in `assets/bosses/<boss id>/` and list
+them in `assets/bosses/manifest.js` - they replace the sigil and the chiptune song:
 
 ```js
 const BOSS_ASSETS = {
@@ -135,10 +146,13 @@ assets/bosses/        per-boss art/music slots + manifest.js
 js/config.js          canvas, layout, bullet board (setArena)
 js/storage.js         safe localStorage, records and settings
 js/input.js           keyboard and touch input (held and pressed keys)
-js/audio.js           synthesized sound effects, music, mute
+js/audio.js           synthesized sound effects, volume buses, music playback
+js/music.js           the chiptune sequencer (tracker strings, generated leads, drums)
+js/songs.js           the original songs, one per boss plus the menu
 js/textbox.js         word wrap and typewriter text
 js/bosses.js          boss registry and the full boss interface description
-js/bossart.js         boss sprites/placeholders, shared projectile shapes
+js/bossart.js         boss sprites from the manifest, emblems, shared projectile shapes
+js/presence.js        the animated boss sigils
 js/roster.js          the complete Undertale + Deltarune roster
 js/items.js           healing items per game
 js/state.js           game state, start/reset/end, survival mode
@@ -149,6 +163,7 @@ js/effects.js         shake, flash, popups, slashes, particles
 js/hud.js             battle UI for both games
 js/render.js          scene and bullet drawing
 js/menu.js            boss select screen
+js/screens.js         title screen, settings, pause menu
 js/battle.js          the turn-based battle state machine and attack runner
 js/game.js            game loop
 bosses/*.js           one file per boss
@@ -184,4 +199,4 @@ Everything lives in the browser's `localStorage`, and the game works without it:
 
 - `battle_best_<boss>` – best survival time (original key format),
 - `deltatale_records` – battle results (defeated / spared / fewest turns),
-- `deltatale_settings` – last boss, mode and mute.
+- `deltatale_settings` – last boss, mode, sound, volumes and screen shake.
