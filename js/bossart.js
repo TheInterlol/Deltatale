@@ -178,6 +178,37 @@ function drawEmblem(kind, color, t) {
       ctx.quadraticCurveTo(-14, 4, 0, -20);
       ctx.fill();
       break;
+    case 'dollar':
+      ctx.font = `bold 46px ${FONT_FAMILY}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('$', 0, 16);
+      break;
+    case 'house':
+      ctx.beginPath();
+      ctx.moveTo(-22, 0);
+      ctx.lineTo(0, -22);
+      ctx.lineTo(22, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(-16, 0, 32, 22);
+      break;
+    case 'wine':
+      ctx.beginPath();
+      ctx.moveTo(-16, -22);
+      ctx.lineTo(16, -22);
+      ctx.quadraticCurveTo(16, 2, 0, 4);
+      ctx.quadraticCurveTo(-16, 2, -16, -22);
+      ctx.fill();
+      ctx.fillRect(-2, 4, 4, 16);
+      ctx.fillRect(-12, 18, 24, 4);
+      break;
+    case 'tornado':
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.ellipse(Math.sin(t * 3 + i) * 3, -18 + i * 9, 22 - i * 4, 4, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      break;
     case 'gear':
       ctx.beginPath();
       ctx.arc(0, 0, 16, 0, Math.PI * 2);

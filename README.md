@@ -73,6 +73,13 @@ Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP ov
 | Asriel Dreemurr | Undertale – Finale | Star/Galacta Blazing, Shocker Breaker I/II, Chaos Saber/Slicer, Chaos Buster/Blaster, Hyper Goner vortex, "But it refused", STRUGGLE → SAVE the lost souls (their own attacks) → SAVE Asriel |
 | Undyne the Undying | Undertale – Genocide | faster green spears with more reversals, rotating spear rings, spear barrages, rising spears; keeps fighting at 0 HP with slowing spears, then melts |
 | Sans | Undertale – Genocide | KARMA, opening attack, bone lines, cyan bones, platforms over bones, beam cannons, gravity slams, false mercy trap, final barrage, falls asleep – only then can be hit |
+| Lancer | Deltarune – Chapter 1 | bike wheelie charges, bike passes throwing spades; Warning/Compliment; leaves after 4 turns |
+| K. Round | Deltarune – Chapter 1 | stomps on your position, star kicks, star stomps, falling stars; heals with almond milk; Bow / Deep Bow until the crown falls |
+| King | Deltarune – Chapter 1 | scripted 15 turns: spade attack, swinging board, spade-tipped chains, spiked cage in a shrinking box, chained cage with heart marks; defense drops near the end |
+| Berdly | Deltarune – Chapter 2 | tornado walls, fluttering A+ papers, spear blast trails; Bump / BumpX; spareable when tired |
+| Spamton | Deltarune – Chapter 2 | money vacuum, Minitons, growing word bullets; spare by answering his DEAL correctly |
+| Rouxls Kaard | Deltarune – Chapter 2 | the house game (Take House / Distract), falling boxes squash the board, Thrash Machine part attacks |
+| Queen | Deltarune – Chapter 2 | stomps, exploding heads, lasers, Berdly's tornadoes, social media words, plug sparks on a sliding board, wine glass, ultimate pop-ups; acid shields (Toast), loosen Berdly's cable |
 | Old Man Gerson | Deltarune – Chapter 4 | falling axes, boomerangs, combined attack (uses the project's own sprite and music) |
 | Jevil | Deltarune – secret | 4 phases by HP or tiredness, suit bullets, spirals, bombs, scythes, carousel, CHAOS BOMB, FINAL CHAOS; Pirouette/Hypnosis tire him for a pacify |
 | Spamton NEO | Deltarune – secret | yellow SOUL with BIG SHOT, flying heads, mail trucks, chained heart, pipis, gripping phones, eyes/nose/mouth, POWER OF NEO; Snap wires to spare |

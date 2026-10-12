@@ -899,6 +899,158 @@ test('Undyne the Undying: at 0 HP she keeps fighting with slower spears, then me
   }
 });
 
+test('Lancer: his bike runs out of fuel after four turns', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'lancer');
+    const result = await playOutFight(page, 10);
+    assert.deepEqual(result, { phase: 'victory', outcome: 'survived' });
+    assert.equal(await page.evaluate(() => state.battle.turn), 4);
+  } finally {
+    await close();
+  }
+});
+
+test('K. Round: bowing loosens the crown until it falls off; it heals when hurt', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'k_round');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      b.bossHp = 900;
+      KRound.onDamaged(b);
+      startEnemyTalk(b);
+      const heal = b.nextAttack.name;
+      startAttack(b);
+      const healed = b.bossHp > 900;
+      endAttack(b);
+      const bow = KRound.acts.find(a => a.name === 'Bow');
+      for (let i = 0; i < 7; i++) chooseAct(b, { kind: 'act', act: bow });
+      startEnemyTalk(b);
+      startAttack(b);
+      endAttack(b);
+      return { heal, healed, outcome: b.outcome };
+    });
+    assert.deepEqual(result, { heal: 'Self-care', healed: true, outcome: 'spared' });
+  } finally {
+    await close();
+  }
+});
+
+test('King: the scripted 15 turns end the fight', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'king');
+    const result = await playOutFight(page, 20);
+    assert.deepEqual(result, { phase: 'victory', outcome: 'survived' });
+    assert.equal(await page.evaluate(() => state.battle.turn), 15);
+  } finally {
+    await close();
+  }
+});
+
+test('Berdly: Bump raises MERCY, and he can be spared once TIRED at half HP', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'berdly');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      trySpare(b);
+      const early = b.outcome;
+      b.phase = 'menu';
+      b.bossHp = b.boss.maxHp / 2;
+      trySpare(b);
+      return { early, outcome: b.outcome };
+    });
+    assert.deepEqual(result, { early: null, outcome: 'spared' });
+  } finally {
+    await close();
+  }
+});
+
+test('Spamton: only the right answers to his DEAL let you spare him', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'spamton');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      const pickAct = name => Spamton.acts.find(a => a.name === name);
+      // a wrong answer doesn't advance
+      chooseAct(b, { kind: 'act', act: pickAct(SPAMTON_WRONG[0]) });
+      const afterWrong = b.flags.deal;
+      for (const answer of SPAMTON_DEAL) {
+        b.phase = 'menu';
+        chooseAct(b, { kind: 'act', act: pickAct(answer) });
+      }
+      b.phase = 'menu';
+      trySpare(b);
+      return { afterWrong, deal: b.flags.deal, outcome: b.outcome };
+    });
+    assert.deepEqual(result, { afterWrong: 0, deal: 6, outcome: 'spared' });
+  } finally {
+    await close();
+  }
+});
+
+test('Queen: her acid shield blocks FIGHT until it is toasted away; loosening the cable frees Berdly', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'queen');
+    const shield = await page.evaluate(() => {
+      const b = state.battle;
+      b.bossHp = b.boss.maxHp * 0.7;
+      startEnemyTalk(b);
+      const attack = b.nextAttack.name;
+      startAttack(b);
+      endAttack(b);
+      return { attack, shield: b.flags.shield };
+    });
+    assert.equal(shield.attack, 'Wine');
+    assert.ok(shield.shield > 0);
+
+    await perfectFight(page);
+    assert.equal(await page.evaluate(() => state.battle.fight.missed), true);
+
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      b.phase = 'menu';
+      while (b.flags.shield > 0) chooseAct(b, { kind: 'act', act: Queen.acts.find(a => a.name === 'Toast') });
+      for (let i = 0; i < 10; i++) chooseAct(b, { kind: 'act', act: Queen.acts.find(a => a.name === 'Loosen') });
+      b.phase = 'menu';
+      trySpare(b);
+      return b.outcome;
+    });
+    assert.equal(result, 'spared');
+  } finally {
+    await close();
+  }
+});
+
+test('Rouxls Kaard: owning more houses when the board fills up wins the house game', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'rouxls_kaard');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      const take3 = RouxlsKaard.acts.find(a => a.name === 'TakeHouse3');
+      for (let i = 0; i < 20 && !b.outcome; i++) {
+        b.phase = 'menu';
+        b.tp = 100;
+        chooseAct(b, { kind: 'act', act: take3 });
+        if (b.outcome) break;
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      return { outcome: b.outcome, mine: b.flags.mine, his: b.flags.his };
+    });
+    assert.equal(result.outcome, 'spared');
+    assert.equal(result.mine + result.his, 25);
+  } finally {
+    await close();
+  }
+});
+
 // ---------------------------------------------------------------- menus & UI
 
 test('boss select: arrow keys and Z start the chosen boss, unfinished bosses do not start', async () => {

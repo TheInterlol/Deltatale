@@ -239,6 +239,8 @@ function updateList(battle, options, choose) {
 }
 
 function showResult(battle, text) {
+  // an ACT or item may have ended the fight already (e.g. claiming the last house)
+  if (battle.outcome || battle.phase === 'gameover') return;
   setBattleText(battle, text);
   setPhase(battle, 'result');
 }
@@ -541,7 +543,7 @@ function endAttack(battle) {
   battle.attackMult = 1;
   battle.turn += 1;
   if (battle.boss.onTurnEnd) battle.boss.onTurnEnd(battle);
-  if (battle.outcome || battle.phase === 'victory' || battle.phase === 'result') return;
+  if (battle.outcome || ['victory', 'result', 'gameover'].includes(battle.phase)) return;
   enterMenu(battle);
 }
 
