@@ -6,6 +6,7 @@
 //   game                   'undertale' | 'deltarune' - picks the battle UI and rules
 //   color, emblem          placeholder card colour and icon (see js/bossart.js)
 //   pos                    where the boss stands, default depends on the game
+//   updateMenuHazards(battle, dt), drawMenuHazards(battle)  attacks during the player's menu turn
 //   music                  Audio to play (else the music listed in assets/bosses/manifest.js)
 //
 //   player                 { name, lv, maxHp, power } stats of the player for this fight

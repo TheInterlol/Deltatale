@@ -115,6 +115,8 @@ function getBattleBoxTarget(battle) {
   return battle.phase === 'enemyTalk' || battle.phase === 'attack' ? arena : TEXT_BOX;
 }
 
+const MENU_PHASES = ['menu', 'actList', 'itemList', 'mercyList'];
+
 function updateBattle(dt) {
   const battle = state.battle;
   battle.phaseTime += dt;
@@ -127,6 +129,9 @@ function updateBattle(dt) {
   if (battle.outcome === 'defeated') battle.bossAlpha = Math.max(0, battle.bossAlpha - dt * 0.8);
   if (battle.outcome === 'spared') battle.bossAlpha = Math.max(0.35, battle.bossAlpha - dt * 1.5);
   if (battle.outcome === 'survived') battle.bossAlpha = Math.max(0, battle.bossAlpha - dt * 1.2);
+
+  // some bosses keep attacking while you pick a command (Sans' second half)
+  if (battle.boss.updateMenuHazards && MENU_PHASES.includes(battle.phase)) battle.boss.updateMenuHazards(battle, dt);
 
   switch (battle.phase) {
     case 'menu': updateMenu(battle); break;

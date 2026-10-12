@@ -105,13 +105,26 @@ function drawEffects() {
   for (const s of effects.slashes) {
     const k = Math.min(1, s.life / (s.maxLife * 0.6));
     ctx.globalAlpha = 1 - Math.max(0, (s.life / s.maxLife - 0.6) / 0.4);
-    ctx.strokeStyle = '#ff4fd8';
-    ctx.lineWidth = 5;
-    for (let i = -1; i <= 1; i++) {
+    if (isUndertale()) {
+      // one long red slash, like the player's knife
+      ctx.fillStyle = '#ff2a2a';
       ctx.beginPath();
-      ctx.moveTo(s.x - 50 + i * 18, s.y - 50);
-      ctx.lineTo(s.x - 50 + i * 18 + 100 * k, s.y - 50 + 100 * k);
-      ctx.stroke();
+      ctx.moveTo(s.x - 55, s.y - 55);
+      ctx.quadraticCurveTo(s.x + 10 * k, s.y - 10 * k, s.x - 55 + 110 * k, s.y - 55 + 110 * k);
+      ctx.quadraticCurveTo(s.x - 6 * k, s.y + 4 * k, s.x - 55, s.y - 55);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(s.x - 55 + 110 * k - 3, s.y - 55 + 110 * k - 3, 6, 6);
+    } else {
+      // Susie's three claw marks
+      ctx.strokeStyle = '#ff4fd8';
+      ctx.lineWidth = 5;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(s.x - 50 + i * 18, s.y - 50);
+        ctx.lineTo(s.x - 50 + i * 18 + 100 * k, s.y - 50 + 100 * k);
+        ctx.stroke();
+      }
     }
   }
 
@@ -121,9 +134,10 @@ function drawEffects() {
     ctx.fillRect(b.x - 2, b.y - 2, 4, 4);
   }
 
-  ctx.font = `bold 24px ${TITLE_FAMILY}`;
+  ctx.font = `26px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 5;
+  ctx.lineJoin = 'round';
   for (const p of effects.popups) {
     const k = p.life / p.maxLife;
     // a short hop upwards, then it stays and fades

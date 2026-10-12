@@ -134,17 +134,33 @@ function undyneSpear(side, speed, reverse = false) {
   return spear;
 }
 
+// Spear formations like the original's: a burst from one side, alternating sides, a clockwise
+// sweep, quick doubles. Later turns use faster spears and add yellow ones that swing around.
+const SPEAR_FORMATIONS = [
+  // [side offsets from the starting side (0..3 clockwise), gap in seconds]
+  { name: 'burst', steps: [0, 0, 0, 0, 0], gap: 0.3 },
+  { name: 'alternate', steps: [0, 2, 0, 2, 0, 2], gap: 0.42 },
+  { name: 'sweep', steps: [0, 1, 2, 3, 0, 1, 2, 3], gap: 0.36 },
+  { name: 'doubles', steps: [0, 0, 1, 1, 2, 2, 3, 3], gap: 0.3 },
+  { name: 'zigzag', steps: [0, 1, 0, 3, 0, 1, 0, 3], gap: 0.38 }
+];
+const CLOCKWISE = ['up', 'right', 'down', 'left'];
+
 // A script of spears: [delay after the previous one, side, speed multiplier, reverse].
 function makeSpearScript(level, pace) {
-  const count = 7 + Math.min(level, 5);
   const list = [];
-  let side = pick(SIDES);
-  for (let i = 0; i < count; i++) {
-    // mostly change sides, sometimes repeat for a quick double
-    if (chance(0.7)) side = pick(SIDES.filter(s => s !== side));
-    const fast = chance(0.25 + 0.05 * level);
-    const reverse = level >= 1 && chance(0.18);
-    list.push([i === 0 ? 0.3 : rand(0.42, 0.62) / pace, side, fast ? 1.6 : 1, reverse]);
+  const formations = 2 + Math.min(2, Math.floor(level / 2));
+  for (let f = 0; f < formations; f++) {
+    const form = pick(SPEAR_FORMATIONS);
+    const start = randInt(0, 3);
+    const fast = level >= 2 && chance(0.3 + 0.05 * level);
+    form.steps.forEach((offset, i) => {
+      const side = CLOCKWISE[(start + offset) % 4];
+      const reverse = level >= 1 && i === form.steps.length - 1 ? chance(0.6) : level >= 2 && chance(0.12);
+      const first = list.length === 0;
+      const gap = first ? 0.3 : (i === 0 ? 0.7 : form.gap);
+      list.push([gap / pace / (fast ? 1.25 : 1), side, fast ? 1.45 : 1, reverse]);
+    });
   }
   return list;
 }

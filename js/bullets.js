@@ -108,7 +108,10 @@ function hurtPlayer(damage, b = {}) {
   // Sans hits every frame - a full flash each time would paint the screen red
   addShake(boss && boss.karma ? 1.5 : 5);
   if (!(boss && boss.karma)) addFlash(1);
-  if (battle && !boss.karma) addPopup(damage, partyPopupPos().x, partyPopupPos().y, '#ff4d4d');
+  // red shards fly off the SOUL
+  addBurst(p.x, p.y, '#ff3b3b', boss && boss.karma ? 2 : 7, 110);
+  // Deltarune shows the damage over the party member; Undertale only drains the HP bar
+  if (battle && !boss.karma && boss.game !== 'undertale') addPopup(damage, partyPopupPos().x, partyPopupPos().y, '#ff4d4d');
   if (battle && boss.onPlayerHurt) boss.onPlayerHurt(battle, damage);
 }
 

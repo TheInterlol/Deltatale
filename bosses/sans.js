@@ -6,6 +6,9 @@
 // sea of bones. Around the middle he offers mercy - accepting is a trap. Phase 2 adds more
 // beams and gravity slams, then a long final barrage, after which he falls asleep and your
 // attack finally connects. He dodges every FIGHT until then.
+// In the second half he even throws bones across the command buttons while you choose, and
+// his "special attack" is not attacking at all: wait until he falls asleep, then push the
+// board left and down onto FIGHT. Push too early and he wakes up and puts you back.
 
 const Sans = registerBoss({
   id: 'sans',
@@ -104,26 +107,59 @@ const Sans = registerBoss({
       return SANS_ATTACKS.surprise;
     }
     if (f.finalDone) {
-      return SANS_ATTACKS.sleeping;
+      return f.asleep ? SANS_ATTACKS.sleeping : SANS_ATTACKS.special;
     }
     if (f.phase === 2 && t >= 20) {
       f.finalDone = true;
       return SANS_ATTACKS.final;
     }
-    const phase1 = ['boneLines', 'blueBones', 'randomBones', 'platforms', 'slides', 'platformBeams'];
-    const phase2 = ['slamCombo', 'beamStorm', 'boneLines', 'slamCombo', 'platformBeams', 'beamStorm', 'randomBones'];
+    const phase1 = ['boneLines', 'blueBones', 'randomBones', 'platformsLeft', 'platforms', 'slides', 'platformsRide', 'platformBeams'];
+    const phase2 = ['slamCombo', 'beamStorm', 'boneLines', 'platformsRide', 'slamCombo', 'platformBeams', 'beamStorm', 'randomBones'];
     const list = f.phase === 1 ? phase1 : phase2;
     return SANS_ATTACKS[list[(t - 1) % list.length]];
   },
 
+  // turns 13+: bones sweep across the command buttons while you choose (1 damage, no KARMA,
+  // never below 1 HP). Move the cursor to another button to dodge them.
+  updateMenuHazards(battle, dt) {
+    const f = battle.flags;
+    if (f.phase !== 2 || f.finalDone || battle.phase !== 'menu') {
+      f.menuBones = [];
+      return;
+    }
+    f.menuBones = f.menuBones || [];
+    f.menuTimer = (f.menuTimer || 0) + dt;
+    if (f.menuTimer > 1.7) {
+      f.menuTimer = 0;
+      const fromLeft = chance(0.5);
+      const B = COMMAND_BUTTON_UT;
+      f.menuBones.push({ x: fromLeft ? B.x - 20 : B.x + 4 * B.w + 3 * B.gap + 20, vx: fromLeft ? 230 : -230, hit: false });
+    }
+    const B = COMMAND_BUTTON_UT;
+    const soulX = B.x + battle.command * (B.w + B.gap) + 14;
+    for (const bone of f.menuBones) {
+      bone.x += bone.vx * dt;
+      if (!bone.hit && Math.abs(bone.x - soulX) < 8) {
+        bone.hit = true;
+        const p = state.player;
+        if (p.hp > 1) p.hp -= 1;
+        sfx.hurt();
+        addShake(3);
+      }
+    }
+    f.menuBones = f.menuBones.filter(b => b.x > -40 && b.x < VIEW_W + 40);
+  },
+
+  drawMenuHazards(battle) {
+    const bones = battle.flags.menuBones;
+    if (!bones || !bones.length) return;
+    const B = COMMAND_BUTTON_UT;
+    ctx.save();
+    for (const bone of bones) drawBoneSprite(bone.x, B.y + B.h / 2, 8, B.h + 10, '#ffffff');
+    ctx.restore();
+  },
+
   onTurnEnd(battle) {
-    if (battle.flags.finalDone && !battle.flags.asleep && battle.flags.sleepTurns === undefined) {
-      battle.flags.sleepTurns = 0;
-    }
-    if (battle.flags.sleepTurns !== undefined && !battle.flags.asleep) {
-      battle.flags.sleepTurns += 1;
-      if (battle.flags.sleepTurns >= 2) battle.flags.asleep = true;
-    }
     // if the player never answered the offer, it is withdrawn after one turn
     if (battle.flags.mercyOffered && !battle.flags.mercyAnswered && battle.turn > 13) battle.flags.mercyAnswered = true;
   },
@@ -227,11 +263,14 @@ const SANS_ATTACKS = {
 
   boneLines: {
     name: 'Bone lines',
-    duration: 7,
+    duration: 12.5,
     soul: 'blue',
     start(run) {
+      // 8 lines from the right, then 8 from the left: short bones below, long ones above,
+      // a small gap between them - eight small hops each way
       const speed = 190 + run.level * 15;
       for (let i = 0; i < 8; i++) sansBonePair(i * 105, speed, 16 + (i % 2) * 6, 52);
+      for (let i = 0; i < 8; i++) sansBonePair(1100 + i * 105, speed, 16 + (i % 2) * 6, 52, true);
     },
     update() {}
   },
@@ -312,6 +351,76 @@ const SANS_ATTACKS = {
         lyingBone(arena.x + arena.w / 2, arena.y + arena.h + 10, arena.w * 0.7, 0, -120, { karma: 1 });
       }, 1.2);
     }
+  },
+
+  // Platforms 1: three platforms come from the left over a sea of bones; bones wait above the
+  // third one and a long bone comes down at the end.
+  platformsLeft: {
+    name: 'Platforms over the bones',
+    duration: 9,
+    soul: 'blue',
+    box: { w: 300, h: 150 },
+    start(run) {
+      for (let x = arena.x + 8; x < arena.x + arena.w; x += 12) floorBone(x, 18, 0, { karma: 1, maxLife: 20 });
+      const p = state.player;
+      p.x = arena.x + 40;
+      p.y = arena.y + arena.h - 60;
+      sansPlatform(arena.x + 40, arena.y + arena.h - 46, 34, 70);
+      run.data.events = [
+        [1.2, () => sansPlatform(arena.x - 40, arena.y + arena.h - 70, 60, 64)],
+        [2.6, () => {
+          sansPlatform(arena.x - 40, arena.y + arena.h - 52, 60, 64);
+          // three bones hanging just above the third platform: hop low
+          for (let i = 0; i < 3; i++) ceilingBone(arena.x - 60 + i * 20, arena.h - 92, 60, { karma: 1 });
+        }],
+        [6.4, () => ceilingBone(arena.x + arena.w * 0.7, 10, 0, {
+          karma: 1,
+          update(b, dt) { if (b.hh * 2 < arena.h - 30) { b.hh += 60 * dt; b.y = arena.y + b.hh; } }
+        })]
+      ];
+    },
+    update(run) {
+      timeline(run, run.data.events);
+    }
+  },
+
+  // Platforms 4: ride a small platform that drifts left and right over a sea of bones while
+  // three rows of floating bones close in - the middle row sinks, the outer rows rise.
+  platformsRide: {
+    name: 'Riding the platform',
+    duration: 9,
+    soul: 'blue',
+    box: { w: 300, h: 160 },
+    start(run) {
+      for (let x = arena.x + 8; x < arena.x + arena.w; x += 12) floorBone(x, 18, 0, { karma: 1, maxLife: 20 });
+      const p = state.player;
+      p.x = arena.x + arena.w / 2;
+      p.y = arena.y + arena.h - 64;
+      const left = arena.x + 40;
+      const right = arena.x + arena.w - 40;
+      sansPlatform(p.x, arena.y + arena.h - 46, 70, 64).update = (b) => {
+        if (b.x > right) b.vx = -Math.abs(b.vx);
+        if (b.x < left) b.vx = Math.abs(b.vx);
+      };
+      const rows = [
+        { x: arena.x + 50, dir: -1 },
+        { x: arena.x + arena.w / 2, dir: 1 },
+        { x: arena.x + arena.w - 50, dir: -1 }
+      ];
+      for (const row of rows) {
+        for (let i = -1; i <= 1; i++) {
+          spawnBone({
+            x: row.x + i * 14, y: arena.y + arena.h / 2 - 20, hw: 4, hh: 14, karma: 1, noCull: true, maxLife: 20,
+            update(b, dt) {
+              const speed = 9 + run.level * 2;
+              b.y += row.dir * speed * dt;
+              b.y = Math.max(arena.y + 16, Math.min(arena.y + arena.h - 48, b.y));
+            }
+          });
+        }
+      }
+    },
+    update() {}
   },
 
   platformBeams: {
@@ -403,10 +512,19 @@ const SANS_ATTACKS = {
 
   final: {
     name: 'Final attack',
-    duration: 22,
+    duration: 26,
     soul: 'blue',
     line: 'ready? here comes my special attack.',
+    start(run) {
+      run.data.events = [];
+      // a huge bone array to open with: lines from both sides, faster and faster
+      for (let i = 0; i < 10; i++) {
+        run.data.events.push([0.2 + i * 0.32, () => sansBonePair(0, 260 + i * 8, 16 + (i % 3) * 8, 50, i % 2 === 0)]);
+      }
+    },
     update(run) {
+      timeline(run, run.data.events);
+      if (run.t < 3.8) return;
       // slams take 1 HP each and never kill
       every(run, 'slam', 0.75, () => {
         const side = pick(['down', 'up', 'left', 'right']);
@@ -415,14 +533,80 @@ const SANS_ATTACKS = {
         if (p.hp > 1) p.hp -= 1;
         sansWallBones(side, 22, 0.35, 0.4);
       }, 0.3);
-      if (run.t > 8) every(run, 'beam', 0.9, () => beamAtSoul(30), 0);
-      if (run.t > 15) every(run, 'cross', 2.2, beamsCross, 0);
+      if (run.t > 10) every(run, 'beam', 0.9, () => beamAtSoul(30), 0);
+      if (run.t > 17) every(run, 'cross', 2.2, beamsCross, 0);
+    }
+  },
+
+  // The "special attack": Sans just stalls. Wait for him to fall asleep, then push the board
+  // left (onto the FIGHT column) and down (onto the FIGHT button). Pushing while he is awake
+  // wakes him: the SOUL snaps back to the middle and the board goes back.
+  special: {
+    name: 'Special attack',
+    duration: 600,
+    soul: 'red',
+    quiet: true,
+    box: { w: 120, h: 96 },
+    line: 'so, uh... you\'re not getting a turn. ever.',
+    start(run) {
+      run.data.home = { x: arena.x, y: arena.y };
+      run.data.sleep = 0;
+      run.data.stage = 0;
+      run.data.talk = 0;
+    },
+    update(run, dt) {
+      const d = run.data;
+      const battle = run.battle;
+      const p = state.player;
+      d.sleep += dt;
+      const asleep = d.sleep > 8;
+      if (battle) battle.flags.dozing = asleep;
+
+      // he keeps talking while he stalls
+      const lines = ['i\'m not gonna attack. i\'m just gonna stand here.', 'you\'ll get bored and quit eventually.', 'heh... any minute now...', 'zzz...'];
+      const lineIndex = Math.min(lines.length - 1, Math.floor(d.sleep / 2.6));
+      if (battle && d.talk !== lineIndex + 1) {
+        d.talk = lineIndex + 1;
+        battle.bubble = createTyper(lines[lineIndex], bubbleRect(battle).w - 24, BUBBLE_FONT);
+      }
+
+      const pushLeft = isHeld(LEFT_KEYS) && p.x - p.r <= arena.x + 2;
+      const pushDown = isHeld(DOWN_KEYS) && p.y + p.r >= arena.y + arena.h - 2;
+      if ((pushLeft || pushDown) && !asleep) {
+        // caught: back to the middle, and he is wide awake again
+        arena.x = d.home.x;
+        arena.y = d.home.y;
+        p.x = arena.x + arena.w / 2;
+        p.y = arena.y + arena.h / 2;
+        d.sleep = 0;
+        d.stage = 0;
+        d.talk = 0;
+        sfx.warn();
+        addFlash(0.4);
+        return;
+      }
+      const B = COMMAND_BUTTON_UT;
+      if (d.stage === 0 && pushLeft) {
+        arena.x -= 45 * dt;
+        if (arena.x <= B.x + 10) {
+          arena.x = B.x + 10;
+          d.stage = 1;
+        }
+      } else if (d.stage === 1 && pushDown) {
+        arena.y += 45 * dt;
+        if (arena.y + arena.h >= B.y + B.h / 2) {
+          // the board is on FIGHT: attack!
+          if (battle) battle.flags.asleep = true;
+          run.done = true;
+        }
+      }
     }
   },
 
   sleeping: {
     name: '...',
     duration: 0.8,
+    quiet: true,
     line: 'zzz...',
     update() {}
   }
@@ -443,11 +627,11 @@ BULLET_DRAWERS.boneField = b => {
   ctx.rect(x, y, b.hw * 2, b.hh * 2);
   ctx.clip();
   if (b.vertical) {
-    for (let yy = y + 6; yy < y + b.hh * 2; yy += 12) drawBoneShape(b.x, yy, 8, b.hw * 2 - 8, '#fff');
+    for (let yy = y + 6; yy < y + b.hh * 2; yy += 12) (ctx.save(), ctx.translate(b.x, yy), ctx.rotate(Math.PI / 2), drawBoneSprite(0, 0, 8, b.hw * 2 - 8, '#fff'), ctx.restore());
   } else {
     for (let xx = x + 6; xx < x + b.hw * 2; xx += 12) {
       ctx.save();
-      drawBoneShape(xx, b.y, 8, b.hh * 2 - 8, '#fff');
+      drawBoneSprite(xx, b.y, 8, b.hh * 2 - 8, '#fff');
       ctx.restore();
     }
   }
@@ -463,5 +647,5 @@ BULLET_DRAWERS.platform = b => {
 
 // The regular attacks (survival mode plays these back to back); the scripted ones
 // (mercy offer, trap, sleeping) are only picked by chooseAttack().
-Sans.attacks = ['opening', 'boneLines', 'blueBones', 'randomBones', 'platforms', 'slides', 'platformBeams',
-  'slamCombo', 'beamStorm', 'surprise', 'final'].map(id => SANS_ATTACKS[id]);
+Sans.attacks = ['opening', 'boneLines', 'blueBones', 'randomBones', 'platformsLeft', 'platforms', 'slides', 'platformsRide',
+  'platformBeams', 'slamCombo', 'beamStorm', 'surprise', 'final'].map(id => SANS_ATTACKS[id]);

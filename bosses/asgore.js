@@ -265,21 +265,36 @@ BULLET_DRAWERS.eyeFlash = b => {
 };
 
 BULLET_DRAWERS.sweep = (b, fill) => {
-  // the trident's swing: a coloured arc sweeping over the board
+  // the trident's swing: a bright crescent racing across the board with a fading wake
   const k = Math.min(1, b.life / 0.22);
-  ctx.globalAlpha = 0.85 * (1 - Math.max(0, (b.life - 0.18) / 0.2));
-  ctx.fillStyle = fill;
+  const fade = 1 - Math.max(0, (b.life - 0.18) / 0.2);
   const w = b.hw * 2;
-  const x0 = b.fromLeft ? b.x - b.hw : b.x + b.hw - w * k;
-  ctx.fillRect(x0, b.y - b.hh, w * k, b.hh * 2);
-  ctx.globalAlpha = 1;
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 3;
-  const edge = b.fromLeft ? b.x - b.hw + w * k : b.x + b.hw - w * k;
+  const left = b.x - b.hw;
+  const edge = b.fromLeft ? left + w * k : left + w * (1 - k);
+  const dir = b.fromLeft ? 1 : -1;
+  const top = b.y - b.hh;
+  const h = b.hh * 2;
+  ctx.save();
+  ctx.globalAlpha *= Math.max(0, fade);
+  const wake = ctx.createLinearGradient(edge, 0, edge - dir * w * 0.9, 0);
+  wake.addColorStop(0, withAlpha(fill, 0.85));
+  wake.addColorStop(1, withAlpha(fill, 0));
+  ctx.fillStyle = wake;
+  ctx.fillRect(Math.min(edge, edge - dir * w * 0.9), top, w * 0.9, h);
+  // the crescent at the leading edge
+  ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.moveTo(edge, b.y - b.hh);
-  ctx.lineTo(edge, b.y + b.hh);
-  ctx.stroke();
+  ctx.moveTo(edge, top);
+  ctx.quadraticCurveTo(edge + dir * 26, b.y, edge, top + h);
+  ctx.quadraticCurveTo(edge + dir * 10, b.y, edge, top);
+  ctx.fill();
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(edge - dir * 4, top);
+  ctx.quadraticCurveTo(edge + dir * 14, b.y, edge - dir * 4, top + h);
+  ctx.quadraticCurveTo(edge - dir * 8, b.y, edge - dir * 4, top);
+  ctx.fill();
+  ctx.restore();
 };
 
 BULLET_DRAWERS.fireZone = (b, fill) => {

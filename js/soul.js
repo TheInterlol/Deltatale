@@ -483,6 +483,7 @@ function drawPlayer() {
   // board guides (strings, plus spots) stay visible while the SOUL blinks after a hit
   if (p.mode === 'purple') drawLanes(p);
   if (p.mode === 'plus') drawPlusSpots(p);
+  if (p.mode === 'green') drawShield(p);
   if (p.hurtCooldown > 0.05 && Math.floor(p.hurtCooldown * 16) % 2 === 0) return;
 
   if (p.mode === 'split' && p.halves) {
@@ -491,7 +492,6 @@ function drawPlayer() {
   }
 
   ctx.save();
-  if (p.mode === 'green') drawShield(p);
 
   // The yellow SOUL points where it shoots; blue rotates with gravity.
   let angle = 0;
@@ -514,20 +514,28 @@ function drawPlayer() {
   }
 }
 
+// The green SOUL's shield: a straight bar that swings around the SOUL to the chosen side,
+// inside a green ring (the area spears are blocked at).
 function drawShield(p) {
-  const angle = { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 }[p.shield];
+  const target = { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 }[p.shield];
+  if (p.shieldAngle === undefined) p.shieldAngle = target;
+  let diff = target - p.shieldAngle;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  p.shieldAngle += diff * 0.45;
   ctx.save();
-  ctx.strokeStyle = '#3d7cff';
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(p.x, p.y, SHIELD_RADIUS, angle - 0.75, angle + 0.75);
-  ctx.stroke();
-  // a faint circle shows the block ring
-  ctx.strokeStyle = 'rgba(22, 201, 22, 0.35)';
+  ctx.strokeStyle = 'rgba(22, 201, 22, 0.8)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(p.x, p.y, SHIELD_RADIUS + 8, 0, Math.PI * 2);
+  ctx.arc(p.x, p.y, SHIELD_RADIUS + 6, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.shieldAngle);
+  const half = SHIELD_RADIUS * 0.95;
+  ctx.fillStyle = '#1f4fd8';
+  ctx.fillRect(SHIELD_RADIUS - 3, -half, 6, half * 2);
+  ctx.fillStyle = '#7fa8ff';
+  ctx.fillRect(SHIELD_RADIUS - 3, -half, 2, half * 2);
   ctx.restore();
 }
 

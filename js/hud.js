@@ -361,6 +361,7 @@ function drawBattleUi(battle) {
   drawCommandButtons(battle);
   drawBattleBoxContents(battle);
   drawSpeechBubble(battle);
+  if (battle.boss.drawMenuHazards) battle.boss.drawMenuHazards(battle);
 }
 
 function drawSurvivalHud() {

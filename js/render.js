@@ -46,9 +46,20 @@ function drawArena() {
   if (boss && boss.drawArenaBackground && isSoulVisible()) boss.drawArenaBackground(box);
 
   // the frame goes on top, otherwise the fill would cover its inner half
-  ctx.strokeStyle = state.player && state.player.mode === 'green' && isSoulVisible() ? '#16c916' : '#fff';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(box.x, box.y, box.w, box.h);
+  const green = state.player && state.player.mode === 'green' && isSoulVisible();
+  if (!isUndertale() && isSoulVisible()) {
+    // Deltarune's bullet board: a green frame with a darker inner line
+    ctx.strokeStyle = '#0b5d12';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(box.x, box.y, box.w, box.h);
+    ctx.strokeStyle = '#25d43a';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(box.x - 1, box.y - 1, box.w + 2, box.h + 2);
+  } else {
+    ctx.strokeStyle = green ? '#16c916' : '#fff';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(box.x, box.y, box.w, box.h);
+  }
 }
 
 function isSoulVisible() {
@@ -77,14 +88,23 @@ function bulletFill(b) {
 // Drawers for each bullet kind. Bosses can register their own (BULLET_DRAWERS.myKind = b => ...).
 const BULLET_DRAWERS = {
   normal(b, fill) {
-    ctx.fillStyle = fill;
     if (b.hw) {
       ctx.translate(b.x, b.y);
       if (b.angle) ctx.rotate(b.angle);
+      ctx.fillStyle = fill;
       ctx.fillRect(-b.hw, -b.hh, b.hw * 2, b.hh * 2);
-    } else {
-      fillCircle(b.x, b.y, b.r);
+      // a lighter top edge gives blocks some volume
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.fillRect(-b.hw, -b.hh, b.hw * 2, Math.min(3, b.hh));
+      return;
     }
+    // a pellet: soft halo, solid body, bright core
+    ctx.fillStyle = withAlpha(fill.startsWith('#') ? fill : '#ffffff', 0.18);
+    fillCircle(b.x, b.y, b.r + 3);
+    ctx.fillStyle = fill;
+    fillCircle(b.x, b.y, b.r);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    fillCircle(b.x - b.r * 0.3, b.y - b.r * 0.3, Math.max(1, b.r * 0.35));
   },
   axe01(b) {
     if (!imageReady(axe01Sprite)) {
@@ -103,74 +123,121 @@ const BULLET_DRAWERS = {
     if (b.angle) ctx.rotate(b.angle);
     const hw = b.hw || 6;
     const hh = b.hh || 18;
-    if (hw > hh) {
-      ctx.rotate(Math.PI / 2);
-      drawBoneShape(0, 0, hh * 2, hw * 2, fill);
-    } else {
-      drawBoneShape(0, 0, hw * 2, hh * 2, fill);
-    }
+    if (hw > hh) ctx.rotate(Math.PI / 2);
+    const thick = Math.min(hw, hh) * 2;
+    const long = Math.max(hw, hh) * 2;
+    drawBoneSprite(0, 0, thick, long, fill);
   },
   card(b, fill) {
     ctx.translate(b.x, b.y);
     if (b.suit) {
       ctx.rotate(b.spinVisual === false ? 0 : (b.angle || 0));
-      drawSuit(b.suit, 0, 0, b.r * 2.6, fill);
+      drawSuitBullet(b.suit, b.r * 2.6, fill);
     } else {
       ctx.rotate(b.life * 6);
+      ctx.fillStyle = '#1a0a2a';
+      ctx.fillRect(-7, -11, 14, 22);
       ctx.fillStyle = fill;
       ctx.fillRect(-6, -10, 12, 20);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fillRect(-4, -8, 8, 2);
     }
   },
   suit(b, fill) {
     ctx.translate(b.x, b.y);
     if (b.angle !== undefined && b.faceVelocity !== false) ctx.rotate(Math.atan2(b.vy, b.vx) + Math.PI / 2);
-    drawSuit(b.suit || 'spade', 0, 0, b.r * 2.6, fill);
+    drawSuitBullet(b.suit || 'spade', b.r * 2.6, fill);
   },
   fire(b, fill) {
+    const size = b.r * 1.35;
+    const y = b.y + b.r * 0.2;
+    ctx.fillStyle = withAlpha(fill.startsWith('#') ? fill : '#ffffff', 0.22);
+    drawFlame(b.x, y + 1, size * 1.3, state.clock + b.x * 0.1);
     ctx.fillStyle = fill;
-    drawFlame(b.x, b.y + b.r * 0.2, b.r * 1.35, state.clock);
+    drawFlame(b.x, y, size, state.clock + b.x * 0.1);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    drawFlame(b.x, y + size * 0.3, size * 0.45, state.clock * 1.3 + b.y * 0.1);
   },
   spear(b, fill) {
     ctx.translate(b.x, b.y);
     ctx.rotate(b.angle !== undefined ? b.angle : Math.atan2(b.vy, b.vx));
-    drawSpearShape(0, 0, (b.hw || 20) * 2, fill);
+    drawSpearSprite((b.hw || 20) * 2, fill);
   },
   arrow(b) {
     // green SOUL spear flying at the centre; yellow ones will switch sides
     const fill = b.reverse && !b.reversed ? '#ffe14d' : '#4dc3ff';
     ctx.translate(b.x, b.y);
     ctx.rotate(Math.atan2(b.vy, b.vx));
-    drawSpearShape(0, 0, 34, fill);
+    drawSpearSprite(36, fill);
   },
   beam(b) {
     const charging = b.life < b.warn;
     ctx.translate(b.originX, b.originY);
     ctx.rotate(b.angle);
+    const color = b.beamColor || '#ffffff';
     if (charging) {
+      // a thin aiming line that tightens as the shot charges
       const k = b.life / b.warn;
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.25 + 0.35 * k})`;
-      ctx.fillRect(0, -1 - k * 2, 1600, 2 + k * 4);
+      ctx.fillStyle = withAlpha(color.startsWith('#') ? color : '#ffffff', 0.15 + 0.35 * k);
+      const w = 2 + (1 - k) * 10;
+      ctx.fillRect(0, -w / 2, 1600, w);
+      ctx.fillStyle = withAlpha('#ffffff', 0.3 + 0.5 * k);
+      ctx.fillRect(0, -0.5, 1600, 1);
     } else {
       const left = b.warn + b.activeFor - b.life;
-      const width = b.hh * 2 * Math.min(1, Math.max(0.15, left * 6));
-      ctx.fillStyle = b.beamColor || '#fff';
+      const grow = Math.min(1, (b.life - b.warn) * 14);
+      const fadeOut = Math.min(1, Math.max(0.12, left * 6));
+      const width = b.hh * 2 * grow * fadeOut * (1 + Math.sin(b.life * 60) * 0.05);
+      ctx.fillStyle = withAlpha(color.startsWith('#') ? color : '#ffffff', 0.3);
+      ctx.fillRect(0, -width * 0.75, 1600, width * 1.5);
+      ctx.fillStyle = color;
       ctx.fillRect(0, -width / 2, 1600, width);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(0, -width / 5, 1600, width / 2.5);
     }
     if (b.drawEmitter !== false) drawEmitter(b, charging);
   },
   zone(b, fill) {
     const x = b.x - b.hw;
     const y = b.y - b.hh;
+    const w = b.hw * 2;
+    const h = b.hh * 2;
     if (b.life < b.warn) {
-      const blink = Math.floor(b.life * 14) % 2 === 0;
-      ctx.strokeStyle = blink ? '#ff3030' : '#7a1010';
+      // hazard stripes that speed up and brighten just before the hit
+      const k = b.life / b.warn;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+      ctx.fillStyle = `rgba(255, 40, 40, ${0.08 + 0.14 * k})`;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = `rgba(255, 60, 60, ${0.12 + 0.2 * k})`;
+      const shift = (state.clock * (40 + k * 120)) % 16;
+      for (let sx = x - h - 16 + shift; sx < x + w; sx += 16) {
+        ctx.beginPath();
+        ctx.moveTo(sx, y + h);
+        ctx.lineTo(sx + 7, y + h);
+        ctx.lineTo(sx + 7 + h, y);
+        ctx.lineTo(sx + h, y);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+      const blink = Math.floor(b.life * (10 + k * 14)) % 2 === 0;
+      ctx.strokeStyle = blink ? '#ff3030' : '#8a1414';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x + 1, y + 1, b.hw * 2 - 2, b.hh * 2 - 2);
-      ctx.fillStyle = 'rgba(255, 40, 40, 0.12)';
-      ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
+      ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+      if (w > 30 && h > 30) {
+        ctx.fillStyle = blink ? '#ff5050' : '#a01818';
+        ctx.font = `bold 20px ${TITLE_FAMILY}`;
+        ctx.textAlign = 'center';
+        ctx.fillText('!', x + w / 2, y + h / 2 + 7);
+      }
     } else {
       ctx.fillStyle = fill;
-      ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.fillRect(x, y, w, Math.min(4, h));
     }
   },
   web(b, fill) {
@@ -184,24 +251,99 @@ const BULLET_DRAWERS = {
       ctx.lineTo(b.r, 0);
       ctx.stroke();
     }
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
   }
 };
 
-// The emitter at the start of a beam: a generic charging cannon.
-function drawEmitter(b, charging) {
-  const pulse = charging ? 1 + Math.sin(b.life * 40) * 0.08 : 1.1;
-  ctx.save();
-  ctx.scale(pulse, pulse);
-  ctx.fillStyle = '#e8e8e8';
+// A bone the way the games draw them: a shaft with two round knobs at each end and a dark
+// outline, so white bones read on any background.
+function drawBoneSprite(x, y, thickness, length, color = '#fff') {
+  const hw = thickness / 2;
+  const hh = length / 2;
+  const knob = Math.max(3, thickness * 0.62);
+  const shape = (grow) => {
+    ctx.fillRect(x - hw - grow, y - hh, thickness + grow * 2, length);
+    for (const sy of [-1, 1]) {
+      fillCircle(x - hw * 0.62, y + sy * hh, knob + grow);
+      fillCircle(x + hw * 0.62, y + sy * hh, knob + grow);
+    }
+  };
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  shape(1.2);
+  ctx.fillStyle = color;
+  shape(0);
+  // a slight shade along one side
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+  ctx.fillRect(x + hw * 0.3, y - hh, hw * 0.7, length);
+}
+
+// A spear pointing right (+x), centred on (0, 0): shaft, binding and a barbed head.
+function drawSpearSprite(length, color = '#4dc3ff') {
+  const half = length / 2;
+  ctx.fillStyle = withAlpha(color.startsWith('#') ? color : '#4dc3ff', 0.25);
+  ctx.fillRect(-half, -3, length * 0.78, 6);
+  ctx.fillStyle = color;
+  ctx.fillRect(-half, -1.5, length * 0.78, 3);
+  ctx.fillRect(-half, -3, 4, 6);
+  ctx.fillRect(half * 0.35, -3, 3, 6);
   ctx.beginPath();
-  ctx.moveTo(-34, -b.hh - 10);
-  ctx.lineTo(4, -b.hh - 4);
-  ctx.lineTo(4, b.hh + 4);
-  ctx.lineTo(-34, b.hh + 10);
+  ctx.moveTo(half + 2, 0);
+  ctx.lineTo(half * 0.5, -8);
+  ctx.lineTo(half * 0.58, 0);
+  ctx.lineTo(half * 0.5, 8);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = charging ? '#55ddff' : '#fff';
-  fillCircle(-10, 0, Math.max(4, b.hh * 0.7));
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.beginPath();
+  ctx.moveTo(half, 0);
+  ctx.lineTo(half * 0.62, -4);
+  ctx.lineTo(half * 0.66, 0);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Card-suit bullets with a dark outline and a highlight (Deltarune style).
+function drawSuitBullet(suit, size, fill) {
+  drawSuit(suit, 0, 1.5, size * 1.18, 'rgba(10, 0, 20, 0.85)');
+  drawSuit(suit, 0, 0, size, fill);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+  fillCircle(-size * 0.14, -size * 0.12, Math.max(1, size * 0.08));
+}
+
+// The emitter at the start of a beam: a mechanical cannon whose jaws open when it fires.
+function drawEmitter(b, charging) {
+  const k = charging ? b.life / b.warn : 1;
+  const open = charging ? k * 0.35 : 0.5 + Math.sin(b.life * 50) * 0.04;
+  const size = Math.max(10, b.hh + 6);
+  const core = b.beamColor || '#5ed0ff';
+  ctx.save();
+  ctx.translate(-6, 0);
+  // recoil when firing
+  if (!charging) ctx.translate(-Math.min(6, (b.life - b.warn) * 40), 0);
+  ctx.fillStyle = '#d8dce6';
+  ctx.strokeStyle = '#3a3f4f';
+  ctx.lineWidth = 2;
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.rotate(side * open);
+    ctx.beginPath();
+    ctx.moveTo(-size * 2.2, side * size * 0.2);
+    ctx.lineTo(-size * 1.6, side * size * 1.15);
+    ctx.lineTo(size * 0.4, side * size * 0.75);
+    ctx.lineTo(size * 0.7, side * size * 0.15);
+    ctx.lineTo(-size * 0.2, side * size * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+  // the glowing core
+  ctx.fillStyle = withAlpha(core.startsWith('#') ? core : '#5ed0ff', 0.35 + 0.4 * k);
+  fillCircle(-size * 0.4, 0, size * (0.5 + 0.25 * k));
+  ctx.fillStyle = charging ? '#ffffff' : core;
+  fillCircle(-size * 0.4, 0, size * 0.28 * (0.6 + k * 0.4));
   ctx.restore();
 }
 
@@ -210,15 +352,47 @@ function drawWarningOverlay(b) {
   return Math.floor(b.life * 12) % 2 === 0 ? 0.55 : 0.25;
 }
 
-function drawBullet(b) {
+// Kinds that are big, static or draw their own telegraph: no pop-in and no motion trail.
+const NO_FX_KINDS = new Set(['beam', 'zone', 'wall', 'key', 'treasure', 'exit', 'lightPillar', 'boneField', 'risingSpear']);
+
+function drawBullet(b, fx = true) {
   const drawer = BULLET_DRAWERS[b.kind] || BULLET_DRAWERS.normal;
   const fill = bulletFill(b);
   ctx.save();
   if (b.warn && b.life < b.warn && b.kind !== 'zone' && b.kind !== 'beam') ctx.globalAlpha = drawWarningOverlay(b);
   if (b.alpha !== undefined) ctx.globalAlpha *= b.alpha;
   if (b.flash) ctx.globalAlpha *= 0.5;
+  const plain = NO_FX_KINDS.has(b.kind) || b.noFx;
+  // pop in: bullets grow from 40 % to full size in their first 0.08 s
+  if (fx && !plain && b.life < 0.08 && b.x !== undefined) {
+    const k = 0.4 + 0.6 * (b.life / 0.08);
+    ctx.translate(b.x, b.y);
+    ctx.scale(k, k);
+    ctx.translate(-b.x, -b.y);
+  }
   drawer(b, fill);
   ctx.restore();
+}
+
+// Fast bullets leave a short fading trail.
+function drawBulletTrail(b) {
+  if (NO_FX_KINDS.has(b.kind) || b.noFx || b.noTrail || b.harmless) return;
+  const vx = b.vx || 0;
+  const vy = b.vy || 0;
+  const speed = Math.hypot(vx, vy);
+  if (speed < 230 || (b.hw && b.hw > 30) || (b.hh && b.hh > 30)) return;
+  const x0 = b.x;
+  const y0 = b.y;
+  for (let i = 3; i >= 1; i--) {
+    b.x = x0 - vx * 0.012 * i;
+    b.y = y0 - vy * 0.012 * i;
+    ctx.save();
+    ctx.globalAlpha = 0.09 * (4 - i);
+    drawBullet(b, false);
+    ctx.restore();
+  }
+  b.x = x0;
+  b.y = y0;
 }
 
 function drawBullets() {
@@ -227,7 +401,12 @@ function drawBullets() {
   ctx.beginPath();
   ctx.rect(box.x + 2, box.y + 2, box.w - 4, box.h - 4);
   ctx.clip();
-  for (const b of state.bullets) if (b.clip !== false) drawBullet(b);
+  const trails = state.bullets.length < 140;
+  for (const b of state.bullets) {
+    if (b.clip === false) continue;
+    if (trails) drawBulletTrail(b);
+    drawBullet(b);
+  }
   ctx.restore();
   for (const b of state.bullets) if (b.clip === false) drawBullet(b);
 }

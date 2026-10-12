@@ -315,13 +315,21 @@ function drawEmblem(kind, color, t) {
 }
 
 // ---------------- Shared projectile shapes (also used by drawBullets) ----------------
+// A flame: a round base with three flickering tongues (the middle one tallest).
 function drawFlame(x, y, size, t = 0) {
-  const flicker = Math.sin(t * 20 + x) * size * 0.08;
+  const f1 = Math.sin(t * 19 + x * 0.7) * size * 0.12;
+  const f2 = Math.sin(t * 23 + y * 0.5) * size * 0.1;
+  const f3 = Math.sin(t * 17 + x * 0.3 + y * 0.2) * size * 0.1;
   ctx.beginPath();
-  ctx.moveTo(x, y - size - flicker);
-  ctx.quadraticCurveTo(x + size * 0.9, y - size * 0.1, x + size * 0.55, y + size * 0.55);
-  ctx.quadraticCurveTo(x, y + size * 0.95, x - size * 0.55, y + size * 0.55);
-  ctx.quadraticCurveTo(x - size * 0.9, y - size * 0.1, x, y - size - flicker);
+  ctx.moveTo(x - size * 0.62, y + size * 0.15);
+  ctx.quadraticCurveTo(x - size * 0.7, y - size * 0.45, x - size * 0.42 + f3, y - size * 0.72);
+  ctx.quadraticCurveTo(x - size * 0.3, y - size * 0.42, x - size * 0.18, y - size * 0.5);
+  ctx.quadraticCurveTo(x - size * 0.12, y - size * 0.9, x + f1, y - size * 1.15);
+  ctx.quadraticCurveTo(x + size * 0.18, y - size * 0.75, x + size * 0.22, y - size * 0.5);
+  ctx.quadraticCurveTo(x + size * 0.34, y - size * 0.5, x + size * 0.46 + f2, y - size * 0.78);
+  ctx.quadraticCurveTo(x + size * 0.72, y - size * 0.4, x + size * 0.62, y + size * 0.15);
+  ctx.quadraticCurveTo(x + size * 0.5, y + size * 0.7, x, y + size * 0.72);
+  ctx.quadraticCurveTo(x - size * 0.5, y + size * 0.7, x - size * 0.62, y + size * 0.15);
   ctx.fill();
 }
 

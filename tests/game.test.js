@@ -650,6 +650,64 @@ test('Sans: dodges every FIGHT, his mercy is a trap, and he can only be hit whil
   }
 });
 
+test('Sans: his special attack - push the board onto FIGHT only after he falls asleep', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'sans');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      b.flags.finalDone = true;
+      b.flags.phase = 2;
+      b.turn = 25;
+      b.phase = 'menu';
+      startEnemyTalk(b);
+      startAttack(b);
+      const name = b.attack.attack.name;
+      const home = arena.x;
+      const p = state.player;
+      // pushing left while he is awake puts everything back
+      keys.arrowleft = true;
+      for (let i = 0; i < 90; i++) updateGame(1 / 60);
+      const caught = arena.x === home && b.attack.data.sleep < 1.5;
+      keys.arrowleft = false;
+      // wait until he dozes off, then push left and down
+      for (let i = 0; i < 60 * 9; i++) updateGame(1 / 60);
+      keys.arrowleft = true;
+      for (let i = 0; i < 60 * 8; i++) updateGame(1 / 60);
+      keys.arrowleft = false;
+      keys.arrowdown = true;
+      for (let i = 0; i < 60 * 8 && b.phase === 'attack'; i++) updateGame(1 / 60);
+      keys.arrowdown = false;
+      return { name, caught, asleep: b.flags.asleep, phase: b.phase };
+    });
+    assert.deepEqual(result, { name: 'Special attack', caught: true, asleep: true, phase: 'menu' });
+    // and now FIGHT connects
+    await perfectFight(page);
+    await step(page, 2);
+    assert.equal(await page.evaluate(() => state.battle.outcome), 'defeated');
+  } finally {
+    await close();
+  }
+});
+
+test('Sans: in the second half bones sweep across the command buttons (1 damage, never lethal)', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'sans');
+    const hp = await page.evaluate(() => {
+      const b = state.battle;
+      b.flags.phase = 2;
+      enterMenu(b);
+      state.player.hp = 2;
+      for (let i = 0; i < 60 * 12; i++) updateGame(1 / 60);
+      return state.player.hp;
+    });
+    assert.equal(hp, 1);
+  } finally {
+    await close();
+  }
+});
+
 test('Jevil: Pirouette and Hypnosis tire him out, then SPARE pacifies him', async () => {
   const { page, close } = await openGame();
   try {

@@ -177,15 +177,18 @@ function suitBullet(suit, x, y, vx, vy, r = 7, options = {}) {
 
 const JEVIL_SUIT_COLORS = { spade: '#b9a6ff', club: '#8ad1ff', heart: '#ff7ab8', diamond: '#ffd35e' };
 
-// A side of the board Jevil "teleports" to before throwing things.
+// A side of the board Jevil "teleports" to before throwing things - a swirl of chaos marks
+// the spot, so you can see where the next volley comes from.
 function jevilSidePoint(side = pick(['left', 'right'])) {
   const y = arena.y + rand(20, arena.h - 20);
-  return { x: side === 'left' ? arena.x - 26 : arena.x + arena.w + 26, y, side };
+  const point = { x: side === 'left' ? arena.x - 26 : arena.x + arena.w + 26, y, side };
+  spawn({ kind: 'jevilPortal', x: point.x, y: point.y, r: 14, harmless: true, noCull: true, clip: false, maxLife: 0.45 });
+  return point;
 }
 
-function spawnBomb(x, y, fuse, onBurst, vx = 0, vy = 0) {
+function spawnBomb(x, y, fuse, onBurst, vx = 0, vy = 0, suit = null) {
   return spawn({
-    kind: 'bomb', x, y, vx, vy, r: 9, noCull: true, harmless: false, fuse,
+    kind: 'bomb', x, y, vx, vy, r: 9, noCull: true, harmless: false, fuse, suit,
     update(b, dt) {
       b.x += b.vx * dt;
       b.y += b.vy * dt;
@@ -205,12 +208,12 @@ function bombTarget() {
   return pickPointAwayFromPlayer(70, 30);
 }
 
-function throwBomb(fuse, onBurst) {
+function throwBomb(fuse, onBurst, suit = null) {
   const from = jevilSidePoint();
   const to = bombTarget();
   const t = fuse * 0.6;
   // thrown with drag (vx *= 0.96 per frame): rough speed so it lands near `to`
-  return spawnBomb(from.x, from.y, fuse, onBurst, (to.x - from.x) / t * 0.9, (to.y - from.y) / t * 0.9);
+  return spawnBomb(from.x, from.y, fuse, onBurst, (to.x - from.x) / t * 0.9, (to.y - from.y) / t * 0.9, suit);
 }
 
 function heartBurst(x, y, speedMult = 1) {
@@ -349,7 +352,7 @@ const JEVIL_ATTACKS = {
   heartBombs: {
     name: 'Heart bombs', duration: 6,
     update(run) {
-      every(run, 'bomb', 1.1 / run.speed, () => throwBomb(0.9, (x, y) => heartBurst(x, y, run.speed)), 0.2);
+      every(run, 'bomb', 1.1 / run.speed, () => throwBomb(0.9, (x, y) => heartBurst(x, y, run.speed), 'heart'), 0.2);
     }
   },
   scythes: {
@@ -373,7 +376,7 @@ const JEVIL_ATTACKS = {
   clubBombs: {
     name: 'Club bombs', duration: 6,
     update(run) {
-      every(run, 'bomb', 0.95 / run.speed, () => throwBomb(0.8, (x, y) => clubBurst(x, y, run.speed)), 0.2);
+      every(run, 'bomb', 0.95 / run.speed, () => throwBomb(0.8, (x, y) => clubBurst(x, y, run.speed), 'club'), 0.2);
     }
   },
   diamondRelease: {
@@ -402,7 +405,7 @@ const JEVIL_ATTACKS = {
   spadeBombs: {
     name: 'Spade bombs', duration: 6,
     update(run) {
-      every(run, 'bomb', 1.15 / run.speed, () => throwBomb(0.85, (x, y) => spadeBurst(x, y, 10, 140 * run.speed)), 0.2);
+      every(run, 'bomb', 1.15 / run.speed, () => throwBomb(0.85, (x, y) => spadeBurst(x, y, 10, 140 * run.speed), 'spade'), 0.2);
     }
   },
   threeClub: {
@@ -468,7 +471,7 @@ const JEVIL_ATTACKS = {
           if (type === 'club') clubBurst(x, y, run.speed);
           if (type === 'spade') spadeBurst(x, y, 10, 140 * run.speed);
           if (type === 'diamond') diamondLine(x, y);
-        });
+        }, type);
       }, 0.2);
     }
   },
@@ -516,7 +519,8 @@ function fallingKnife(x, colW) {
       if (b.y >= arena.y + arena.h - 18 && !b.landed) {
         b.landed = true;
         b.dead = true;
-        warnZone(x - colW / 2 + 3, arena.y, colW - 6, arena.h, 0.05, 0.4, { color: '#fff9c4' });
+        spawn({ kind: 'lightPillar', x, y: arena.y + arena.h / 2, hw: colW / 2 - 3, hh: arena.h / 2, noCull: true, maxLife: 0.6, minLife: 0.6 });
+        addShake(4);
       }
     }
   });
@@ -547,16 +551,40 @@ Jevil.attacks = Object.values(JEVIL_ATTACKS);
 
 // ---------------- Drawing ----------------
 BULLET_DRAWERS.bomb = b => {
+  // a round bomb with its suit painted on; the fuse sparks and it flashes before bursting
   const blink = b.life > b.fuse * 0.6 && Math.floor(b.life * 16) % 2 === 0;
-  ctx.fillStyle = blink ? '#ff5050' : '#3d3d3d';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  fillCircle(b.x, b.y + 1, b.r + 2);
+  ctx.fillStyle = blink ? '#ff5050' : '#2a2a3a';
   fillCircle(b.x, b.y, b.r);
-  ctx.strokeStyle = '#fff';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  fillCircle(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.35);
+  if (b.suit) drawSuit(b.suit, b.x, b.y + 1, b.r * 1.1, JEVIL_SUIT_COLORS[b.suit]);
+  ctx.strokeStyle = '#d9b36b';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.moveTo(b.x + b.r * 0.5, b.y - b.r * 0.8);
+  ctx.quadraticCurveTo(b.x + b.r, b.y - b.r * 1.5, b.x + b.r * 1.2, b.y - b.r * 1.3);
   ctx.stroke();
-  ctx.fillStyle = '#ffd35e';
-  fillCircle(b.x + 6, b.y - b.r - 2, 2.5);
+  ctx.fillStyle = Math.floor(b.life * 20) % 2 ? '#ffe14d' : '#ff8c1a';
+  fillCircle(b.x + b.r * 1.2, b.y - b.r * 1.3, 2.5);
+};
+
+BULLET_DRAWERS.jevilPortal = b => {
+  // a little spinning swirl of chaos where Jevil pops up
+  const k = Math.sin((b.life / 0.45) * Math.PI);
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.life * 14);
+  ctx.globalAlpha *= k;
+  for (let i = 0; i < 4; i++) {
+    ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = i % 2 ? '#b06cff' : '#ffe14d';
+    ctx.beginPath();
+    ctx.ellipse(6, 0, 9 * k, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#ffffff';
+  fillCircle(0, 0, 3 * k);
 };
 
 BULLET_DRAWERS.scythe = (b, fill) => {
@@ -597,6 +625,20 @@ function drawRideAnimal(b, duck) {
     ctx.fillRect(-15, -8, 4, 10);
   }
 }
+
+BULLET_DRAWERS.lightPillar = b => {
+  // a pillar of light where a knife landed: bright core, soft edges, fades out
+  const k = 1 - b.life / 0.6;
+  const x = b.x - b.hw;
+  const grad = ctx.createLinearGradient(x, 0, x + b.hw * 2, 0);
+  grad.addColorStop(0, 'rgba(255, 249, 196, 0)');
+  grad.addColorStop(0.3, `rgba(255, 249, 196, ${0.7 * k})`);
+  grad.addColorStop(0.5, `rgba(255, 255, 255, ${k})`);
+  grad.addColorStop(0.7, `rgba(255, 249, 196, ${0.7 * k})`);
+  grad.addColorStop(1, 'rgba(255, 249, 196, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, b.y - b.hh, b.hw * 2, b.hh * 2);
+};
 
 BULLET_DRAWERS.horse = b => drawRideAnimal(b, false);
 BULLET_DRAWERS.duck = b => drawRideAnimal(b, true);
