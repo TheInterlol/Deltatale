@@ -15,7 +15,7 @@ const Tenna = registerBoss({
   name: 'Tenna',
   game: 'deltarune',
   color: '#ff7ab8',
-  emblem: 'star',
+  emblem: 'tv',
 
   player: { name: 'SUSIE', maxHp: 210, power: 55 },
   items: ['clubsSandwich', 'clubsSandwich', 'topCake', 'reviveMint'],

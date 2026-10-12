@@ -82,7 +82,7 @@ function getSusieOffset() {
 }
 
 function getShakeOffset() {
-  if (effects.shake <= 0) return { x: 0, y: 0 };
+  if (effects.shake <= 0 || !settings.shake) return { x: 0, y: 0 };
   return {
     x: (Math.random() * 2 - 1) * effects.shake,
     y: (Math.random() * 2 - 1) * effects.shake
@@ -121,7 +121,7 @@ function drawEffects() {
     ctx.fillRect(b.x - 2, b.y - 2, 4, 4);
   }
 
-  ctx.font = 'bold 24px "Courier New", Courier, monospace';
+  ctx.font = `bold 24px ${TITLE_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.lineWidth = 4;
   for (const p of effects.popups) {
@@ -143,6 +143,6 @@ function drawFlash() {
   ctx.save();
   ctx.globalAlpha = effects.flash * 0.25;
   ctx.fillStyle = '#ff0000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
   ctx.restore();
 }

@@ -69,9 +69,11 @@ async function press(page, key) {
 }
 
 async function startMode(page, mode, boss) {
-  await page.selectOption('#modeSelect', mode);
-  await page.evaluate(id => { bossSelect.value = id; }, boss);
-  await page.evaluate(() => startGame());
+  await page.evaluate(({ mode, boss }) => {
+    selection.mode = mode;
+    selection.boss = boss;
+    startGame();
+  }, { mode, boss });
   // like the Fight button: focus the canvas
   await page.focus('#game');
   await step(page);
@@ -110,9 +112,14 @@ test('the page loads, every asset loads and the real game loop runs without erro
       [susieSprite, soulRedSprite, gersonSheet, axe01Sprite].map(img => img.complete && img.naturalWidth > 0)
     );
     assert.deepEqual(assets, [true, true, true, true]);
-    assert.equal(await page.evaluate(() => state.screen), 'select');
+    assert.equal(await page.evaluate(() => state.screen), 'title');
 
-    await page.click('#startBtn');
+    // title -> BOSS RUSH -> boss select -> fight
+    await page.focus('#game');
+    await page.keyboard.press('z');
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => state.screen), 'select');
+    await page.keyboard.press('z');
     await page.waitForTimeout(600);
     assert.equal(await page.evaluate(() => state.screen === 'fight' && state.running), true);
     assert.deepEqual(errors, []);
@@ -142,7 +149,7 @@ test('every registered boss is in the roster and has complete data', async () =>
       texts: Boolean(boss.intro && boss.check),
       attacks: boss.attacks.length > 0 &&
         boss.attacks.every(a => a.name && typeof a.update === 'function'),
-      inSelect: [...bossSelect.options].some(o => o.value === boss.id && !o.disabled)
+      inSelect: isPlayable(boss.id)
     })));
     for (const r of report) {
       assert.deepEqual(r, { id: r.id, inRoster: true, game: true, stats: true, texts: true, attacks: true, inSelect: true });
@@ -1506,6 +1513,7 @@ test('boss select: arrow keys and Z start the chosen boss, unfinished bosses do 
   const { page, close } = await openGame();
   try {
     await page.focus('#game');
+    await page.evaluate(() => openBossSelect());
     // find an unfinished boss right after a playable one in the same tab
     let pair = await page.evaluate(() => {
       for (let tab = 0; tab < ROSTER.length; tab++) {
@@ -1622,28 +1630,25 @@ test('switching away from Gerson stops his music', async () => {
   try {
     await startMode(page, 'survival', 'gerson');
     assert.equal(await page.evaluate(() => currentMusic === gersonMusic), true);
-    await page.selectOption('#bossSelect', 'jevil');
-    assert.equal(await page.evaluate(() => gersonMusic.paused && currentMusic === null), true);
+    await page.evaluate(() => openBossSelect());
+    assert.equal(await page.evaluate(() => gersonMusic.paused && currentMusic === songMusic('menu')), true);
+    await startMode(page, 'battle', 'jevil');
+    assert.equal(await page.evaluate(() => gersonMusic.paused && currentMusic === songMusic('jevil')), true);
   } finally {
     await close();
   }
 });
 
-test('game keys do not scroll the page or re-click the Fight button while playing', async () => {
+test('game keys do not scroll the page while playing', async () => {
   const { page, close } = await openGame({ manualLoop: false });
   try {
-    await page.selectOption('#modeSelect', 'survival');
-    await page.evaluate(() => { bossSelect.value = 'dummy'; });
-    await page.click('#startBtn');
+    await page.evaluate(() => { selection.mode = 'survival'; selection.boss = 'dummy'; startGame(); });
+    await page.focus('#game');
     await page.keyboard.down('ArrowDown');
     // with margin: a slow machine runs fewer frames per second (dt is capped at 33 ms)
     await page.waitForTimeout(900);
     await page.keyboard.up('ArrowDown');
-
-    // a player who tabbed to the button must not restart the game with Space
-    await page.focus('#startBtn');
     await page.keyboard.press('Space');
-    await page.keyboard.press('Enter');
     await page.waitForTimeout(50);
 
     const result = await page.evaluate(() => ({ scrollY: window.scrollY, timer: state.timer }));
@@ -1654,7 +1659,7 @@ test('game keys do not scroll the page or re-click the Fight button while playin
   }
 });
 
-test('pause freezes the fight, Esc resumes it and X quits to the boss select', async () => {
+test('pause freezes the fight, Esc resumes it and the pause menu quits to the boss select', async () => {
   const { page, close } = await openGame();
   try {
     await startMode(page, 'survival', 'dummy');
@@ -1667,8 +1672,15 @@ test('pause freezes the fight, Esc resumes it and X quits to the boss select', a
     await step(page, 0.5);
     assert.ok((await page.evaluate(() => state.timer)) > frozen);
 
+    // X resumes too
     await press(page, 'Escape');
     await press(page, 'x');
+    assert.equal(await page.evaluate(() => state.paused), false);
+
+    // Resume, Retry, Settings, Boss select
+    await press(page, 'Escape');
+    for (let i = 0; i < 3; i++) await press(page, 'ArrowDown');
+    await press(page, 'z');
     assert.equal(await page.evaluate(() => state.screen), 'select');
   } finally {
     await close();
@@ -1688,8 +1700,7 @@ test('touch controls appear on touch devices and drive the game', async () => {
     await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
     await page.goto(baseUrl);
     await page.waitForFunction(() => typeof state !== 'undefined' && state.player !== null);
-    await page.selectOption('#modeSelect', 'survival');
-    await page.evaluate(() => { bossSelect.value = 'dummy'; focusBossInMenu('dummy'); });
+    await page.evaluate(() => { selection.mode = 'survival'; openBossSelect('dummy'); });
 
     assert.equal(await page.isVisible('.touch-controls'), true);
 
@@ -1715,6 +1726,98 @@ test('touch controls appear on touch devices and drive the game', async () => {
     assert.deepEqual(errors, []);
   } finally {
     await context.close();
+  }
+});
+
+test('title screen: BOSS RUSH and SURVIVAL pick the mode, X goes back from the boss select', async () => {
+  const { page, close } = await openGame();
+  try {
+    await page.focus('#game');
+    assert.equal(await page.evaluate(() => state.screen), 'title');
+    await press(page, 'ArrowDown'); // SURVIVAL
+    await press(page, 'z');
+    assert.deepEqual(await page.evaluate(() => [state.screen, selection.mode]), ['select', 'survival']);
+    await press(page, 'x');
+    assert.equal(await page.evaluate(() => state.screen), 'title');
+    await press(page, 'ArrowUp'); // BOSS RUSH
+    await press(page, 'z');
+    await page.evaluate(() => focusBossInMenu('dummy'));
+    await press(page, 'z');
+    assert.deepEqual(await page.evaluate(() => [state.screen, state.gameMode, state.mode]), ['fight', 'battle', 'dummy']);
+  } finally {
+    await close();
+  }
+});
+
+test('settings: volume, sound and shake can be changed and are saved; the pause menu opens them too', async () => {
+  const { page, close } = await openGame();
+  try {
+    await page.focus('#game');
+    await press(page, 'ArrowUp'); // SETTINGS (wraps around)
+    await press(page, 'z');
+    assert.equal(await page.evaluate(() => state.screen), 'settings');
+    const before = await page.evaluate(() => settings.musicVolume);
+    await press(page, 'ArrowLeft');
+    await press(page, 'ArrowDown'); // sound effects
+    await press(page, 'ArrowRight');
+    await press(page, 'ArrowDown'); // sound on/off
+    await press(page, 'ArrowDown'); // screen shake
+    await press(page, 'z');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('deltatale_settings')));
+    assert.equal(saved.musicVolume, before - 1);
+    assert.equal(saved.shake, false);
+    await press(page, 'x');
+    assert.equal(await page.evaluate(() => state.screen), 'title');
+
+    await startMode(page, 'battle', 'dummy');
+    await press(page, 'Escape');
+    await press(page, 'ArrowDown');
+    await press(page, 'ArrowDown'); // Settings
+    await press(page, 'z');
+    assert.equal(await page.evaluate(() => state.screen), 'settings');
+    await press(page, 'x');
+    assert.deepEqual(await page.evaluate(() => [state.screen, state.paused]), ['fight', true]);
+  } finally {
+    await close();
+  }
+});
+
+test('music: every boss has an original song, every song compiles, and the sequencer plays it', async () => {
+  const { page, errors, close } = await openGame();
+  try {
+    const report = await page.evaluate(() => {
+      const missing = Object.values(BOSSES).filter(b => !getBossMusic(b)).map(b => b.id);
+      const songs = Object.entries(SONGS).map(([id, spec]) => {
+        const c = compileSong(spec);
+        const notes = c.steps.flat().filter(Boolean);
+        return { id, ok: c.length > 0 && notes.some(n => n.ch === 'lead') && notes.every(n => Number.isFinite(n.midi)) };
+      });
+      return { missing, bad: songs.filter(s => !s.ok).map(s => s.id) };
+    });
+    assert.deepEqual(report, { missing: [], bad: [] });
+
+    await startMode(page, 'battle', 'sans');
+    await step(page, 0.5);
+    assert.equal(await page.evaluate(() => music.playing && music.song === SONGS.sans), true);
+    await press(page, 'Escape');
+    assert.equal(await page.evaluate(() => music.playing), false);
+    assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('the canvas fills the window at 16:9', async () => {
+  const { page, close } = await openGame();
+  try {
+    const size = await page.evaluate(() => {
+      const r = canvas.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), vw: innerWidth, vh: innerHeight };
+    });
+    assert.ok(size.w === size.vw || size.h === size.vh, JSON.stringify(size));
+    assert.ok(Math.abs(size.w / size.h - 16 / 9) < 0.01, JSON.stringify(size));
+  } finally {
+    await close();
   }
 });
 

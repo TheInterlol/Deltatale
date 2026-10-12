@@ -263,7 +263,7 @@ const Shuttah = registerBoss({
   name: 'Shuttah',
   game: 'deltarune',
   color: '#c8c8c8',
-  emblem: 'star',
+  emblem: 'camera',
 
   player: { name: 'SUSIE', maxHp: 200, power: 55 },
   maxHp: 700,
@@ -437,7 +437,7 @@ const Jackenstein = registerBoss({
   name: 'Jackenstein',
   game: 'deltarune',
   color: '#ff9a1a',
-  emblem: 'star',
+  emblem: 'pumpkin',
 
   player: { name: 'SUSIE', maxHp: 220, power: 55 },
   maxHp: 1350,
@@ -616,7 +616,7 @@ const SoundOfJustice = registerBoss({
   name: 'Sound of Justice',
   game: 'deltarune',
   color: '#c8c8ff',
-  emblem: 'note',
+  emblem: 'hammer',
 
   player: { name: 'SUSIE', maxHp: 220, power: 55 },
   maxHp: 1350,

@@ -10,8 +10,8 @@ const TP_GAUGE = { x: 22, y: 166, w: 18, h: 146 };
 const SUSIE_COLOR = '#d462d9';
 const UT_ORANGE = '#ff8c1a';
 const UT_YELLOW = '#ffe14d';
-const BIG_FONT = `bold 28px ${FONT_FAMILY}`;
-const HUGE_FONT = `bold 52px ${FONT_FAMILY}`;
+const BIG_FONT = `bold 28px ${TITLE_FAMILY}`;
+const HUGE_FONT = `bold 52px ${TITLE_FAMILY}`;
 
 function isUndertale() {
   return state.currentBoss && state.currentBoss.game === 'undertale';
@@ -116,7 +116,7 @@ function drawCommandButtons(battle) {
   if (commands.length < (ut ? 4 : 5)) b.x += (normalWidth - fullWidth) / 2;
 
   ctx.save();
-  ctx.font = ut ? `bold 17px ${FONT_FAMILY}` : `bold 13px ${FONT_FAMILY}`;
+  ctx.font = ut ? `17px ${FONT_FAMILY}` : `13px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.lineWidth = 2;
 
@@ -366,14 +366,14 @@ function drawBattleUi(battle) {
 function drawSurvivalHud() {
   ctx.save();
   ctx.fillStyle = '#fff';
-  ctx.font = `bold 18px ${FONT_FAMILY}`;
+  ctx.font = `18px ${FONT_FAMILY}`;
   ctx.fillText(`TIME ${state.timer.toFixed(1)}s`, 272, 380);
   ctx.textAlign = 'right';
-  ctx.fillText(state.currentBoss.name, canvas.width - 18, 380);
+  ctx.fillText(state.currentBoss.name, VIEW_W - 18, 380);
   if (state.survival && state.survival.run) {
     ctx.font = TINY_FONT;
     ctx.fillStyle = '#9c9c9c';
-    ctx.fillText(state.survival.run.attack.name, canvas.width - 18, 396);
+    ctx.fillText(state.survival.run.attack.name, VIEW_W - 18, 396);
   }
   ctx.restore();
 }
@@ -401,34 +401,24 @@ function drawOverlays() {
 
   if (state.gameOver) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    drawBrokenSoul(canvas.width / 2, 120);
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    drawBrokenSoul(VIEW_W / 2, 120);
 
     ctx.fillStyle = '#fff';
     ctx.font = HUGE_FONT;
-    ctx.fillText('GAME OVER', canvas.width / 2, 215);
+    ctx.fillText('GAME OVER', VIEW_W / 2, 215);
     ctx.font = TEXT_FONT;
     const line = state.gameMode === 'battle'
       ? (state.currentBoss.gameOverText || (isUndertale() ? 'Stay determined...' : 'Susie, get back up!'))
       : `You survived ${state.timer.toFixed(1)} s.`;
-    ctx.fillText(line, canvas.width / 2, 262);
+    ctx.fillText(line, VIEW_W / 2, 262);
     ctx.font = SMALL_FONT;
     ctx.fillStyle = '#9c9c9c';
     ctx.fillText(
       state.gameMode === 'battle' ? 'Z / Enter = retry · X = boss select' : 'Z / Enter = again',
-      canvas.width / 2,
+      VIEW_W / 2,
       300
     );
-  }
-
-  if (state.paused) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#fff';
-    ctx.font = HUGE_FONT;
-    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
-    ctx.font = SMALL_FONT;
-    ctx.fillText('Esc / P = continue · X = boss select', canvas.width / 2, canvas.height / 2 + 34);
   }
 
   ctx.restore();

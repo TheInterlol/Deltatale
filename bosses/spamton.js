@@ -168,7 +168,7 @@ function spamtonDeal(battle, right) {
 
 BULLET_DRAWERS.dollar = b => {
   ctx.fillStyle = '#ffe84d';
-  ctx.font = `bold 15px ${FONT_FAMILY}`;
+  ctx.font = `15px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.fillText('$', b.x, b.y + 5);
 };
@@ -176,7 +176,7 @@ BULLET_DRAWERS.dollar = b => {
 BULLET_DRAWERS.word = b => {
   const shown = Math.max(1, Math.round(b.word.length * Math.min(1, b.hw / (b.word.length * 6))));
   ctx.fillStyle = '#ffe84d';
-  ctx.font = `bold 12px ${FONT_FAMILY}`;
+  ctx.font = `12px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.fillText(b.word.slice(0, shown), b.x, b.y + 4);
 };

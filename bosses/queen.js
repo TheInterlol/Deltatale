@@ -293,7 +293,7 @@ BULLET_DRAWERS.boot = (b, fill) => {
   const y = b.y - b.hh;
   if (b.life < b.warn) {
     ctx.fillStyle = Math.floor(b.life * 12) % 2 === 0 ? '#ff3030' : '#801010';
-    ctx.font = `bold 22px ${FONT_FAMILY}`;
+    ctx.font = `22px ${FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.fillText('!', b.x, b.y + 8);
     return;
@@ -317,7 +317,7 @@ BULLET_DRAWERS.popup = b => {
   ctx.fillStyle = '#3d7cff';
   ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, 8);
   ctx.fillStyle = '#000';
-  ctx.font = `bold 9px ${FONT_FAMILY}`;
+  ctx.font = `9px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.fillText('ERROR', b.x, b.y + 6);
 };

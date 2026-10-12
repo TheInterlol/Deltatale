@@ -11,7 +11,7 @@ const DOWN_KEYS = ['arrowdown', 's'];
 
 // Keys that must not scroll the page or "click" a focused button while playing.
 const GAME_KEYS = new Set([
-  ...CONFIRM_KEYS, ...CANCEL_KEYS, ...LEFT_KEYS, ...RIGHT_KEYS, ...UP_KEYS, ...DOWN_KEYS
+  'escape', 'p', 'f', 'm', ...CONFIRM_KEYS, ...CANCEL_KEYS, ...LEFT_KEYS, ...RIGHT_KEYS, ...UP_KEYS, ...DOWN_KEYS
 ]);
 
 function isFormField(target) {
@@ -21,7 +21,7 @@ function isFormField(target) {
 window.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   const playing = typeof isGameActive === 'function' && isGameActive();
-  const inMenu = typeof state !== 'undefined' && state.screen === 'select';
+  const inMenu = typeof state !== 'undefined' && state.screen !== 'fight';
 
   // Outside a fight, keys belong to form controls (boss select, buttons).
   if (!playing && isFormField(e.target)) return;
@@ -30,6 +30,8 @@ window.addEventListener('keydown', e => {
 
   if (!e.repeat) pressedKeys.add(key);
   keys[key] = true;
+  // browsers only start audio after the first key press or click
+  if (typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 }, true);
 
 window.addEventListener('keyup', e => {

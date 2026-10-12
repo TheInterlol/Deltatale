@@ -429,7 +429,7 @@ function updateShots(dt) {
       if (s.dead) break;
     }
   }
-  state.shots = state.shots.filter(s => !s.dead && s.x > -40 && s.x < canvas.width + 40 && s.y > -40 && s.y < canvas.height + 40);
+  state.shots = state.shots.filter(s => !s.dead && s.x > -40 && s.x < VIEW_W + 40 && s.y > -40 && s.y < VIEW_H + 40);
 }
 
 // ---------------- KARMA ----------------

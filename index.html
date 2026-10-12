@@ -3,39 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deltatale – boss rush</title>
+  <title>Deltatale</title>
+  <meta name="description" content="A fan-made Undertale / Deltarune boss rush.">
+  <meta name="theme-color" content="#000000">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="wrap">
-    <section class="panel top">
-      <div>
-        <h1 class="title">Deltatale</h1>
-        <p class="subtitle">A fan-made Undertale / Deltarune boss rush: pick a boss, fight it, retry instantly.</p>
-      </div>
+  <main class="stage">
+    <div class="screen">
+      <canvas id="game" width="720" height="405" tabindex="0" aria-label="Deltatale - game screen"></canvas>
+    </div>
 
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-label">Boss</div>
-          <div class="stat-value" id="bossName">-</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label" id="timeLabel">Turn</div>
-          <div class="stat-value" id="timeValue">-</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label" id="bestLabel">Defeated / spared</div>
-          <div class="stat-value" id="bestValue">0× / 0×</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel arena-shell">
-      <canvas id="game" width="720" height="405" tabindex="0" aria-label="Game screen"></canvas>
-    </section>
-
-    <!-- Touch controls: only shown on devices without a mouse (see style.css) -->
-    <section class="panel touch-controls" aria-label="Touch controls">
+    <!-- Touch controls: only shown on touch screens (see style.css) -->
+    <div class="touch-controls" aria-label="Touch controls">
       <div class="dpad">
         <button type="button" tabindex="-1" data-key="arrowup" class="dpad-up" aria-label="Up">▲</button>
         <button type="button" tabindex="-1" data-key="arrowleft" class="dpad-left" aria-label="Left">◀</button>
@@ -47,61 +27,21 @@
         <button type="button" tabindex="-1" data-key="x" class="touch-action" aria-label="Back">X</button>
         <button type="button" tabindex="-1" data-key="z" class="touch-action touch-confirm" aria-label="Confirm">Z</button>
       </div>
-    </section>
-
-    <section class="panel">
-      <div class="controls">
-        <select id="bossSelect" aria-label="Boss"></select>
-        <select id="modeSelect" aria-label="Game mode">
-          <option value="battle">Battle (turn-based)</option>
-          <option value="survival">Survival (endless)</option>
-        </select>
-        <button id="startBtn">Fight</button>
-        <button id="restartBtn">Retry</button>
-        <button id="menuBtn">Boss select</button>
-        <button id="muteBtn" aria-pressed="false">Sound: on</button>
-      </div>
-
-      <div style="margin-top:14px;">
-        <div><strong>HP:</strong> <span id="hpText">20 / 20</span></div>
-        <div class="meter"><div id="hpBar" class="meter-fill"></div></div>
-      </div>
-
-      <p class="note" id="statusText" style="margin-top:14px;">Choose a boss and press Z.</p>
-    </section>
-
-    <section class="panel help">
-      <div class="help-card">
-        <h3>Controls</h3>
-        <p class="note">
-          <kbd>WASD</kbd> / arrows – move the SOUL, menus<br>
-          <kbd>Z</kbd> / <kbd>Enter</kbd> – confirm (and shoot), <kbd>X</kbd> / <kbd>Shift</kbd> – back<br>
-          <kbd>Esc</kbd> / <kbd>P</kbd> – pause, <kbd>M</kbd> – sound
-        </p>
-      </div>
-      <div class="help-card">
-        <h3>SOUL modes</h3>
-        <p class="note"><span style="color:#ff4040">RED</span> moves freely. <span style="color:#4d7dff">BLUE</span> has gravity – <kbd>↑</kbd> jumps. <span style="color:#22d022">GREEN</span> can't move – turn the shield towards the spears. <span style="color:#ffe11a">YELLOW</span> shoots with <kbd>Z</kbd> (hold for a BIG SHOT in Deltarune). <span style="color:#d52fd9">PURPLE</span> is stuck on strings.</p>
-      </div>
-      <div class="help-card">
-        <h3>Bullets</h3>
-        <p class="note"><span style="color:#2ad8ff">Cyan</span> attacks only hurt you while you move – stand still. <span style="color:#ff9a1a">Orange</span> attacks only hurt you while you stand still – keep moving. Flashing red areas are about to be hit.</p>
-      </div>
-      <div class="help-card">
-        <h3>Art &amp; music</h3>
-        <p class="note">Bosses without art show a placeholder card. Put your own sprites and music in <code>assets/bosses/&lt;id&gt;/</code> and list them in <code>assets/bosses/manifest.js</code>.</p>
-      </div>
-    </section>
-  </div>
+    </div>
+    <noscript><p class="noscript">Deltatale needs JavaScript to run.</p></noscript>
+  </main>
 
   <script src="js/config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/music.js"></script>
+  <script src="js/songs.js"></script>
   <script src="js/textbox.js"></script>
   <script src="js/bosses.js"></script>
   <script src="assets/bosses/manifest.js"></script>
   <script src="js/bossart.js"></script>
+  <script src="js/presence.js"></script>
   <script src="js/roster.js"></script>
   <script src="js/items.js"></script>
   <script src="js/state.js"></script>
@@ -112,6 +52,7 @@
   <script src="js/hud.js"></script>
   <script src="js/render.js"></script>
   <script src="js/menu.js"></script>
+  <script src="js/screens.js"></script>
   <script src="js/battle.js"></script>
   <script src="bosses/dummy.js"></script>
   <script src="bosses/napstablook.js"></script>

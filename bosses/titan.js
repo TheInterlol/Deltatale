@@ -15,7 +15,7 @@ const Titan = registerBoss({
   name: 'Titan',
   game: 'deltarune',
   color: '#9b7bff',
-  emblem: 'star',
+  emblem: 'eye',
 
   player: { name: 'SUSIE', maxHp: 240, power: 58 },
   items: ['clubsSandwich', 'clubsSandwich', 'topCake', 'topCake', 'reviveMint'],

@@ -16,10 +16,45 @@ function getAudioContext() {
   return audioCtx;
 }
 
-function playTone({ freq, to = freq, duration = 0.08, type = 'square', volume = 0.05, delay = 0 }) {
-  if (settings.muted) return;
+// Two volume buses: sound effects and music (see the settings screen).
+let sfxBus = null;
+let musicBus = null;
+
+function audioBuses() {
   const ac = getAudioContext();
-  if (!ac) return;
+  if (!ac) return null;
+  if (!sfxBus) {
+    sfxBus = ac.createGain();
+    musicBus = ac.createGain();
+    sfxBus.connect(ac.destination);
+    musicBus.connect(ac.destination);
+    applyMusicVolume();
+  }
+  return { ac, sfx: sfxBus, music: musicBus };
+}
+
+function sfxLevel() {
+  return settings.muted ? 0 : (settings.sfxVolume / 7);
+}
+
+function musicLevel() {
+  return settings.muted ? 0 : (settings.musicVolume / 10);
+}
+
+function applyMusicVolume() {
+  if (sfxBus) sfxBus.gain.value = sfxLevel();
+  if (musicBus) musicBus.gain.value = musicLevel() * 0.8;
+  for (const track of musicTracks) {
+    track.muted = settings.muted;
+    track.volume = Math.min(1, musicLevel() * 0.85);
+  }
+}
+
+function playTone({ freq, to = freq, duration = 0.08, type = 'square', volume = 0.05, delay = 0 }) {
+  if (settings.muted || !settings.sfxVolume) return;
+  const buses = audioBuses();
+  if (!buses) return;
+  const ac = buses.ac;
 
   const start = ac.currentTime + delay;
   const osc = ac.createOscillator();
@@ -33,7 +68,7 @@ function playTone({ freq, to = freq, duration = 0.08, type = 'square', volume = 
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
   osc.connect(gain);
-  gain.connect(ac.destination);
+  gain.connect(buses.sfx);
   osc.start(start);
   osc.stop(start + duration + 0.02);
 }
@@ -68,16 +103,25 @@ const sfx = {
 };
 
 // -------------- Music --------
+// Two kinds of music: audio files (assets/bosses/manifest.js, Gerson's track) and the
+// original chiptune songs composed in js/songs.js, played by the sequencer in js/music.js.
 const musicTracks = new Set();
 let currentMusic = null;
 
-function playMusic(track) {
-  musicTracks.add(track);
-  currentMusic = track;
-  track.muted = settings.muted;
-  track.currentTime = 0;
+function playMusic(music) {
+  stopMusic();
+  if (!music) return;
+  if (music.song) {
+    currentMusic = music;
+    startSong(music.song);
+    return;
+  }
+  musicTracks.add(music);
+  currentMusic = music;
+  applyMusicVolume();
+  music.currentTime = 0;
   // play() returns a promise that rejects e.g. when autoplay is blocked
-  const result = track.play();
+  const result = music.play();
   if (result && typeof result.catch === 'function') result.catch(() => {});
 }
 
@@ -87,15 +131,22 @@ function stopMusic() {
     track.pause();
     track.currentTime = 0;
   }
+  stopSong();
   currentMusic = null;
 }
 
 function pauseMusic() {
-  if (currentMusic) currentMusic.pause();
+  if (!currentMusic) return;
+  if (currentMusic.song) pauseSong();
+  else currentMusic.pause();
 }
 
 function resumeMusic() {
   if (!currentMusic) return;
+  if (currentMusic.song) {
+    resumeSong();
+    return;
+  }
   const result = currentMusic.play();
   if (result && typeof result.catch === 'function') result.catch(() => {});
 }
@@ -103,12 +154,5 @@ function resumeMusic() {
 function toggleMute() {
   settings.muted = !settings.muted;
   saveSettings();
-  for (const track of musicTracks) track.muted = settings.muted;
-  updateMuteButton();
-}
-
-function updateMuteButton() {
-  if (!muteBtn) return;
-  muteBtn.textContent = settings.muted ? 'Sound: off' : 'Sound: on';
-  muteBtn.setAttribute('aria-pressed', String(settings.muted));
+  applyMusicVolume();
 }

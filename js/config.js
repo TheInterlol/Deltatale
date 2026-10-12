@@ -1,21 +1,43 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const bossSelect = document.getElementById('bossSelect');
-const modeSelect = document.getElementById('modeSelect');
-const startBtn = document.getElementById('startBtn');
-const restartBtn = document.getElementById('restartBtn');
-const menuBtn = document.getElementById('menuBtn');
-const muteBtn = document.getElementById('muteBtn');
+// The game is drawn in a fixed 720x405 coordinate space. The canvas itself fills the window
+// (keeping 16:9) and its backing store matches the screen's pixels, so text stays sharp.
+const VIEW_W = 720;
+const VIEW_H = 405;
+let viewScale = 1;
 
-const hpText = document.getElementById('hpText');
-const hpBar = document.getElementById('hpBar');
-const timeLabel = document.getElementById('timeLabel');
-const timeValue = document.getElementById('timeValue');
-const bestLabel = document.getElementById('bestLabel');
-const bestValue = document.getElementById('bestValue');
-const statusText = document.getElementById('statusText');
-const bossName = document.getElementById('bossName');
+function fitCanvas() {
+  const stage = canvas.parentElement;
+  const availW = stage ? stage.clientWidth : window.innerWidth;
+  const availH = stage ? stage.clientHeight : window.innerHeight;
+  const cssW = Math.max(320, Math.floor(Math.min(availW, availH * VIEW_W / VIEW_H)));
+  const cssH = Math.round(cssW * VIEW_H / VIEW_W);
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.style.width = `${cssW}px`;
+  canvas.style.height = `${cssH}px`;
+  const w = Math.round(cssW * dpr);
+  const h = Math.round(cssH * dpr);
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+  viewScale = w / VIEW_W;
+}
+
+// Called at the start of every frame: map the 720x405 game space onto the canvas.
+function beginFrame() {
+  ctx.setTransform(viewScale, 0, 0, viewScale, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+}
+
+// Which boss and mode the next fight uses (chosen on the title and boss select screens).
+const selection = { boss: 'toriel', mode: 'battle' };
+
+// A short hint about the current screen (kept for tests and debugging, not drawn).
+function setHint(text) {
+  if (typeof state !== 'undefined') state.hint = text;
+}
 
 // -------------- Canvas layout (720x405) --------
 // The bullet board the SOUL moves in. Attacks resize it (see setArena), so it is mutable.
@@ -31,10 +53,13 @@ const BOSS_POS_DR = { x: 600, y: 78 };
 const BOSS_POS_UT = { x: 360, y: 86 };
 const SUSIE_POS = { x: 70, y: 8 };
 
-const FONT_FAMILY = '"Courier New", Courier, monospace';
-const TEXT_FONT = `bold 19px ${FONT_FAMILY}`;
-const SMALL_FONT = `bold 14px ${FONT_FAMILY}`;
-const TINY_FONT = `bold 12px ${FONT_FAMILY}`;
+// Pixel fonts (SIL Open Font License, see assets/fonts): DotGothic16 for text, Pixelify Sans
+// for titles and big numbers.
+const FONT_FAMILY = '"DotGothic16", "Courier New", monospace';
+const TITLE_FAMILY = '"Pixelify Sans", "DotGothic16", monospace';
+const TEXT_FONT = `19px ${FONT_FAMILY}`;
+const SMALL_FONT = `15px ${FONT_FAMILY}`;
+const TINY_FONT = `12px ${FONT_FAMILY}`;
 
 // -------------- Default sprites --------
 const susieSprite = new Image();

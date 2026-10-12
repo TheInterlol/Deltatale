@@ -15,7 +15,7 @@ const Jevil = registerBoss({
   name: 'Jevil',
   game: 'deltarune',
   color: '#b06cff',
-  emblem: 'spade',
+  emblem: 'scythe',
 
   player: { name: 'SUSIE', maxHp: 140, power: 46 },
   items: ['darkCandy', 'darkCandy', 'darkCandy', 'clubsSandwich', 'clubsSandwich', 'reviveMint'],

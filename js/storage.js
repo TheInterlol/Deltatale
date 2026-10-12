@@ -71,7 +71,7 @@ function recordBattleResult(bossId, outcome, turns) {
 // -------------- Settings --------
 const SETTINGS_KEY = 'deltatale_settings';
 const settings = Object.assign(
-  { muted: false, gameMode: 'battle', boss: 'toriel' },
+  { muted: false, gameMode: 'battle', boss: 'toriel', musicVolume: 7, sfxVolume: 7, shake: true },
   loadJson(SETTINGS_KEY, {})
 );
 

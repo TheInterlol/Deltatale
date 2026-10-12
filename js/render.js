@@ -3,7 +3,7 @@
 // Deltarune battles have a slowly scrolling grid, Undertale ones are plain black.
 function drawBackground() {
   ctx.fillStyle = '#000';
-  ctx.fillRect(-20, -20, canvas.width + 40, canvas.height + 40);
+  ctx.fillRect(-20, -20, VIEW_W + 40, VIEW_H + 40);
   if (state.screen === 'fight' && isUndertale()) return;
 
   const size = 40;
@@ -11,13 +11,13 @@ function drawBackground() {
   ctx.strokeStyle = 'rgba(110, 50, 160, 0.22)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  for (let x = offset - size; x < canvas.width + size; x += size) {
+  for (let x = offset - size; x < VIEW_W + size; x += size) {
     ctx.moveTo(Math.round(x) + 0.5, -20);
-    ctx.lineTo(Math.round(x) + 0.5, canvas.height + 20);
+    ctx.lineTo(Math.round(x) + 0.5, VIEW_H + 20);
   }
-  for (let y = offset - size; y < canvas.height + size; y += size) {
+  for (let y = offset - size; y < VIEW_H + size; y += size) {
     ctx.moveTo(-20, Math.round(y) + 0.5);
-    ctx.lineTo(canvas.width + 20, Math.round(y) + 0.5);
+    ctx.lineTo(VIEW_W + 20, Math.round(y) + 0.5);
   }
   ctx.stroke();
 }
@@ -246,7 +246,8 @@ function drawCharacters() {
       // the boss shakes after a hit
       if (battle.bossHurt > 0) x += Math.sin(battle.bossHurt * 60) * 12 * battle.bossHurt;
     }
-    drawBossFigure(boss, x, at.y, state.clock);
+    const look = battle ? { hurt: Math.min(1, battle.bossHurt * 2), heat: battleMusicIntensity(battle) } : {};
+    drawBossFigure(boss, x, at.y, state.clock, look);
     ctx.restore();
   }
 
@@ -274,6 +275,22 @@ function drawHud() {
 }
 
 function render() {
+  beginFrame();
+  if (state.screen === 'title') {
+    drawTitle();
+    return;
+  }
+  if (state.screen === 'settings') {
+    if (screens.settingsReturn === 'pause') renderFight();
+    else drawTitle();
+    drawSettings();
+    return;
+  }
+  renderFight();
+  if (state.paused) drawPauseMenu();
+}
+
+function renderFight() {
   if (state.screen === 'select') {
     drawBackground();
     drawBossSelect();

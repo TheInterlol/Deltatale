@@ -28,7 +28,7 @@ const OmegaFlowey = registerBoss({
   name: 'Omega Flowey',
   game: 'undertale',
   color: '#ffe14d',
-  emblem: 'star',
+  emblem: 'flower',
 
   player: { name: 'FRISK', lv: 1, maxHp: 50, power: 46 },
   items: ['butterscotchPie', 'faceSteak', 'snowmanPiece', 'cinnaBun'],

@@ -101,7 +101,7 @@ function hurtPlayer(damage, b = {}) {
   p.hp -= damage;
   if (boss && boss.karma) p.karma = Math.min(40, p.karma + (b.karma !== undefined ? b.karma : 1));
   p.hurtCooldown = getIframes();
-  statusText.textContent = 'Ouch!';
+  setHint('Ouch!');
 
   sfx.hurt();
   effects.susieHurt = SUSIE_HURT_TIME;

@@ -74,24 +74,30 @@ function updateBossSelect() {
     previewMenuBoss();
   }
 
+  if (cancelPressed()) {
+    sfx.cancel();
+    openTitle();
+    return;
+  }
+
   if (confirmPressed()) {
     const entry = selectedMenuEntry();
     if (entry && isPlayable(entry.id)) {
       sfx.select();
-      bossSelect.value = entry.id;
+      selection.boss = entry.id;
       startGame();
     } else {
       sfx.cancel();
-      statusText.textContent = `${entry ? entry.name : 'This boss'} is not in the boss rush yet.`;
+      setHint(`${entry ? entry.name : 'This boss'} is not in the boss rush yet.`);
     }
   }
 }
 
-// Keep the HTML <select> in sync with the cursor, so Start/Restart fight the shown boss.
+// Remember the boss under the cursor, so a retry or the next visit starts there.
 function previewMenuBoss() {
   const entry = selectedMenuEntry();
-  if (entry && isPlayable(entry.id) && bossSelect.value !== entry.id) {
-    bossSelect.value = entry.id;
+  if (entry && isPlayable(entry.id) && selection.boss !== entry.id) {
+    selection.boss = entry.id;
     settings.boss = entry.id;
     saveSettings();
   }
@@ -101,13 +107,13 @@ function drawBossSelect() {
   ctx.save();
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
-  ctx.font = `bold 26px ${FONT_FAMILY}`;
-  ctx.fillText('DELTATALE', canvas.width / 2, 36);
+  ctx.font = `bold 26px ${TITLE_FAMILY}`;
+  ctx.fillText('DELTATALE', VIEW_W / 2, 36);
   ctx.font = TINY_FONT;
   ctx.fillStyle = '#9c9c9c';
   const total = rosterEntries();
   const playable = total.filter(e => isPlayable(e.id)).length;
-  ctx.fillText(`BOSS RUSH · ${playable} / ${total.length} bosses playable`, canvas.width / 2, 54);
+  ctx.fillText(`BOSS RUSH · ${playable} / ${total.length} bosses playable`, VIEW_W / 2, 54);
 
   // tabs
   ROSTER.forEach((section, tab) => {
@@ -187,11 +193,11 @@ function drawMenuInfo() {
   if (boss) {
     drawBossFigure(boss, cx, I.y + 82, state.clock);
   } else {
-    drawBossPlaceholder({ name: entry.name, color: '#555', emblem: 'star' }, cx, I.y + 82, 0);
+    drawBossPresence({ id: entry.id, name: entry.name, color: '#555555', emblem: 'star' }, cx, I.y + 82, 0, { scale: 0.9 });
   }
 
   ctx.textAlign = 'center';
-  ctx.font = `bold 18px ${FONT_FAMILY}`;
+  ctx.font = `18px ${FONT_FAMILY}`;
   ctx.fillStyle = boss ? '#fff' : '#777';
   ctx.fillText(entry.name, cx, I.y + 176);
   ctx.font = TINY_FONT;
@@ -218,6 +224,6 @@ function drawMenuInfo() {
   ctx.textAlign = 'left';
   ctx.font = TINY_FONT;
   ctx.fillStyle = '#777';
-  ctx.fillText(`← → game · ↑ ↓ boss · mode: ${state.gameMode === 'battle' ? 'Battle' : 'Survival'} (change below)`, 28, 398);
+  ctx.fillText(`← → game · ↑ ↓ boss · Z fight · X back · mode: ${selection.mode === 'battle' ? 'Boss rush' : 'Survival'}`, 28, 398);
   ctx.restore();
 }

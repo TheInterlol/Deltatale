@@ -1,21 +1,34 @@
-// Keys that work at any time: pause and mute.
+// Keys that work at any time: pause, mute, fullscreen.
 function handleGlobalKeys() {
   if (state.screen === 'fight' && consumePress(['escape', 'p'])) togglePause();
   if (consumePress(['m'])) toggleMute();
-  if (state.paused && cancelPressed()) openBossSelect();
+  if (consumePress(['f'])) toggleFullscreen();
 }
 
 // One step of game logic. Separate from drawing so tests can call it with a fixed dt.
 function updateGame(dt) {
   handleGlobalKeys();
-  if (state.paused) return;
+  updateMusic(dt);
+
+  if (state.screen === 'settings') {
+    state.clock += dt;
+    updateSettings();
+    return;
+  }
+  if (state.paused) {
+    updatePauseMenu();
+    return;
+  }
 
   state.clock += dt;
   if (state.currentBoss.animate) state.currentBoss.animate(dt);
 
+  if (state.screen === 'title') {
+    updateTitle();
+    return;
+  }
   if (state.screen === 'select') {
     updateBossSelect();
-    updateUi();
     return;
   }
 
@@ -35,7 +48,6 @@ function updateGame(dt) {
     else if (state.idleTime > 0.4 && cancelPressed()) openBossSelect();
   }
 
-  updateUi();
 }
 
 function frame(ts) {
@@ -49,55 +61,16 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 
-// Fill the <select> from the roster: one optgroup per area/chapter, unfinished bosses disabled.
-function populateBossSelect() {
-  bossSelect.innerHTML = '';
-  for (const section of ROSTER) {
-    for (const group of section.groups) {
-      const optgroup = document.createElement('optgroup');
-      optgroup.label = `${section.title} · ${group.name}`;
-      for (const entry of group.bosses) {
-        const option = document.createElement('option');
-        option.value = entry.id;
-        const boss = getBoss(entry.id);
-        option.textContent = boss ? boss.name : `${entry.name} (coming soon)`;
-        option.disabled = !boss;
-        optgroup.appendChild(option);
-      }
-      bossSelect.appendChild(optgroup);
-    }
-  }
-}
-
 // Restore the last chosen boss and mode, if they still exist.
-function restoreSelection(select, value) {
-  if ([...select.options].some(option => option.value === value && !option.disabled)) select.value = value;
-}
+if (getBoss(settings.boss)) selection.boss = settings.boss;
+if (['battle', 'survival'].includes(settings.gameMode)) selection.mode = settings.gameMode;
 
-populateBossSelect();
-restoreSelection(bossSelect, settings.boss);
-restoreSelection(modeSelect, settings.gameMode);
-updateMuteButton();
-
-bossSelect.addEventListener('change', () => {
-  resetGame();
-  focusBossInMenu(bossSelect.value);
-});
-modeSelect.addEventListener('change', resetGame);
-startBtn.addEventListener('click', () => {
-  startGame();
-  // move focus away from the button, or Enter/Space would "press" it again during the fight
-  canvas.focus();
-});
-restartBtn.addEventListener('click', () => {
-  startGame();
-  canvas.focus();
-});
-menuBtn.addEventListener('click', () => {
-  openBossSelect();
-  canvas.focus();
-});
-muteBtn.addEventListener('click', toggleMute);
+fitCanvas();
+window.addEventListener('resize', fitCanvas);
+document.addEventListener('fullscreenchange', fitCanvas);
+// the canvas takes the keyboard; clicking it (or anywhere) keeps the focus there
+canvas.focus();
+document.addEventListener('pointerdown', () => canvas.focus());
 bindTouchControls();
 
 // Pause when the player switches to another tab, so they don't lose HP.
@@ -105,5 +78,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && state.running && !state.paused) togglePause();
 });
 
-openBossSelect(bossSelect.value);
+resetGame();
+openTitle();
+// redraw once the pixel fonts are in (the canvas doesn't wait for them by itself)
+if (document.fonts && document.fonts.load) {
+  Promise.all([document.fonts.load(`16px ${FONT_FAMILY}`), document.fonts.load(`bold 16px ${TITLE_FAMILY}`)]).catch(() => {});
+}
 requestAnimationFrame(frame);

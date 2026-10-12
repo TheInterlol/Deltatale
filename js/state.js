@@ -1,5 +1,6 @@
 const state = {
-  screen: 'select',       // 'select' (boss select menu) or 'fight'
+  screen: 'title',        // 'title', 'settings', 'select' (boss select) or 'fight'
+  hint: '',
   running: false,
   gameOver: false,
   paused: false,
@@ -27,27 +28,10 @@ function isGameActive() {
   return state.screen === 'fight' && (state.running || state.battle !== null);
 }
 
-function updateUi() {
-  const p = state.player;
-  hpText.textContent = `${Math.max(0, p.hp)} / ${p.maxHp}`;
-  hpBar.style.width = `${Math.max(0, (p.hp / p.maxHp) * 100)}%`;
-  bossName.textContent = state.currentBoss ? state.currentBoss.name : '-';
+// The page has no DOM HUD any more - everything is drawn on the canvas.
+function updateUi() {}
 
-  if (state.gameMode === 'battle') {
-    const record = state.record || getBossRecord(state.mode);
-    timeLabel.textContent = 'Turn';
-    timeValue.textContent = state.battle ? String(state.battle.turn + 1) : '-';
-    bestLabel.textContent = 'Defeated / spared';
-    bestValue.textContent = `${record.defeated}× / ${record.spared}×`;
-  } else {
-    timeLabel.textContent = 'Survived';
-    timeValue.textContent = `${state.timer.toFixed(1)} s`;
-    bestLabel.textContent = 'Best time';
-    bestValue.textContent = `${state.best.toFixed(1)} s`;
-  }
-}
-
-// Prepare a fresh fight against the boss chosen in #bossSelect (without starting it).
+// Prepare a fresh fight against the selected boss (without starting it).
 function resetGame() {
   state.running = false;
   state.gameOver = false;
@@ -59,8 +43,8 @@ function resetGame() {
   state.battle = null;
   state.survival = null;
 
-  state.gameMode = modeSelect.value === 'survival' ? 'survival' : 'battle';
-  state.currentBoss = getBoss(bossSelect.value) || getBoss('toriel') || Object.values(BOSSES)[0];
+  state.gameMode = selection.mode === 'survival' ? 'survival' : 'battle';
+  state.currentBoss = getBoss(selection.boss) || getBoss('toriel') || Object.values(BOSSES)[0];
   if (state.currentBoss.init) state.currentBoss.init();
   state.mode = state.currentBoss.id;
   state.player = makePlayer(state.gameMode === 'battle' ? playerStats(state.currentBoss) : { maxHp: 20 });
@@ -76,7 +60,7 @@ function resetGame() {
 
   resetEffects();
   updateUi();
-  statusText.textContent = 'Ready. Press Z / Enter (or Start) to fight.';
+  setHint('Ready. Press Z / Enter (or Start) to fight.');
 
   // always stop the music - so it never leaks from one boss into another
   stopMusic();
@@ -92,7 +76,7 @@ function startGame() {
     startBattle();
   } else {
     startSurvival();
-    statusText.textContent = 'Survive as long as you can.';
+    setHint('Survive as long as you can.');
   }
 
   const music = getBossMusic(state.currentBoss);
@@ -104,7 +88,8 @@ function openBossSelect(focusId = state.mode) {
   resetGame();
   state.screen = 'select';
   focusBossInMenu(focusId);
-  statusText.textContent = 'Choose a boss: arrows to move, Z / Enter to fight, ← → to switch game.';
+  playMenuMusic();
+  setHint('Choose a boss: arrows to move, Z / Enter to fight, ← → to switch game.');
 }
 
 function endGame() {
@@ -124,9 +109,9 @@ function endGame() {
   if (state.timer > state.best) {
     state.best = state.timer;
     saveBestTime(state.mode, state.best);
-    statusText.innerHTML = 'Game over. <span class="success">New record!</span> Z / Enter = again.';
+    setHint('Game over. New record!');
   } else {
-    statusText.innerHTML = 'Game over. Try again (Z / Enter).';
+    setHint('Game over.');
   }
 
   updateUi();
@@ -135,6 +120,7 @@ function endGame() {
 function togglePause() {
   if (!state.running && !(state.battle && !state.gameOver)) return;
   state.paused = !state.paused;
+  screens.pauseCursor = 0;
   releaseAllKeys();
   if (state.paused) pauseMusic();
   else resumeMusic();

@@ -247,7 +247,7 @@ BULLET_DRAWERS.risingSpear = b => {
     // a warning "!" mark on the floor
     const blink = Math.floor(b.life * 14) % 2 === 0;
     ctx.fillStyle = blink ? '#ff3030' : '#801010';
-    ctx.font = `bold 16px ${FONT_FAMILY}`;
+    ctx.font = `16px ${FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.fillText('!', b.x, bottom - 6);
     return;

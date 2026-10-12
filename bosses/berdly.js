@@ -149,7 +149,7 @@ BULLET_DRAWERS.paper = b => {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(-b.hw, -b.hh, b.hw * 2, b.hh * 2);
   ctx.fillStyle = '#ff3030';
-  ctx.font = `bold 8px ${FONT_FAMILY}`;
+  ctx.font = `8px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.fillText('A+', 0, 3);
 };

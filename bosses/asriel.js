@@ -112,7 +112,7 @@ const Asriel = registerBoss({
     state.player.hp = state.player.maxHp;
     battle.flags.refused = (battle.flags.refused || 0) + 1;
     addPopup('...', partyPopupPos().x, partyPopupPos().y, '#ffffff');
-    statusText.textContent = '* But it refused.';
+    setHint('* But it refused.');
     if (battle.attack) battle.attack.done = true;
     return true;
   },

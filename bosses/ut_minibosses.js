@@ -202,7 +202,7 @@ registerBoss({
   name: 'Mettaton NEO',
   game: 'undertale',
   color: '#ff6be2',
-  emblem: 'star',
+  emblem: 'bolt',
   player: { name: 'CHARA', lv: 15, maxHp: 72, power: 99999 },
   maxHp: 30000,
   attack: 1,

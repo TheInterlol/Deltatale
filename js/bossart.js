@@ -16,19 +16,20 @@ function getBossArt(id) {
   return art;
 }
 
+// Music for a fight: the boss' own audio, a file from the manifest, or its original chiptune song.
 function getBossMusic(boss) {
   if (boss.music) return boss.music;
   const entry = typeof BOSS_ASSETS !== 'undefined' ? BOSS_ASSETS[boss.id] : null;
-  if (!entry || !entry.music) return null;
+  if (!entry || !entry.music) return songMusic(boss.song || boss.id);
   if (!boss._musicTrack) {
     boss._musicTrack = new Audio(`assets/bosses/${boss.id}/${entry.music}`);
     boss._musicTrack.loop = true;
-    boss._musicTrack.volume = 0.6;
   }
   return boss._musicTrack;
 }
 
-function drawBossFigure(boss, x, y, t) {
+// opts: { hurt, heat } - how the presence reacts (see js/presence.js)
+function drawBossFigure(boss, x, y, t, opts = {}) {
   if (boss.draw) {
     boss.draw(x, y, t);
     return;
@@ -46,7 +47,7 @@ function drawBossFigure(boss, x, y, t) {
     ctx.restore();
     return;
   }
-  drawBossPlaceholder(boss, x, y, t);
+  drawBossPresence(boss, x, y, t, opts);
 }
 
 function drawBossPlaceholder(boss, x, y, t) {
@@ -179,7 +180,7 @@ function drawEmblem(kind, color, t) {
       ctx.fill();
       break;
     case 'dollar':
-      ctx.font = `bold 46px ${FONT_FAMILY}`;
+      ctx.font = `bold 46px ${TITLE_FAMILY}`;
       ctx.textAlign = 'center';
       ctx.fillText('$', 0, 16);
       break;
@@ -217,6 +218,87 @@ function drawEmblem(kind, color, t) {
         const a = (i * Math.PI) / 4 + t;
         ctx.fillRect(Math.cos(a) * 20 - 3, Math.sin(a) * 20 - 3, 6, 6);
       }
+      break;
+    case 'camera':
+      fillRoundRect(-24, -14, 48, 32, 5);
+      ctx.fillRect(-10, -20, 16, 8);
+      ctx.fillStyle = '#000';
+      fillCircle(0, 2, 11);
+      ctx.fillStyle = color;
+      fillCircle(0, 2, 6);
+      ctx.fillStyle = '#000';
+      fillCircle(-2, 0, 2);
+      break;
+    case 'pumpkin':
+      for (const dx of [-11, 0, 11]) {
+        ctx.beginPath();
+        ctx.ellipse(dx, 4, 11, 17, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillRect(-2, -20, 5, 9);
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.moveTo(-12, -2); ctx.lineTo(-5, -2); ctx.lineTo(-8.5, -9); ctx.closePath();
+      ctx.moveTo(12, -2); ctx.lineTo(5, -2); ctx.lineTo(8.5, -9); ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(-11, 8, 22, 4);
+      break;
+    case 'tv':
+      fillRoundRect(-24, -16, 48, 34, 5);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-19, -11, 32, 24);
+      ctx.fillStyle = color;
+      fillCircle(18, -4, 2);
+      fillCircle(18, 6, 2);
+      ctx.beginPath();
+      ctx.moveTo(-6, -16); ctx.lineTo(-14, -28);
+      ctx.moveTo(6, -16); ctx.lineTo(14, -28);
+      ctx.stroke();
+      ctx.fillRect(-14, -4 + Math.sin(t * 9) * 4, 22, 2);
+      break;
+    case 'hammer':
+      ctx.rotate(-0.5);
+      ctx.fillRect(-3, -8, 6, 36);
+      fillRoundRect(-18, -24, 36, 18, 3);
+      break;
+    case 'eye': {
+      ctx.beginPath();
+      ctx.moveTo(-28, 0);
+      ctx.quadraticCurveTo(0, -24, 28, 0);
+      ctx.quadraticCurveTo(0, 24, -28, 0);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      fillCircle(Math.sin(t * 1.3) * 5, 0, 9);
+      ctx.fillStyle = color;
+      fillCircle(Math.sin(t * 1.3) * 5 + 3, -3, 2.5);
+      break;
+    }
+    case 'bolt':
+      ctx.beginPath();
+      ctx.moveTo(6, -28); ctx.lineTo(-14, 4); ctx.lineTo(-1, 4);
+      ctx.lineTo(-8, 28); ctx.lineTo(14, -6); ctx.lineTo(1, -6);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case 'flower':
+      for (let i = 0; i < 5; i++) {
+        const a = (i * Math.PI * 2) / 5 + t * 0.3;
+        ctx.beginPath();
+        ctx.ellipse(Math.cos(a) * 14, Math.sin(a) * 14, 10, 7, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#ffffff';
+      fillCircle(0, 0, 8);
+      break;
+    case 'scythe':
+      ctx.rotate(-0.4);
+      ctx.fillRect(-2, -26, 4, 54);
+      ctx.beginPath();
+      ctx.moveTo(2, -26);
+      ctx.quadraticCurveTo(30, -26, 30, -2);
+      ctx.quadraticCurveTo(22, -18, 2, -18);
+      ctx.closePath();
+      ctx.fill();
       break;
     default: {
       // a five-pointed star

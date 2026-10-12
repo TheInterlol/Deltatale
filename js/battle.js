@@ -100,7 +100,7 @@ function startBattle() {
 function setPhase(battle, phase) {
   battle.phase = phase;
   battle.phaseTime = 0;
-  if (PHASE_HINTS[phase]) statusText.textContent = PHASE_HINTS[phase];
+  if (PHASE_HINTS[phase]) setHint(PHASE_HINTS[phase]);
 }
 
 function setBattleText(battle, text) {
@@ -184,7 +184,7 @@ function updateMenu(battle) {
   const command = chosen.id;
   if (chosen.disabled) {
     sfx.cancel();
-    statusText.textContent = chosen.disabled;
+    setHint(chosen.disabled);
     return;
   }
   if (chosen.run) {
@@ -194,7 +194,7 @@ function updateMenu(battle) {
   }
   if (command === 'item' && !hasItems(battle.inventory)) {
     sfx.cancel();
-    statusText.textContent = 'You have no items left.';
+    setHint('You have no items left.');
     return;
   }
 
@@ -523,7 +523,7 @@ function startAttack(battle) {
   battle.bubble = null;
   battle.attack = beginAttackRun(attack, { level, speed, battle });
   setPhase(battle, 'attack');
-  statusText.textContent = SOUL_HINTS[state.player.mode] || PHASE_HINTS.attack;
+  setHint(SOUL_HINTS[state.player.mode] || PHASE_HINTS.attack);
 }
 
 function updateAttack(battle, dt) {
@@ -628,7 +628,7 @@ function winBattle(battle, outcome, customText) {
   else sfx.victory();
 
   setPhase(battle, 'victory');
-  statusText.textContent = `You won! Fastest win: ${plural(state.record.bestTurns, 'turn')}. Z = boss select, X = fight again.`;
+  setHint(`You won! Fastest win: ${plural(state.record.bestTurns, 'turn')}. Z = boss select, X = fight again.`);
   updateUi();
 }
 

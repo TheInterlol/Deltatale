@@ -16,7 +16,7 @@ const MettatonEx = registerBoss({
   name: 'Mettaton EX',
   game: 'undertale',
   color: '#ff6be2',
-  emblem: 'star',
+  emblem: 'bolt',
 
   player: { name: 'FRISK', lv: 1, maxHp: 20, power: 120 },
   items: ['glamburger', 'glamburger', 'faceSteak', 'legendaryHero', 'instantNoodles'],
