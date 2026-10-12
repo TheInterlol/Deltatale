@@ -1319,6 +1319,187 @@ test('Mad Mew Mew: split SOUL halves move separately and colored circles let the
   }
 });
 
+test('Sweet Cap\'n Cakes: dancing all three band members ends the battle', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'sweet_cap_cakes');
+    const outcome = await page.evaluate(() => {
+      const b = state.battle;
+      const dance = SweetCapnCakes.acts.find(a => a.name === 'Dance');
+      for (let i = 0; i < 12 && !b.outcome; i++) {
+        b.phase = 'menu';
+        chooseAct(b, { kind: 'act', act: dance });
+        if (b.outcome) break;
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      return b.outcome;
+    });
+    assert.equal(outcome, 'spared');
+  } finally {
+    await close();
+  }
+});
+
+test('Lanino & Elnina: after "I love TV" they ask for a favorite, and the show ends a few turns later', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'lanino_elnina');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      chooseAct(b, { kind: 'act', act: LaninoElnina.acts.find(a => a.name === 'ILoveTV') });
+      for (let i = 0; i < 3; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      const asking = b.flags.asking;
+      chooseAct(b, { kind: 'act', act: LaninoElnina.acts.find(a => a.name === 'Elnina') });
+      for (let i = 0; i < 4 && !b.outcome; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      return { asking, outcome: b.outcome };
+    });
+    assert.deepEqual(result, { asking: true, outcome: 'spared' });
+  } finally {
+    await close();
+  }
+});
+
+test('Shuttah: a good group photo at 80 % MERCY ends the battle', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'shuttah');
+    await page.evaluate(() => {
+      const b = state.battle;
+      b.mercy = 80;
+      chooseAct(b, { kind: 'act', act: Shuttah.acts[0] });
+      startEnemyTalk(b);
+      startAttack(b);
+      // put the viewfinder right on the subject
+      const subject = state.bullets.find(x => x.kind === 'suit');
+      subject.update(subject, 0);
+      state.player.x = subject.x;
+      state.player.y = subject.y;
+    });
+    await page.keyboard.press('z');
+    await page.evaluate(() => {
+      const b = state.battle;
+      const s = b.attack.data.subject;
+      state.player.x = s.x;
+      state.player.y = s.y;
+      // run the photo check exactly once
+      b.attack.attack.update(b.attack, 1 / 60);
+    });
+    assert.equal(await page.evaluate(() => state.battle.outcome), 'spared');
+  } finally {
+    await close();
+  }
+});
+
+test('Jackenstein: the maze walls block the SOUL, the key opens the exit, and Unleash x3 spares him', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'jackenstein');
+    const maze = await page.evaluate(() => {
+      const b = state.battle;
+      startEnemyTalk(b);
+      startAttack(b);
+      const p = state.player;
+      const walls = state.bullets.filter(x => x.solid);
+      const blocked = (x, y) => walls.some(w => Math.abs(x - w.x) < w.hw - 1 && Math.abs(y - w.y) < w.hh - 1);
+      // a wall with an open cell on its left; step from that cell most of the way into the wall
+      const wall = walls.find(w => w.x - w.hw * 2 > arena.x && !blocked(w.x - w.hw * 2, w.y));
+      p.x = wall.x - wall.hw * 2;
+      p.y = wall.y;
+      p.x += wall.hw * 1.2;
+      pushOutOfWalls(p, 'x');
+      const pushed = p.x + p.r <= wall.x - wall.hw + 0.01;
+      const key = b.attack.data.key;
+      p.x = key.x;
+      p.y = key.y;
+      b.attack.attack.update(b.attack, 1 / 60);
+      const exit = b.attack.data.exit;
+      p.x = exit.x;
+      p.y = exit.y;
+      b.attack.attack.update(b.attack, 1 / 60);
+      return { pushed, hasKey: b.attack.data.hasKey, done: b.attack.done };
+    });
+    assert.deepEqual(maze, { pushed: true, hasKey: true, done: true });
+
+    const outcome = await page.evaluate(() => {
+      const b = state.battle;
+      endAttack(b);
+      const unleash = Jackenstein.acts.find(a => a.name === 'Unleash');
+      for (let i = 0; i < 3; i++) {
+        b.tp = 100;
+        chooseAct(b, { kind: 'act', act: unleash });
+      }
+      b.phase = 'menu';
+      trySpare(b);
+      return b.outcome;
+    });
+    assert.equal(outcome, 'spared');
+  } finally {
+    await close();
+  }
+});
+
+test('Sound of Justice: green arrows, then hammer strikes; it ends on its own after nine attacks', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'sound_of_justice');
+    await startNextAttack(page);
+    assert.equal(await page.evaluate(() => state.player.mode), 'green');
+    const result = await playOutFight(page, 12);
+    assert.deepEqual(result, { phase: 'victory', outcome: 'survived' });
+  } finally {
+    await close();
+  }
+});
+
+test('GIGA Queen: punching while she is open hurts her, and the final baseball ends round 3', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'giga_queen');
+    await startNextAttack(page);
+    const punched = await page.evaluate(() => {
+      const b = state.battle;
+      const run = b.attack;
+      run.data.open = run.t + 1;
+      const before = b.bossHp;
+      pressedKeys.add('z');
+      gigaPunch(run);
+      return before - b.bossHp;
+    });
+    assert.ok(punched > 0);
+
+    const outcome = await page.evaluate(() => {
+      const b = state.battle;
+      endAttack(b);
+      b.flags.round = 2;
+      b.bossHp = 1;
+      b.phase = 'menu';
+      startEnemyTalk(b);
+      startAttack(b);
+      const ball = b.attack.data.ball;
+      state.player.x = ball.x;
+      state.player.y = ball.y + 20;
+      pressedKeys.add('z');
+      ball.update(ball, 1 / 60);
+      return { name: b.attack.attack.name, outcome: b.outcome };
+    });
+    assert.deepEqual(outcome, { name: 'Final baseball', outcome: 'defeated' });
+  } finally {
+    await close();
+  }
+});
+
 // ---------------------------------------------------------------- menus & UI
 
 test('boss select: arrow keys and Z start the chosen boss, unfinished bosses do not start', async () => {
@@ -1326,7 +1507,7 @@ test('boss select: arrow keys and Z start the chosen boss, unfinished bosses do 
   try {
     await page.focus('#game');
     // find an unfinished boss right after a playable one in the same tab
-    const pair = await page.evaluate(() => {
+    let pair = await page.evaluate(() => {
       for (let tab = 0; tab < ROSTER.length; tab++) {
         const rows = menuBossRows(tab).map(r => r.row.entry.id);
         for (let i = 1; i < rows.length; i++) {
@@ -1335,7 +1516,15 @@ test('boss select: arrow keys and Z start the chosen boss, unfinished bosses do 
       }
       return null;
     });
-    assert.ok(pair, 'every boss is playable - nothing to test');
+    if (!pair) {
+      // the whole roster is playable: register a fake unfinished entry right after the first boss
+      pair = await page.evaluate(() => {
+        const group = ROSTER[0].groups[0];
+        const playable = group.bosses[0].id;
+        group.bosses.splice(1, 0, { id: 'test_unfinished', name: 'Unfinished' });
+        return { playable, missing: 'test_unfinished' };
+      });
+    }
     await page.evaluate(id => focusBossInMenu(id), pair.playable);
     await press(page, 'ArrowDown'); // the unfinished boss
     await press(page, 'z');

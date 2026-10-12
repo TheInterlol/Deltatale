@@ -89,13 +89,19 @@ Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP ov
 | Lancer | Deltarune – Chapter 1 | bike wheelie charges, bike passes throwing spades; Warning/Compliment; leaves after 4 turns |
 | K. Round | Deltarune – Chapter 1 | stomps on your position, star kicks, star stomps, falling stars; heals with almond milk; Bow / Deep Bow until the crown falls |
 | King | Deltarune – Chapter 1 | scripted 15 turns: spade attack, swinging board, spade-tipped chains, spiked cage in a shrinking box, chained cage with heart marks; defense drops near the end |
+| Sweet Cap'n Cakes | Deltarune – Chapter 2 | bullets fired on the beat (trailing circles, speaker notes that follow your height, waves); Dance / DanceX until all three dance |
 | Berdly | Deltarune – Chapter 2 | tornado walls, fluttering A+ papers, spear blast trails; Bump / BumpX; spareable when tired |
 | Spamton | Deltarune – Chapter 2 | money vacuum, Minitons, growing word bullets; spare by answering his DEAL correctly |
 | Rouxls Kaard | Deltarune – Chapter 2 | the house game (Take House / Distract), falling boxes squash the board, Thrash Machine part attacks |
 | Queen | Deltarune – Chapter 2 | stomps, exploding heads, lasers, Berdly's tornadoes, social media words, plug sparks on a sliding board, wine glass, ultimate pop-ups; acid shields (Toast), loosen Berdly's cable |
+| GIGA Queen | Deltarune – Chapter 2 | punching match on a plus-shaped board: telegraphed punches, kicks, pirouette, acid light cone (duck), walls with a gap, baseballs to punch back; punch with Z/X while she's open; 3 rounds, final huge baseball; TurboDodge, SELF-FIX |
+| Lanino & Elnina | Deltarune – Chapter 3 | forecast each turn, sun/moon vs. rain/snow from opposite sides that turn into hearts in the middle; ILoveTV, then choose a favourite who stays and gets stronger |
+| Shuttah | Deltarune – Chapter 3 | drops that freeze on the photo flash, crossing drops, aimed diamonds; EasyPhoto / ToughPhoto timed viewfinder challenges, PowerPhoto, group photo ends it |
 | Tenna | Deltarune – Chapter 3 | SCORE to 1000 (ILoveTV, S-Action, Bet, grazing, minigames), All-Star Cast with dark zones, Smash Cut lightning, Rimshot stars, minigames, FINAL EPISODE and DEFEAT TENNA |
 | The Roaring Knight | Deltarune – Chapter 3 | 15-turn cycle: stars, tracking swords, box splitter (huge cut that never kills), sword tunnel, rotating slashes; below 80 % it charges and ROARS; HoldBreath |
+| Jackenstein | Deltarune – Chapter 4 | dark mazes with solid walls and a light radius: key and treasure for TP, exit, pumpkin chasing you once you hold the key; LightUp; Unleash ×3 to spare; bullet rain afterwards |
 | Old Man Gerson | Deltarune – Chapter 4 | falling axes, boomerangs, combined attack (uses the project's own sprite and music) |
+| Sound of Justice | Deltarune – Chapter 4 | nine fixed attacks: green SOUL arrows from left/right/top (called out, later silent), then red SOUL hammer strikes on marked areas; can't be damaged, ends after the nine attacks or on OKHeal |
 | Titan | Deltarune – Chapter 4 | darkness and the SOUL's light (purify white bullets into TP), shield halves damage, Unleash/Brighten, swarm, centipedes, hands, big shots; heals at half HP, the old man joins, DualBuster, Susie's Idea |
 | Jevil | Deltarune – secret | 4 phases by HP or tiredness, suit bullets, spirals, bombs, scythes, carousel, CHAOS BOMB, FINAL CHAOS; Pirouette/Hypnosis tire him for a pacify |
 | Spamton NEO | Deltarune – secret | yellow SOUL with BIG SHOT, flying heads, mail trucks, chained heart, pipis, gripping phones, eyes/nose/mouth, POWER OF NEO; Snap wires to spare |
@@ -136,7 +142,7 @@ js/bossart.js         boss sprites/placeholders, shared projectile shapes
 js/roster.js          the complete Undertale + Deltarune roster
 js/items.js           healing items per game
 js/state.js           game state, start/reset/end, survival mode
-js/soul.js            SOUL modes (red, blue, green, yellow, purple), shots, KARMA
+js/soul.js            SOUL modes (red, blue, green, yellow, purple, split, plus), shots, KARMA, solid walls
 js/bullets.js         bullets, hitboxes, colours, damage, graze, shield blocks
 js/patterns.js        shared attack building blocks (every, timeline, bones, beams, rings…)
 js/effects.js         shake, flash, popups, slashes, particles

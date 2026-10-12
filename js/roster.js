@@ -82,19 +82,19 @@ const ROSTER = [
       {
         name: 'Chapter 2',
         bosses: [
-          { id: 'sweet_cap_cakes', name: 'Sweet Cap\'n Cakes', note: 'A rhythm battle.' },
+          { id: 'sweet_cap_cakes', name: 'Sweet Cap\'n Cakes', note: 'Bullets on the beat; make all three dance.' },
           { id: 'berdly', name: 'Berdly', note: 'Tornadoes and feathers.' },
           { id: 'spamton', name: 'Spamton', note: 'Flying heads and pipis.' },
           { id: 'rouxls_kaard', name: 'Rouxls Kaard', note: 'Worms and board puzzles.' },
           { id: 'queen', name: 'Queen', note: 'Wine glasses, chairs, the acid fountain.' },
-          { id: 'giga_queen', name: 'GIGA Queen', note: 'A punching match.' }
+          { id: 'giga_queen', name: 'GIGA Queen', note: 'A giant-robot punching match in three rounds.' }
         ]
       },
       {
         name: 'Chapter 3',
         bosses: [
-          { id: 'lanino_elnina', name: 'Lanino & Elnina', note: 'Weather forecast attacks.' },
-          { id: 'shuttah', name: 'Shuttah', note: 'Photo flashes.' },
+          { id: 'lanino_elnina', name: 'Lanino & Elnina', note: 'Sun/moon vs. rain/snow; pick a favourite.' },
+          { id: 'shuttah', name: 'Shuttah', note: 'Freezing drops and timed photo challenges.' },
           { id: 'tenna', name: 'Tenna', note: 'A TV game show.' },
           { id: 'knight', name: 'The Roaring Knight', note: 'Sword storms.' }
         ]
@@ -102,9 +102,9 @@ const ROSTER = [
       {
         name: 'Chapter 4',
         bosses: [
-          { id: 'jackenstein', name: 'Jackenstein', note: 'Pumpkin heads.' },
+          { id: 'jackenstein', name: 'Jackenstein', note: 'Dark mazes: key, treasure, exit, chasing pumpkin.' },
           { id: 'gerson', name: 'Old Man Gerson', note: 'Falling axes and boomerangs.' },
-          { id: 'sound_of_justice', name: 'Sound of Justice', note: 'Bells and sound waves.' },
+          { id: 'sound_of_justice', name: 'Sound of Justice', note: 'Green SOUL arrows, then hammer strikes.' },
           { id: 'titan', name: 'Titan', note: 'Darkness and light.' }
         ]
       },
