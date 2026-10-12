@@ -116,33 +116,40 @@ The full roster (every major, optional and secret boss of both games) is listed 
 
 ## Art and music
 
-- **Bosses** are drawn as original animated sigils (`js/presence.js`): an aura, a halo, the
-  boss' emblem (its weapon or theme - never the character) and particles in its style. They
-  flash when hit and burn hotter when the fight heats up.
-- **Projectiles** (bones, spears, fire, beams, suits, swords…) are drawn in code.
-- **Music**: every boss and the menu have an original chiptune song (`js/songs.js`), played by a
-  small Web Audio sequencer (`js/music.js`). The songs get fuller when the fight heats up (low
-  boss HP or late turns). Nothing copies a melody from the games.
-- **Fonts**: DotGothic16 and Pixelify Sans (SIL Open Font License, `assets/fonts/`).
-- The repository also contains the Susie/Gerson sprites and Gerson's music that were already in it.
+- **Boss sprites** come from the sprite pack the project owner supplied ("UTDR Organized Sprite
+  Archive"). `tools/build_sprites.py` turns it into one animated strip per boss
+  (`assets/bosses/<id>/idle.png`, sometimes `hurt.png`); bosses the game assembles from parts
+  (Sans, Undyne, Asgore, Mettaton EX, Tenna, Titan…) are composited from those parts.
+- **Music** comes from the supplied soundtrack pack, converted to MP3 in `assets/music/`
+  (`tools/gen_manifest.py` maps each boss to its track). Bosses whose track wasn't in the pack
+  (Sans, Undyne, Muffet, Mettaton EX, Asgore, Asriel…) play their original chiptune song from
+  `js/songs.js` until a file is added.
+- Bosses without a sprite (Mad Mew Mew) show an animated sigil (`js/presence.js`).
+- Projectiles are drawn in code; the fonts are DotGothic16 and Pixelify Sans (SIL OFL).
 
-To use your own art or music for a boss, put the files in `assets/bosses/<boss id>/` and list
-them in `assets/bosses/manifest.js` - they replace the sigil and the chiptune song:
+UNDERTALE and DELTARUNE belong to Toby Fox. Deltatale is a non-commercial fan project.
+
+To add or change art and music, put the files in `assets/bosses/<boss id>/` (or `assets/music/`)
+and list them in `assets/bosses/manifest.js`:
 
 ```js
 const BOSS_ASSETS = {
-  toriel: { sprite: 'idle.png', frames: 1, scale: 2, music: 'music.mp3' },
+  toriel: { sprite: 'idle.png', frames: 1, scale: 1.5, hurt: 'hurt.png', music: 'assets/music/heartache.mp3' },
 };
 ```
 
-A sprite is a horizontal strip of equally wide frames. Only listed files are requested.
+A sprite is a horizontal strip of equally wide frames. Only listed files are requested. To rebuild
+everything from the packs: `SPRITE_ARCHIVE="/path/to/UTDR Orgranized Sprite Archive" python3
+tools/build_sprites.py && python3 tools/gen_manifest.py`.
 
 ## Structure
 
 ```
 index.html            page, controls, script order
 style.css             page and touch-control styles
-assets/bosses/        per-boss art/music slots + manifest.js
+assets/bosses/        per-boss sprites + manifest.js (sprites and music per boss)
+assets/music/         music tracks
+tools/                scripts that build the sprites and the manifest from the packs
 js/config.js          canvas, layout, bullet board (setArena)
 js/storage.js         safe localStorage, records and settings
 js/input.js           keyboard and touch input (held and pressed keys)

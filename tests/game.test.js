@@ -1689,9 +1689,9 @@ test('switching away from Gerson stops his music', async () => {
     await startMode(page, 'survival', 'gerson');
     assert.equal(await page.evaluate(() => currentMusic === gersonMusic), true);
     await page.evaluate(() => openBossSelect());
-    assert.equal(await page.evaluate(() => gersonMusic.paused && currentMusic === songMusic('menu')), true);
+    assert.equal(await page.evaluate(() => gersonMusic.paused && currentMusic === (globalTrack('menu') || songMusic('menu'))), true);
     await startMode(page, 'battle', 'jevil');
-    assert.equal(await page.evaluate(() => gersonMusic.paused && currentMusic === songMusic('jevil')), true);
+    assert.equal(await page.evaluate(() => gersonMusic.paused && currentMusic === getBossMusic(BOSSES.jevil)), true);
   } finally {
     await close();
   }
@@ -1860,6 +1860,24 @@ test('music: every boss has an original song, every song compiles, and the seque
     await press(page, 'Escape');
     assert.equal(await page.evaluate(() => music.playing), false);
     assert.deepEqual(errors, []);
+  } finally {
+    await close();
+  }
+});
+
+test('every sprite and music file listed in the manifest exists', async () => {
+  const { page, close } = await openGame();
+  try {
+    const missing = await page.evaluate(async () => {
+      const files = [];
+      for (const [id, e] of Object.entries(BOSS_ASSETS)) {
+        for (const key of ['sprite', 'hurt', 'music']) if (e[key]) files.push(bossAssetPath(id, e[key]));
+      }
+      for (const file of Object.values(GLOBAL_MUSIC)) files.push(file);
+      const results = await Promise.all(files.map(f => fetch(f, { method: 'HEAD' }).then(r => (r.ok ? null : f), () => f)));
+      return results.filter(Boolean);
+    });
+    assert.deepEqual(missing, []);
   } finally {
     await close();
   }

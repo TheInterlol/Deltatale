@@ -480,8 +480,26 @@ function songMusic(id) {
   return songWrappers[id];
 }
 
+const globalTracks = {};
+
+// A music file from GLOBAL_MUSIC (assets/bosses/manifest.js), or null.
+function globalTrack(key, loop = true) {
+  if (typeof GLOBAL_MUSIC === 'undefined' || !GLOBAL_MUSIC[key]) return null;
+  if (!globalTracks[key]) {
+    globalTracks[key] = new Audio(GLOBAL_MUSIC[key]);
+    globalTracks[key].loop = loop;
+  }
+  return globalTracks[key];
+}
+
 function playMenuMusic() {
-  const menuSong = songMusic('menu');
+  const menuSong = globalTrack('menu') || songMusic('menu');
   if (!menuSong || currentMusic === menuSong) return;
   playMusic(menuSong);
+}
+
+function playGameOverMusic() {
+  const boss = state.currentBoss;
+  const track = globalTrack(boss && boss.game === 'undertale' ? 'gameoverUndertale' : 'gameoverDeltarune', false);
+  if (track) playMusic(track);
 }

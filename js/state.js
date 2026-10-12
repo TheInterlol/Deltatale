@@ -98,6 +98,7 @@ function endGame() {
   state.idleTime = 0;
 
   stopMusic();
+  playGameOverMusic();
 
   if (state.gameMode === 'battle') {
     loseBattle();

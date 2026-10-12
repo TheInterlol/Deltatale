@@ -3,14 +3,28 @@
 
 const loadedBossArt = {};
 
+function bossAssetPath(id, file) {
+  return file.startsWith('assets/') ? file : `assets/bosses/${id}/${file}`;
+}
+
+function loadImage(src) {
+  const image = new Image();
+  image.src = src;
+  return image;
+}
+
 function getBossArt(id) {
   if (id in loadedBossArt) return loadedBossArt[id];
   const entry = typeof BOSS_ASSETS !== 'undefined' ? BOSS_ASSETS[id] : null;
   let art = null;
   if (entry && entry.sprite) {
-    const image = new Image();
-    image.src = `assets/bosses/${id}/${entry.sprite}`;
-    art = { image, frames: entry.frames || 1, fps: entry.fps || 8, scale: entry.scale || 2 };
+    art = {
+      image: loadImage(bossAssetPath(id, entry.sprite)),
+      hurt: entry.hurt ? loadImage(bossAssetPath(id, entry.hurt)) : null,
+      frames: entry.frames || 1,
+      fps: entry.fps || 8,
+      scale: entry.scale || 2
+    };
   }
   loadedBossArt[id] = art;
   return art;
@@ -22,29 +36,46 @@ function getBossMusic(boss) {
   const entry = typeof BOSS_ASSETS !== 'undefined' ? BOSS_ASSETS[boss.id] : null;
   if (!entry || !entry.music) return songMusic(boss.song || boss.id);
   if (!boss._musicTrack) {
-    boss._musicTrack = new Audio(`assets/bosses/${boss.id}/${entry.music}`);
+    boss._musicTrack = new Audio(bossAssetPath(boss.id, entry.music));
     boss._musicTrack.loop = true;
   }
   return boss._musicTrack;
 }
 
-// opts: { hurt, heat } - how the presence reacts (see js/presence.js)
+// The tallest a boss sprite may be drawn, and where its feet stand relative to its position.
+const BOSS_SPRITE_MAX_H = 172;
+const BOSS_SPRITE_FOOT = 70;
+
+// opts: { hurt, heat } - how the boss reacts; { maxH } - fit into a smaller space (menus)
 function drawBossFigure(boss, x, y, t, opts = {}) {
-  if (boss.draw) {
-    boss.draw(x, y, t);
-    return;
-  }
   const art = getBossArt(boss.id);
   if (art && imageReady(art.image)) {
-    const frameW = art.image.naturalWidth / art.frames;
-    const frameH = art.image.naturalHeight;
-    const frame = Math.floor(t * art.fps) % art.frames;
-    const w = frameW * art.scale;
-    const h = frameH * art.scale;
+    const useHurt = opts.hurt > 0.15 && art.hurt && imageReady(art.hurt);
+    const image = useHurt ? art.hurt : art.image;
+    const frames = useHurt ? 1 : art.frames;
+    const frameW = image.naturalWidth / frames;
+    const frameH = image.naturalHeight;
+    const frame = Math.floor(t * art.fps) % frames;
+    const maxH = opts.maxH || BOSS_SPRITE_MAX_H;
+    const scale = Math.min(art.scale, maxH / frameH);
+    const w = frameW * scale;
+    const h = frameH * scale;
+    const foot = opts.maxH ? h / 2 : Math.min(BOSS_SPRITE_FOOT, h / 2 + 10);
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(art.image, frame * frameW, 0, frameW, frameH, x - w / 2, y - h / 2, w, h);
+    // pixel art stays crisp when enlarged; shrunk sprites are smoothed so no pixels drop out
+    ctx.imageSmoothingEnabled = scale < 1;
+    ctx.drawImage(image, frame * frameW, 0, frameW, frameH, x - w / 2, y + foot - h, w, h);
+    if (opts.hurt > 0.15 && !useHurt) {
+      // no hurt sprite: flash it white instead
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(image, frame * frameW, 0, frameW, frameH, x - w / 2, y + foot - h, w, h);
+    }
     ctx.restore();
+    return;
+  }
+  if (boss.draw) {
+    boss.draw(x, y, t);
     return;
   }
   drawBossPresence(boss, x, y, t, opts);

@@ -1,0 +1,250 @@
+{
+ "asgore": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "asriel": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "berdly": {
+  "fps": 6,
+  "frames": 5,
+  "hurt": "hurt.png",
+  "scale": 2.5,
+  "sprite": "idle.png"
+ },
+ "dogamy_dogaressa": {
+  "fps": 6,
+  "frames": 11,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "doggo": {
+  "fps": 6,
+  "frames": 13,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "dummy": {
+  "fps": 2,
+  "frames": 2,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "giga_queen": {
+  "fps": 3,
+  "frames": 2,
+  "hurt": "hurt.png",
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "glad_dummy": {
+  "fps": 2,
+  "frames": 2,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "glyde": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 0.657,
+  "sprite": "idle.png"
+ },
+ "greater_dog": {
+  "fps": 2,
+  "frames": 2,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "jackenstein": {
+  "fps": 6,
+  "frames": 6,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "jevil": {
+  "fps": 10,
+  "frames": 8,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "k_round": {
+  "fps": 8,
+  "frames": 8,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "king": {
+  "fps": 6,
+  "frames": 5,
+  "hurt": "hurt.png",
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "knight": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 2.5,
+  "sprite": "idle.png"
+ },
+ "lancer": {
+  "fps": 8,
+  "frames": 6,
+  "hurt": "hurt.png",
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "lanino_elnina": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "mad_dummy": {
+  "fps": 4,
+  "frames": 4,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "mettaton_ex": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "mettaton_neo": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "muffet": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 0.686,
+  "sprite": "idle.png"
+ },
+ "napstablook": {
+  "fps": 3,
+  "frames": 2,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "omega_flowey": {
+  "fps": 10,
+  "frames": 21,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "papyrus": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "queen": {
+  "fps": 6,
+  "frames": 6,
+  "hurt": "hurt.png",
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "rouxls_kaard": {
+  "fps": 3,
+  "frames": 2,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "royal_guards": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 0.625,
+  "sprite": "idle.png"
+ },
+ "sans": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "shuttah": {
+  "fps": 6,
+  "frames": 5,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "shyren": {
+  "fps": 4,
+  "frames": 4,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "so_sorry": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "sound_of_justice": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "spamton": {
+  "fps": 1,
+  "frames": 1,
+  "hurt": "hurt.png",
+  "scale": 2.5,
+  "sprite": "idle.png"
+ },
+ "spamton_neo": {
+  "fps": 6,
+  "frames": 4,
+  "scale": 2.0,
+  "sprite": "idle.png"
+ },
+ "sweet_cap_cakes": {
+  "fps": 8,
+  "frames": 7,
+  "scale": 1.25,
+  "sprite": "idle.png"
+ },
+ "tenna": {
+  "fps": 8,
+  "frames": 8,
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "titan": {
+  "fps": 6,
+  "frames": 7,
+  "hurt": "hurt.png",
+  "scale": 0.75,
+  "sprite": "idle.png"
+ },
+ "toriel": {
+  "fps": 1,
+  "frames": 1,
+  "hurt": "hurt.png",
+  "scale": 1.5,
+  "sprite": "idle.png"
+ },
+ "undyne": {
+  "fps": 5,
+  "frames": 4,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ },
+ "undyne_undying": {
+  "fps": 1,
+  "frames": 1,
+  "scale": 1.0,
+  "sprite": "idle.png"
+ }
+}

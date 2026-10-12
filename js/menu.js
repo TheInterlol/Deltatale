@@ -191,7 +191,7 @@ function drawMenuInfo() {
   ctx.strokeRect(I.x, I.y, I.w, 300);
 
   if (boss) {
-    drawBossFigure(boss, cx, I.y + 82, state.clock);
+    drawBossFigure(boss, cx, I.y + 82, state.clock, { maxH: 140 });
   } else {
     drawBossPresence({ id: entry.id, name: entry.name, color: '#555555', emblem: 'star' }, cx, I.y + 82, 0, { scale: 0.9 });
   }
