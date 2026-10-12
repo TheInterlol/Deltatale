@@ -292,6 +292,9 @@ function render() {
     drawBullets();
     drawShots();
     drawPlayer();
+    // some bosses darken or cover parts of the board on top of everything (Tenna)
+    const boss = state.currentBoss;
+    if (boss && boss.drawArenaOverlay) boss.drawArenaOverlay(state.box);
   }
   drawEffects();
   ctx.restore();

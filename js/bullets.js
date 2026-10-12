@@ -122,6 +122,7 @@ function grazeBullet(battle, b, dt) {
   battle.tp = Math.min(100, battle.tp + GRAZE_TP_PER_SECOND * dt);
   if (!b.grazed) {
     b.grazed = true;
+    if (battle.boss.onGraze) battle.boss.onGraze(battle, b);
     battle.tp = Math.min(100, battle.tp + GRAZE_TP_BONUS);
     addRing(state.player.x, state.player.y);
     sfx.graze();
@@ -185,6 +186,14 @@ function updateBullets(dt) {
   const graze = battle && battle.boss.game === 'deltarune';
 
   for (const b of state.bullets) {
+    // healing bullets (Omega Flowey's saved SOULs) heal instead of hurting
+    if (b.heal && !b.dead && distanceToBullet(b, p.x, p.y) < p.r) {
+      b.dead = true;
+      p.hp = Math.min(p.maxHp, p.hp + b.heal);
+      addPopup(`+${b.heal}`, p.x, p.y - 12, '#7dff7d');
+      sfx.heal();
+      continue;
+    }
     if (!bulletActive(b)) continue;
     if (updateSpearBlock(b)) continue;
 

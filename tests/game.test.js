@@ -321,10 +321,16 @@ test('battle: every boss that can be fought is beaten with FIGHT, and Z then ret
         if (b.boss.id === 'sans') b.flags.asleep = true;
         b.bossHp = 1;
       });
-      await perfectFight(page);
-      await step(page, 1.2);
-      // a few bosses keep going for a while after reaching 0 HP (Undyne the Undying)
-      const result = await playOutFight(page);
+      // some bosses keep going after reaching 0 HP (Undyne the Undying) or need a last hit
+      // after a scripted finale (the Roaring Knight): FIGHT, play a few turns, repeat
+      let result = null;
+      for (let round = 0; round < 6; round++) {
+        await page.evaluate(() => { if (state.battle.bossHp > 1) state.battle.bossHp = 1; });
+        await perfectFight(page);
+        await step(page, 1.2);
+        result = await playOutFight(page, 4);
+        if (result.phase === 'victory') break;
+      }
       assert.equal(result.phase, 'victory', id);
       assert.ok(['defeated', 'survived'].includes(result.outcome), `${id}: ${result.outcome}`);
 
@@ -1046,6 +1052,149 @@ test('Rouxls Kaard: owning more houses when the board fills up wins the house ga
     });
     assert.equal(result.outcome, 'spared');
     assert.equal(result.mine + result.his, 25);
+  } finally {
+    await close();
+  }
+});
+
+test('Tenna: 1000 points start the FINAL EPISODE, and shooting his head wins peacefully', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'tenna');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      const love = Tenna.acts.find(a => a.name === 'ILoveTV');
+      chooseAct(b, { kind: 'act', act: love });
+      const afterAct = b.flags.points;
+      b.flags.points = TENNA_GOAL;
+      const names = [];
+      for (let i = 0; i < 3; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        names.push(b.attack.attack.name);
+        if (i < 2) endAttack(b);
+      }
+      // DEFEAT TENNA: destroy the head
+      const head = state.bullets.find(x => x.kind === 'tvHead');
+      head.shootHp = 0;
+      head.dead = true;
+      head.onDestroyed(head);
+      return { afterAct, names, outcome: b.outcome };
+    });
+    assert.ok(result.afterAct > 0);
+    assert.deepEqual(result.names, ['Minigame: Dodge Fire', 'Minigame: Shoot the Targets', 'DEFEAT TENNA']);
+    assert.equal(result.outcome, 'spared');
+  } finally {
+    await close();
+  }
+});
+
+test('Roaring Knight: below 80 % it charges and ROARS, and only then can it be finished', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'knight');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      b.bossHp = 1;
+      Knight.onDamaged(b, 1);
+      const survived = b.bossHp >= 1;
+      const names = [];
+      for (let i = 0; i < 3; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        names.push(b.attack.attack.name);
+        endAttack(b);
+      }
+      return { survived, names, stage: b.flags.roarStage };
+    });
+    assert.deepEqual(result, { survived: true, names: ['Rotating slash (charged)', 'Charging', 'ROARING'], stage: 3 });
+    await perfectFight(page);
+    await step(page, 1.2);
+    assert.equal(await page.evaluate(() => state.battle.outcome), 'defeated');
+  } finally {
+    await close();
+  }
+});
+
+test('Titan: white bullets in the SOUL\'s light become TP; at half HP the old man joins and Susie\'s Idea ends it', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'titan');
+    const purified = await page.evaluate(() => {
+      const b = state.battle;
+      startEnemyTalk(b);
+      startAttack(b);
+      state.bullets = [];
+      const p = state.player;
+      const white = titanPurifiable({ kind: 'normal', x: p.x + 20, y: p.y, r: 5 });
+      const tp = b.tp;
+      titanPurify(b.attack);
+      endAttack(b);
+      return { gone: white.dead === true, tp: b.tp > tp };
+    });
+    assert.deepEqual(purified, { gone: true, tp: true });
+
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      b.bossHp = b.boss.maxHp / 2;
+      Titan.onDamaged(b, 0);
+      for (let i = 0; i < 6; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      const acts = () => Titan.acts.map(a => a.name);
+      const first = acts();
+      for (let i = 0; i < 2; i++) chooseAct(b, { kind: 'act', act: Titan.acts[0] });
+      const later = acts();
+      b.phase = 'menu';
+      chooseAct(b, { kind: 'act', act: Titan.acts[0] });
+      return { first, later, outcome: b.outcome };
+    });
+    assert.deepEqual(result, { first: ['DualBuster'], later: ['Susie\'s Idea'], outcome: 'defeated' });
+  } finally {
+    await close();
+  }
+});
+
+test('Omega Flowey: calling the six SOULs for help, then his HP runs out and MERCY spares him', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'omega_flowey');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      const souls = [];
+      for (let i = 0; i < 40 && b.flags.saved.length < 6; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+        const act = getCommands(b).find(c => c.id === 'act');
+        if (act) {
+          souls.push(b.flags.soulNow.id);
+          b.phase = 'menu';
+          act.run(b);
+        }
+      }
+      b.bossHp = 1;
+      OmegaFlowey.onDamaged(b, 1);
+      for (let i = 0; i < 5 && !b.flags.choice; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      const commands = getCommands(b).map(c => c.id);
+      b.phase = 'menu';
+      trySpare(b);
+      return { souls, commands, outcome: b.outcome };
+    });
+    assert.deepEqual(result.souls, ['cyan', 'orange', 'blue', 'purple', 'green', 'yellow']);
+    assert.deepEqual(result.commands, ['fight', 'mercy']);
+    assert.equal(result.outcome, 'spared');
   } finally {
     await close();
   }
