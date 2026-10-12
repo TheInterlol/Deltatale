@@ -111,6 +111,36 @@ const SpamtonNeo = registerBoss({
     return NEO_ATTACKS[id];
   },
 
+  // POWER OF NEO: the screen goes dark around the board, with flashing words in the corners
+  drawArenaOverlay(box) {
+    const run = state.battle && state.battle.attack;
+    if (!run || run.attack !== NEO_ATTACKS.powerOfNeo) return;
+    const k = run.data.dark || 0;
+    ctx.save();
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * k})`;
+    ctx.fillRect(0, 0, VIEW_W, box.y - 4);
+    ctx.fillRect(0, box.y + box.h + 4, VIEW_W, VIEW_H - box.y - box.h - 4);
+    ctx.fillRect(0, box.y - 4, box.x - 4, box.h + 8);
+    ctx.fillRect(box.x + box.w + 4, box.y - 4, VIEW_W - box.x - box.w - 4, box.h + 8);
+    const words = ['WRECK', 'PAUSE', 'SPEW', '[[BIG SHOT]]'];
+    const spots = [[24, 30], [VIEW_W - 24, 30], [24, VIEW_H - 70], [VIEW_W - 24, VIEW_H - 70]];
+    ctx.font = `bold 22px ${TITLE_FAMILY}`;
+    spots.forEach(([x, y], i) => {
+      if (Math.floor(run.t * 3 + i) % 3 === 0) return;
+      ctx.textAlign = i % 2 ? 'right' : 'left';
+      ctx.fillStyle = i % 2 ? '#ff6be2' : '#ffe84d';
+      ctx.fillText(words[(i + Math.floor(run.t)) % words.length], x, y);
+    });
+    // smoke drifting up from the bottom corners
+    for (let i = 0; i < 10; i++) {
+      const t = (run.t * 0.4 + i * 0.1) % 1;
+      const x = i % 2 ? VIEW_W - 40 - i * 4 : 40 + i * 4;
+      ctx.fillStyle = `rgba(160, 160, 160, ${0.25 * (1 - t) * k})`;
+      fillCircle(x + Math.sin(t * 6 + i) * 10, VIEW_H - 60 - t * 120, 10 + t * 18);
+    }
+    ctx.restore();
+  },
+
   attacks: []
 });
 
@@ -162,6 +192,12 @@ function neoHead(y, delay, options = {}) {
       } else {
         b.aiming = false;
         b.x -= (options.speed || 380) * dt;
+        // heads you didn't shoot spit a bullet at you on the way past
+        if (!b.spat && b.x < arena.x + arena.w * 0.6) {
+          b.spat = true;
+          const v = aimAt(b.x, b.y, 200);
+          spawn({ kind: 'normal', x: b.x, y: b.y, vx: v.vx, vy: v.vy, r: 4, color: '#ff6be2', maxLife: 3 });
+        }
       }
     }
   });
@@ -266,6 +302,21 @@ const NEO_ATTACKS = {
         head.x = Math.min(arena.x + arena.w + 30, head.x + (9999 - head.shootHp) * 14);
         head.shootHp = 9999;
       }
+      // the creeping head fires big bullets that burst
+      every(run, 'headShot', 1.7, () => {
+        if (head.dead) return;
+        spawn({
+          kind: 'normal', x: head.x - 20, y: head.y, vx: -150, vy: 0, r: 10, color: '#ffffff', noCull: true, maxLife: 3,
+          update(b, dt) {
+            b.x += b.vx * dt;
+            if (!b.burst && b.x < arena.x + arena.w * 0.45) {
+              b.burst = true;
+              b.dead = true;
+              spawnRing(b.x, b.y, 8, 130, 4, 'normal', Math.random(), { color: '#ffffff', maxLife: 3 });
+            }
+          }
+        });
+      }, 1);
       every(run, 'phone', 1.15, () => {
         const top = chance(0.5);
         const x = rand(arena.x + 30, arena.x + arena.w - 60);
@@ -352,6 +403,7 @@ const NEO_ATTACKS = {
     },
     update(run, dt) {
       timeline(run, run.data.events);
+      run.data.dark = Math.min(1, run.t / 0.6);
       if (run.data.inhale) {
         // everything is pulled towards him
         const p = state.player;
@@ -384,8 +436,8 @@ function neoTruck(speed, withBomb) {
 function neoHeart(run, level) {
   const x = arena.x + arena.w - 40;
   const heart = spawn({
-    kind: 'suit', suit: 'heart', x, y: arena.y + arena.h / 2, r: 15, color: '#ff4fa3', noCull: true, shootHp: 12 + level * 2,
-    faceVelocity: false, chained: true,
+    kind: 'neoHeart', suit: 'heart', x, y: arena.y + arena.h / 2, r: 15, color: '#ff4fa3', noCull: true, shootHp: 12 + level * 2,
+    faceVelocity: false, chained: true, clip: false,
     onDestroyed: () => neoMercyOrDamage(8),
     update(b) {
       b.y = arena.y + arena.h / 2 + Math.sin(b.life * 1.8) * (arena.h / 2 - 24);
@@ -497,6 +549,30 @@ BULLET_DRAWERS.truck = b => {
   ctx.fillStyle = '#333';
   fillCircle(-16, b.hh, 5);
   fillCircle(16, b.hh, 5);
+};
+
+BULLET_DRAWERS.neoHeart = b => {
+  // the heart hangs on a chain from his chest (off the right edge of the board)
+  const anchorX = arena.x + arena.w + 70;
+  const anchorY = arena.y + arena.h / 2;
+  ctx.strokeStyle = '#9a9aa8';
+  ctx.lineWidth = 2;
+  const links = 9;
+  for (let i = 0; i < links; i++) {
+    const t = i / links;
+    const x = anchorX + (b.x - anchorX) * t;
+    const y = anchorY + (b.y - anchorY) * t + Math.sin(t * Math.PI) * 8;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 4, 2.5, Math.atan2(b.y - anchorY, b.x - anchorX), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.translate(b.x, b.y);
+  drawSuitBullet('heart', b.r * 2.6, '#ff4fa3');
+  // a tiny grinning face on the heart
+  ctx.fillStyle = '#000';
+  ctx.fillRect(-6, -4, 4, 3);
+  ctx.fillRect(2, -4, 4, 3);
+  ctx.fillRect(-5, 3, 10, 2);
 };
 
 BULLET_DRAWERS.pipis = b => {

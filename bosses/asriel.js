@@ -8,7 +8,9 @@
 // Then the final form: the menu turns into STRUGGLE, later SAVE. Save the lost souls (each
 // attacks like the friends they are), then save "someone else"... and Asriel stops fighting.
 
-const ASRIEL_PHASE1 = ['starBlazing', 'shocker', 'saber', 'buster', 'galacta', 'shocker2', 'slicer', 'blaster', 'goner'];
+// The original's 13 turns (the fire-magic opening is folded into Star Blazing).
+const ASRIEL_PHASE1 = ['shocker', 'saber', 'shocker', 'starBlazing', 'buster', 'saber', 'buster', 'shocker2', 'galacta',
+  'slicer', 'blaster', 'shocker2', 'goner'];
 const LOST_SOULS = [
   { name: 'Lost Soul', friends: 'Undyne and Alphys', saves: 3, attack: 'lostSpears' },
   { name: 'Lost Soul', friends: 'Papyrus and Sans', saves: 3, attack: 'lostBones' },
@@ -177,6 +179,35 @@ const Asriel = registerBoss({
 
   victoryText() {
     return null;
+  },
+
+  // HYPER GONER: a huge vortex swirling into a dark maw in the middle of the screen
+  drawArenaBackground(box) {
+    const run = state.battle && state.battle.attack;
+    if (!run || !run.attack.vortex) return;
+    const c = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+    const t = run.t;
+    ctx.save();
+    for (let arm = 0; arm < 6; arm++) {
+      ctx.strokeStyle = `hsla(${(arm * 60 + t * 90) % 360}, 80%, 70%, 0.35)`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let i = 0; i < 60; i++) {
+        const r = 320 - i * 5;
+        const a = arm * (Math.PI / 3) + i * 0.12 - t * 2.2;
+        ctx.lineTo(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r * 0.6);
+      }
+      ctx.stroke();
+    }
+    const grad = ctx.createRadialGradient(c.x, c.y, 4, c.x, c.y, 60);
+    grad.addColorStop(0, '#000');
+    grad.addColorStop(0.7, 'rgba(0, 0, 0, 0.9)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, 60 + Math.sin(t * 6) * 4, 40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   },
 
   attacks: []
@@ -407,6 +438,7 @@ const ASRIEL_ATTACKS = {
     name: 'HYPER GONER', duration: 7,
     box: { w: 640, h: 310 },
     line: 'Hee hee hee... it\'s time to say goodbye.',
+    vortex: true,
     update(run, dt) {
       const c = arenaCenter();
       const p = state.player;

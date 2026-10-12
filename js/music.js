@@ -216,11 +216,26 @@ function arpBar(style, chordSemis, stepsPerBar) {
   return Array.from({ length: stepsPerBar }, (_, i) => ({ step: i, semi: order[i % order.length], len: 1 }));
 }
 
+// Songs with a single section get a second one (the chords shifted) and an A A B A form,
+// so they don't loop every few seconds.
+function songSections(spec) {
+  const sections = { ...spec.sections };
+  let order = spec.order;
+  if (!sections.B) {
+    const prog = sections.A.prog;
+    const shift = Math.max(1, Math.floor(prog.length / 2));
+    sections.B = { prog: prog.slice(shift).concat(prog.slice(0, shift)).map((c, i) => (i === prog.length - 1 ? 5 : c)) };
+    order = ['A', 'A', 'B', 'A'];
+  }
+  return { sections, order: order || Object.keys(sections) };
+}
+
 function compileSong(spec) {
   const scale = scaleOf(spec);
   const beats = spec.beats || 4;
   const spb = beats * 4;
-  const order = spec.order || Object.keys(spec.sections);
+  const { sections: allSections, order } = songSections(spec);
+  spec = { ...spec, sections: allSections };
   const seed = spec.seed || hashString(spec.name || 'song');
   const leads = {};
   for (const [name, section] of Object.entries(spec.sections)) {
@@ -247,6 +262,9 @@ function compileSong(spec) {
         const midi = spec.root + 12 + degreeSemis(scale, n.deg) + n.octave * 12 + n.acc + (spec.leadShift || 0);
         push(base + n.step, { ch: 'lead', midi, len: n.len });
         if (spec.echo) push(base + n.step + 3, { ch: 'echo', midi, len: Math.min(n.len, 3) });
+        // a harmony a third below joins in when the fight heats up
+        const harm = spec.root + 12 + degreeSemis(scale, n.deg - 2) + n.octave * 12 + n.acc + (spec.leadShift || 0);
+        push(base + n.step, { ch: 'harm', midi: harm, len: n.len, layer: 1 });
       }
       for (const b of bassBar(section.bass || spec.bass, rootSemi, spb)) {
         push(base + b.step, { ch: 'bass', midi: spec.root - 24 + b.semi, len: b.len });
@@ -356,6 +374,7 @@ function playDrum(ac, time, kind, vol = 1) {
 const CHANNEL_SOUND = {
   lead: spec => ({ wave: spec.leadWave || 'pulse', vol: 0.11, vibrato: 1 }),
   echo: spec => ({ wave: spec.leadWave || 'pulse', vol: 0.035 }),
+  harm: () => ({ wave: 'square', vol: 0.045, vibrato: 0.5 }),
   bass: spec => ({ wave: spec.bassWave || 'triangle', vol: 0.24, release: 0.03 }),
   arp: () => ({ wave: 'square', vol: 0.03, release: 0.02 }),
   pad: () => ({ wave: 'triangle', vol: 0.035, attack: 0.2, release: 0.3 })
@@ -372,8 +391,15 @@ function scheduleStep(ac, step, time) {
   const kitName = music.intensity >= 1 && song.intense && song.intense.drums ? song.intense.drums : song.drums;
   const kit = DRUM_KITS[kitName] || DRUM_KITS.none;
   const inBar = step % c.stepsPerBar;
+  const bar = Math.floor(step / c.stepsPerBar);
+  // a snare fill at the end of every fourth bar
+  const fill = kit.s && bar % 4 === 3 && inBar >= c.stepsPerBar - 4;
   for (const kind of ['k', 's', 'h', 'o']) {
     const pattern = kit[kind];
+    if (fill && kind === 's') {
+      playDrum(ac, time, 's', 0.6 + 0.15 * (inBar - (c.stepsPerBar - 4)));
+      continue;
+    }
     if (pattern && pattern[inBar % pattern.length] === 'x') playDrum(ac, time, kind);
   }
 }
