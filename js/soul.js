@@ -224,9 +224,24 @@ function updateSoul(dt) {
 function updateFreeSoul(p, dt) {
   let { dx, dy } = inputVector();
   const length = Math.hypot(dx, dy) || 1;
+  // move one axis at a time so the SOUL can slide along maze walls
   p.x += (dx / length) * p.speed * dt;
+  pushOutOfWalls(p, 'x');
   p.y += (dy / length) * p.speed * dt;
+  pushOutOfWalls(p, 'y');
   clampToArena(p);
+}
+
+// Solid walls (bullets with `solid: true`, e.g. Jackenstein's mazes) block the SOUL.
+function pushOutOfWalls(p, axis) {
+  for (const b of state.bullets) {
+    if (!b.solid || b.dead) continue;
+    const overlapX = p.r + b.hw - Math.abs(p.x - b.x);
+    const overlapY = p.r + b.hh - Math.abs(p.y - b.y);
+    if (overlapX <= 0 || overlapY <= 0) continue;
+    if (axis === 'x') p.x += overlapX * Math.sign(p.x - b.x || 1);
+    else p.y += overlapY * Math.sign(p.y - b.y || 1);
+  }
 }
 
 // ---------------- Blue SOUL ----------------
@@ -465,6 +480,9 @@ function drawSoulShape(x, y, size, color) {
 
 function drawPlayer() {
   const p = state.player;
+  // board guides (strings, plus spots) stay visible while the SOUL blinks after a hit
+  if (p.mode === 'purple') drawLanes(p);
+  if (p.mode === 'plus') drawPlusSpots(p);
   if (p.hurtCooldown > 0.05 && Math.floor(p.hurtCooldown * 16) % 2 === 0) return;
 
   if (p.mode === 'split' && p.halves) {
@@ -473,9 +491,7 @@ function drawPlayer() {
   }
 
   ctx.save();
-  if (p.mode === 'purple') drawLanes(p);
   if (p.mode === 'green') drawShield(p);
-  if (p.mode === 'plus') drawPlusSpots(p);
 
   // The yellow SOUL points where it shoots; blue rotates with gravity.
   let angle = 0;

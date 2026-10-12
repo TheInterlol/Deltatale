@@ -36,7 +36,7 @@ function spawn(options) {
 }
 
 function bulletActive(b) {
-  if (b.harmless || b.platform) return false;
+  if (b.harmless || b.platform || b.solid) return false;
   if (b.warn && b.life < b.warn) return false;
   if (b.activeFor !== undefined && b.life > (b.warn || 0) + b.activeFor) return false;
   return true;
