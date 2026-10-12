@@ -197,7 +197,12 @@ function updateBullets(dt) {
     if (!bulletActive(b)) continue;
     if (updateSpearBlock(b)) continue;
 
-    const dist = distanceToBullet(b, p.x, p.y);
+    // a split SOUL has two hit points; a bullet with passColor lets that half through
+    let dist = Infinity;
+    for (const point of soulHitPoints()) {
+      if (b.passColor && point.color === b.passColor) continue;
+      dist = Math.min(dist, distanceToBullet(b, point.x, point.y));
+    }
     if (dist < p.r && p.hurtCooldown <= 0 && colorAllowsHit(b)) {
       hurtPlayer(getHitDamage(b), b);
       if (b.onHit) b.onHit(b);

@@ -46,6 +46,7 @@ function useItem(stack, player) {
   player.hp += healed;
   player.karma = 0;
 
+  if (!item.heal) return { text: item.text, healed: 0 };
   const result = player.hp >= player.maxHp
     ? '* Your HP was maxed out.'
     : `* You recovered ${healed} HP!`;

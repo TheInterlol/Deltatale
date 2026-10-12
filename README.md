@@ -52,6 +52,8 @@ After a GAME OVER: `Z` = retry immediately, `X` = boss select.
 | Green | can't move; arrow keys turn the shield – block spears from the side they come from (yellow spears swap sides) |
 | Yellow | moves and shoots with `Z`; in Deltarune hold and release `Z` for a BIG SHOT that breaks armoured targets |
 | Purple | stuck on horizontal strings; `↑` `↓` hop between them |
+| Split | two halves on three slots each: `A` `D` move the red half, `←` `→` the blue half; half-coloured circles let the matching half through |
+| Plus | five spots of a plus-shaped board; arrows jump to an arm and back |
 
 Cyan attacks only hurt you while you move, orange ones only while you stand still.
 Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP over time
@@ -64,16 +66,26 @@ Flashing red areas are about to be hit. Sans' hits add KARMA, which drains HP ov
 | Training Dummy | Undertale – Ruins | warm-up shots; Talk to spare |
 | Napstablook | Undertale – Ruins | falling tears, slowing tears; Cheer three times for the "dapper blook" |
 | Toriel | Undertale – Ruins | fire waves, paw sweep with bouncing fire, fire helix, faltering fire that avoids you, can't kill you, spare her again and again |
+| Doggo | Undertale – Snowdin | cyan sword sweeps (stand still); survive, then Pet; Stick |
+| Dogamy & Dogaressa | Undertale – Snowdin | axes swinging into a heart, rings of hearts half cyan; Roll Around → Re-sniff → Pet; Stick |
+| Greater Dog | Undertale – Snowdin | spear flickering cyan/white, little dog that barks when you move; Beckon → Pet → Play → Pet → Pet, or Ignore ×4; Stick |
 | Papyrus | Undertale – Snowdin | red warm-up, then permanent blue SOUL, the blue attack, six scripted bone sequences, the "absolutely normal attack" (dog, COOL DUDE, skateboard), spares you after it, captures instead of killing |
+| Shyren | Undertale – Waterfall | music notes that speed up with every Hum; Hum to spare (5 Hums end it) |
 | Mad Dummy | Undertale – Waterfall | immune to FIGHT; dodged scribbles hit it, dummy lines, robot rockets, knife, Napstablook's rain |
 | Undyne | Undertale – Waterfall | green SOUL shield vs. 4-way spears incl. reversing yellow spears, rising spears, spear volleys, speeds up every turn, Plead/Challenge, flee once the red phase starts |
+| Royal Guards | Undertale – Hotland | team attacks from top and bottom; Clean Armor ×5, Whisper, spare |
 | Muffet | Undertale – Hotland | purple SOUL on strings, spiders, boomerang croissants, bouncing donuts, three pet attacks with scrolling strings; Pay/Struggle; Spider Donut or enough turns to be let go |
 | Mettaton EX | Undertale – CORE | RATINGS show, yellow SOUL shooting up, leg kicks, bombs with plus explosions vs. blocks, disco lasers, mini Mettatons, shoot his heart and legs off, lightning; 10000 ratings ends the show |
 | Asgore | Undertale – Finale | MERCY destroyed, cyan/orange trident sweeps telegraphed by eye flashes, fire helix, fire clouds, spiralling rings, hand chasers, corner rings; lethal hits leave 1 HP |
 | Omega Flowey | Undertale – Finale | huge board, X-bullets, eye triplets, flamethrowers, friendliness pellets, vines, mouth beam, flytrap, bombs, finger guns, dentata snakes, FILE 2 reloads; six SOUL segments (knives, gloves, ballet shoes, books, frying pans, gun) – ACT turns them into healing; panic, then FIGHT or MERCY |
 | Asriel Dreemurr | Undertale – Finale | Star/Galacta Blazing, Shocker Breaker I/II, Chaos Saber/Slicer, Chaos Buster/Blaster, Hyper Goner vortex, "But it refused", STRUGGLE → SAVE the lost souls (their own attacks) → SAVE Asriel |
+| Glad Dummy | Undertale – Genocide | spares you right away |
+| Mettaton NEO | Undertale – Genocide | falls to a single hit |
 | Undyne the Undying | Undertale – Genocide | faster green spears with more reversals, rotating spear rings, spear barrages, rising spears; keeps fighting at 0 HP with slowing spears, then melts |
 | Sans | Undertale – Genocide | KARMA, opening attack, bone lines, cyan bones, platforms over bones, beam cannons, gravity slams, false mercy trap, final barrage, falls asleep – only then can be hit |
+| So Sorry | Undertale – optional | cyan/orange tail swings, crumpled paper, Doodlebogs; ends after 10 peaceful turns or 11 hits |
+| Glyde | Undertale – optional | star waves and exploding "COOL" stars; Applaud ×2 then Nothing ×3 |
+| Mad Mew Mew | Undertale – optional (Switch) | split SOUL (A/D + ←/→), half-coloured circles, cat bullets, plus-shaped board; immune until she calms down, Talk, then spare or attack |
 | Lancer | Deltarune – Chapter 1 | bike wheelie charges, bike passes throwing spades; Warning/Compliment; leaves after 4 turns |
 | K. Round | Deltarune – Chapter 1 | stomps on your position, star kicks, star stomps, falling stars; heals with almond milk; Bow / Deep Bow until the crown falls |
 | King | Deltarune – Chapter 1 | scripted 15 turns: spade attack, swinging board, spade-tipped chains, spiked cage in a shrinking box, chained cage with heart marks; defense drops near the end |

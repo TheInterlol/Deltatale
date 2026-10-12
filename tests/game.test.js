@@ -245,7 +245,7 @@ test('battle: for every boss a hit hurts, dying shows GAME OVER, Z retries and X
         const p = state.player;
         p.hurtCooldown = 0;
         const before = p.hp;
-        spawnBullet(p.x, p.y, 0, 0, 10);
+        spawnBullet(soulHitPoints()[0].x, soulHitPoints()[0].y, 0, 0, 10);
         updateBullets(0);
         return before - p.hp;
       });
@@ -257,7 +257,7 @@ test('battle: for every boss a hit hurts, dying shows GAME OVER, Z retries and X
         const p = state.player;
         p.hp = 1;
         p.hurtCooldown = 0;
-        spawnBullet(p.x, p.y, 0, 0, 10);
+        spawnBullet(soulHitPoints()[0].x, soulHitPoints()[0].y, 0, 0, 10);
         updateBullets(0);
         return { phase: state.battle.phase, over: state.gameOver, hp: p.hp };
       });
@@ -282,7 +282,7 @@ test('battle: for every boss a hit hurts, dying shows GAME OVER, Z retries and X
         const p = state.player;
         p.hp = 1;
         p.hurtCooldown = 0;
-        spawnBullet(p.x, p.y, 0, 0, 10);
+        spawnBullet(soulHitPoints()[0].x, soulHitPoints()[0].y, 0, 0, 10);
         updateBullets(0);
       });
       await step(page, 1);
@@ -362,7 +362,7 @@ test('survival: every boss keeps attacking and a hit costs exactly 1 HP', async 
         const p = state.player;
         p.hurtCooldown = 0;
         const before = p.hp;
-        spawnBullet(p.x, p.y, 0, 0, 10);
+        spawnBullet(soulHitPoints()[0].x, soulHitPoints()[0].y, 0, 0, 10);
         updateBullets(0);
         return before - p.hp;
       });
@@ -1195,6 +1195,125 @@ test('Omega Flowey: calling the six SOULs for help, then his HP runs out and MER
     assert.deepEqual(result.souls, ['cyan', 'orange', 'blue', 'purple', 'green', 'yellow']);
     assert.deepEqual(result.commands, ['fight', 'mercy']);
     assert.equal(result.outcome, 'spared');
+  } finally {
+    await close();
+  }
+});
+
+test('Undertale minibosses: each one can be spared its own way', async () => {
+  const { page, close } = await openGame();
+  try {
+    const plans = {
+      doggo: ['@turn', 'Pet'],
+      dogamy_dogaressa: ['Roll Around', 'Re-sniff', 'Pet'],
+      greater_dog: ['Beckon', 'Pet', 'Play', 'Pet', 'Pet'],
+      shyren: ['Hum'],
+      royal_guards: ['Clean Armor', 'Clean Armor', 'Clean Armor', 'Clean Armor', 'Clean Armor', 'Whisper'],
+      glyde: ['Applaud', 'Applaud', 'Nothing', 'Nothing', 'Nothing'],
+      glad_dummy: []
+    };
+    for (const [id, plan] of Object.entries(plans)) {
+      await startMode(page, 'battle', id);
+      const outcome = await page.evaluate(plan => {
+        const b = state.battle;
+        for (const step of plan) {
+          if (b.outcome) break;
+          b.phase = 'menu';
+          if (step === '@turn') {
+            startEnemyTalk(b);
+            startAttack(b);
+            endAttack(b);
+            continue;
+          }
+          const act = b.boss.acts.find(a => a.name === step);
+          chooseAct(b, { kind: 'act', act });
+        }
+        if (!b.outcome) {
+          b.phase = 'menu';
+          trySpare(b);
+        }
+        return b.outcome;
+      }, plan);
+      assert.equal(outcome, 'spared', id);
+    }
+  } finally {
+    await close();
+  }
+});
+
+test('the Stick ends any Snowdin dog fight with a game of fetch', async () => {
+  const { page, close } = await openGame();
+  try {
+    for (const id of ['doggo', 'dogamy_dogaressa', 'greater_dog']) {
+      await startMode(page, 'battle', id);
+      const outcome = await page.evaluate(() => {
+        const b = state.battle;
+        chooseItem(b, { stack: b.inventory.find(s => s.id === 'stick') });
+        b.phase = 'menu';
+        trySpare(b);
+        return b.outcome;
+      });
+      assert.equal(outcome, 'spared', id);
+    }
+  } finally {
+    await close();
+  }
+});
+
+test('So Sorry: eleven hits or ten peaceful turns end the fight', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'so_sorry');
+    const result = await playOutFight(page, 14);
+    assert.deepEqual(result, { phase: 'victory', outcome: 'survived' });
+  } finally {
+    await close();
+  }
+});
+
+test('Mad Mew Mew: split SOUL halves move separately and colored circles let the matching half through', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'mad_mew_mew');
+    await startNextAttack(page);
+    assert.equal(await page.evaluate(() => state.player.mode), 'split');
+    await press(page, 'a');
+    await press(page, 'ArrowRight');
+    const slots = await page.evaluate(() => state.player.halves.map(h => h.slot));
+    assert.deepEqual(slots, [0, 2]);
+
+    const pass = await page.evaluate(() => {
+      state.bullets = [];
+      const p = state.player;
+      const [red, blue] = p.halves;
+      p.hurtCooldown = 0;
+      const before = p.hp;
+      spawn({ x: red.x, y: red.y, r: 8, passColor: 'red' });
+      updateBullets(0);
+      const redPassed = p.hp === before;
+      state.bullets = [];
+      p.hurtCooldown = 0;
+      spawn({ x: blue.x, y: blue.y, r: 8, passColor: 'red' });
+      updateBullets(0);
+      return { redPassed, blueHit: p.hp < before };
+    });
+    assert.deepEqual(pass, { redPassed: true, blueHit: true });
+
+    const outcome = await page.evaluate(() => {
+      const b = state.battle;
+      for (let i = 0; i < 8; i++) {
+        b.phase = 'menu';
+        startEnemyTalk(b);
+        startAttack(b);
+        endAttack(b);
+      }
+      b.phase = 'menu';
+      chooseAct(b, { kind: 'act', act: MadMewMew.acts[0] });
+      b.phase = 'menu';
+      trySpare(b);
+      return b.outcome;
+    });
+    assert.equal(outcome, 'spared');
   } finally {
     await close();
   }

@@ -5,6 +5,8 @@
 //   green   fixed in the centre, blocks incoming spears with a shield (Undyne)
 //   yellow  free movement and shoots with Z; Deltarune version charges a BIG SHOT (Mettaton, Spamton NEO)
 //   purple  stuck on horizontal strings, up/down jumps between them (Muffet)
+//   split   two halves, each on three slots: A/D moves the red half, ←/→ the blue half (Mad Mew Mew)
+//   plus    five spots of a plus-shaped board, arrows jump between them (Mad Mew Mew)
 // Attacks pick the mode with attack.soul / setSoulMode().
 
 const SOUL_COLORS = {
@@ -13,6 +15,8 @@ const SOUL_COLORS = {
   green: '#16c916',
   yellow: '#ffe11a',
   purple: '#d52fd9',
+  split: '#ff1a1a',
+  plus: '#ff1a1a',
   cyan: '#2ad8ff',
   orange: '#ff9a1a'
 };
@@ -114,6 +118,65 @@ function setSoulMode(mode, options = {}) {
     p.lane = Math.floor(p.lanes / 2);
     p.y = laneY(p.lane);
   }
+  if (mode === 'split') {
+    p.halves = [
+      { color: 'red', slot: 1, left: ['a'], right: ['d'] },
+      { color: 'blue', slot: 1, left: ['arrowleft'], right: ['arrowright'] }
+    ];
+    placeHalves(p);
+  }
+  if (mode === 'plus') {
+    p.spot = 'center';
+    placePlus(p);
+  }
+}
+
+// ---------------- Split SOUL ----------------
+function halfPosition(index, slot) {
+  const third = arena.w / 2;
+  const x = arena.x + (index === 0 ? 0 : third) + (third * (slot + 0.5)) / 3;
+  return { x, y: arena.y + arena.h - 16 };
+}
+
+function placeHalves(p) {
+  p.halves.forEach((h, i) => Object.assign(h, halfPosition(i, h.slot)));
+  p.x = (p.halves[0].x + p.halves[1].x) / 2;
+  p.y = p.halves[0].y;
+}
+
+function updateSplitSoul(p) {
+  for (const h of p.halves) {
+    if (consumePress(h.left) && h.slot > 0) h.slot -= 1;
+    if (consumePress(h.right) && h.slot < 2) h.slot += 1;
+  }
+  placeHalves(p);
+}
+
+// ---------------- Plus-shaped board ----------------
+const PLUS_SPOTS = { center: [0, 0], up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+function placePlus(p) {
+  const c = arenaCenter();
+  const [dx, dy] = PLUS_SPOTS[p.spot];
+  p.x = c.x + dx * arena.w * 0.33;
+  p.y = c.y + dy * arena.h * 0.33;
+}
+
+function updatePlusSoul(p) {
+  // from the centre an arrow jumps to that arm; from an arm any arrow goes back to the centre
+  const { dx, dy } = directionPressed();
+  if (dx || dy) {
+    if (p.spot === 'center') p.spot = dx < 0 ? 'left' : dx > 0 ? 'right' : dy < 0 ? 'up' : 'down';
+    else p.spot = 'center';
+  }
+  placePlus(p);
+}
+
+// Points that can be hit: the two halves of a split SOUL, otherwise the SOUL itself.
+function soulHitPoints() {
+  const p = state.player;
+  if (p.mode === 'split' && p.halves) return p.halves.map(h => ({ x: h.x, y: h.y, color: h.color }));
+  return [{ x: p.x, y: p.y, color: null }];
 }
 
 function soulColor() {
@@ -145,13 +208,15 @@ function updateSoul(dt) {
     case 'green': updateGreenSoul(p); break;
     case 'yellow': updateFreeSoul(p, dt); updateShooting(p, dt); break;
     case 'purple': updatePurpleSoul(p, dt); break;
+    case 'split': updateSplitSoul(p); break;
+    case 'plus': updatePlusSoul(p); break;
     default: updateFreeSoul(p, dt);
   }
 
   // Blue/orange attacks care about whether the player is *trying* to move.
   // (Falling on its own doesn't count, holding a direction key does - like in Undertale.)
   const { dx, dy } = inputVector();
-  p.moving = p.mode !== 'green' && (dx !== 0 || dy !== 0);
+  p.moving = !['green', 'split', 'plus'].includes(p.mode) && (dx !== 0 || dy !== 0);
 
   if (p.hurtCooldown > 0) p.hurtCooldown -= dt;
 }
@@ -402,9 +467,15 @@ function drawPlayer() {
   const p = state.player;
   if (p.hurtCooldown > 0.05 && Math.floor(p.hurtCooldown * 16) % 2 === 0) return;
 
+  if (p.mode === 'split' && p.halves) {
+    drawSplitSoul(p);
+    return;
+  }
+
   ctx.save();
   if (p.mode === 'purple') drawLanes(p);
   if (p.mode === 'green') drawShield(p);
+  if (p.mode === 'plus') drawPlusSpots(p);
 
   // The yellow SOUL points where it shoots; blue rotates with gravity.
   let angle = 0;
@@ -471,4 +542,34 @@ function drawShots() {
     }
   }
   ctx.restore();
+}
+
+function drawSplitSoul(p) {
+  ctx.save();
+  // slot markers
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+  for (let i = 0; i < 2; i++) {
+    for (let slot = 0; slot < 3; slot++) {
+      const pos = halfPosition(i, slot);
+      ctx.fillRect(pos.x - 10, pos.y + 10, 20, 2);
+    }
+  }
+  p.halves.forEach((h, i) => {
+    ctx.save();
+    ctx.beginPath();
+    // each half is the left or right half of a heart
+    ctx.rect(i === 0 ? h.x - 12 : h.x, h.y - 12, 12, 24);
+    ctx.clip();
+    drawSoulShape(i === 0 ? h.x + 0 : h.x, h.y, 22, h.color === 'red' ? SOUL_COLORS.red : SOUL_COLORS.blue);
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+function drawPlusSpots(p) {
+  const c = arenaCenter();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+  for (const [dx, dy] of Object.values(PLUS_SPOTS)) {
+    ctx.fillRect(c.x + dx * arena.w * 0.33 - 12, c.y + dy * arena.h * 0.33 - 12, 24, 24);
+  }
 }
