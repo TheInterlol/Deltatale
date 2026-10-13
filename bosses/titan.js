@@ -265,7 +265,7 @@ const TITAN_ATTACKS = {
         for (const hand of run.data.hands) {
           if (hand.dead) continue;
           const v = aimAt(hand.x, hand.y, 150);
-          spawn({ kind: 'normal', x: hand.x, y: hand.y, vx: v.vx, vy: v.vy, r: 5, color: '#4b2a7a', maxLife: 3 });
+          spawn({ kind: 'titanDark', x: hand.x, y: hand.y, vx: v.vx, vy: v.vy, r: 5, color: '#4b2a7a', maxLife: 3 });
           titanPurifiable({ kind: 'normal', x: hand.x, y: hand.y - 20, vx: v.vx * 0.6, vy: v.vy * 0.6, r: 5, maxLife: 3 });
         }
       }, 0.4);
@@ -330,29 +330,29 @@ Titan.drawArenaOverlay = function (box) {
 };
 
 BULLET_DRAWERS.spawnBug = (b, fill) => {
+  // a Titan Spawn: dark, until your light purifies it
+  if (drawArt(b.pure ? 'titan_spawnbullet' : 'titan_spawn', b.x, b.y, b.r * (b.pure ? 2.6 : 3.2), null, { frame: state.clock * 8, tint: b.pure ? '#ffffff' : null })) return;
   ctx.fillStyle = fill;
   fillCircle(b.x, b.y, b.r);
-  ctx.fillStyle = b.pure ? '#000' : '#ff3b6b';
-  fillCircle(b.x - 2, b.y - 1, 1.5);
-  fillCircle(b.x + 2, b.y - 1, 1.5);
 };
 
 BULLET_DRAWERS.segment = (b, fill) => {
+  if (drawArt('titan_spawnbullet', b.x, b.y, b.r * 2.6, b.r * 2.6, { frame: state.clock * 8 + b.x * 0.1, tint: b.pure ? '#ffffff' : null })) return;
   ctx.fillStyle = fill;
   fillCircle(b.x, b.y, b.r);
-  ctx.strokeStyle = '#4b2a7a';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-  ctx.stroke();
 };
 
 BULLET_DRAWERS.titanHand = b => {
+  if (drawArt('titan_hand', b.x, b.y, 64, 84, { frame: state.clock * 3, flipX: b.side > 0 })) return;
   ctx.translate(b.x, b.y);
   ctx.fillStyle = '#3a1f63';
   fillRoundRect(-b.hw, -b.hh, b.hw * 2, b.hh * 2, 8);
-  ctx.fillStyle = '#ffffff';
-  fillCircle(0, -4, 5);
+};
+
+BULLET_DRAWERS.titanDark = b => {
+  if (drawArt('titan_dark', b.x, b.y, 12, 12, { frame: state.clock * 12 })) return;
+  ctx.fillStyle = '#4b2a7a';
+  fillCircle(b.x, b.y, b.r);
 };
 
 BULLET_DRAWERS.darkShot = b => {
@@ -363,13 +363,9 @@ BULLET_DRAWERS.darkShot = b => {
     ctx.arc(b.x, b.y, b.r * (1.6 - b.life / b.warn * 0.6), 0, Math.PI * 2);
     ctx.stroke();
   }
+  if (drawArt('titan_blast', b.x, b.y, b.r * 2.8, b.r * 2.8, { frame: state.clock * 10 })) return;
   ctx.fillStyle = '#2a0f4f';
   fillCircle(b.x, b.y, b.r);
-  ctx.strokeStyle = '#a07bff';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-  ctx.stroke();
 };
 
 Titan.attacks = ['swarm', 'centipedes', 'hands', 'bigShots', 'desperation'].map(id => TITAN_ATTACKS[id]);

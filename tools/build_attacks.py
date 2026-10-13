@@ -178,6 +178,11 @@ SPRITES = {
     'gerson_hammer': DB + 'Ch4/Gerson/Battle/Attacks/Hammer/spr_gerson_red_hammer',
     'gerson_bighammer': DB + 'Ch4/Gerson/Battle/Attacks/Hammer/spr_gerson_hammer_only',
     'gerson_telegraph': DB + 'Ch4/Gerson/Battle/Attacks/Swing Down/spr_gerson_swing_down_telegraph',
+    'titan_hand': DB + 'Ch4/Titan/Battle/Attacks/Hand/spr_titan_battle_hand',
+    'titan_blast': DB + 'Ch4/Titan/Battle/Attacks/Blast/spr_darkshape_blast',
+    'titan_dark': DB + 'Ch4/Titan/Battle/Attacks/Hand/spr_wibblywobbly_dark_bullet',
+    'titan_spawnbullet': DB + 'Ch4/Titan/Battle/Titan Spawn/Unused/spr_darkshape_spawnbullet',
+    'titan_spawn': DB + 'Ch4/Titan/Battle/Titan Spawn/Standard/spr_titan_spawn_idle',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 
