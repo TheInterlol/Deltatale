@@ -154,6 +154,13 @@ SPRITES = {
     'berdly_chirashi': DR + '/NPCs/Light World/Berdly/Ch2/Dark World/Battle/Attacks/spr_chirashi_bullet',
     'berdly_spear': DR + '/NPCs/Light World/Berdly/Ch2/Dark World/Battle/Attacks/spr_spearblast_bullet',
     'berdly_trail': DR + '/NPCs/Light World/Berdly/Ch2/Dark World/Battle/Attacks/spr_spearblast_trail',
+    'gq_city': DB + 'Ch2/Giga Queen/Battle/Misc/Background/bg_cityscape',
+    'gq_hero': DR + '/Playable Characters/Thrash Machine/Ch2/Boxing/spr_bhero',
+    'gq_baseball': DB + 'Ch2/Giga Queen/Battle/Misc/Attacks/spr_baseball',
+    'gq_reticle': DB + 'Ch2/Giga Queen/Battle/Misc/Attacks/spr_baseball_reticle',
+    'gq_wheel': DB + 'Ch2/Giga Queen/Battle/Misc/Attacks/spr_boxing_wheel',
+    'gq_light': DB + 'Ch2/Giga Queen/Battle/Misc/Attacks/spr_green_light',
+    'gq_crescent': DB + 'Ch2/Giga Queen/Battle/Misc/Effects/spr_boxing_crescent',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 

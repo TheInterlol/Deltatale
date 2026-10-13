@@ -485,6 +485,9 @@ function drawPlayer() {
   if (p.mode === 'plus') drawPlusSpots(p);
   if (p.mode === 'green') drawShield(p);
   if (p.hurtCooldown > 0.05 && Math.floor(p.hurtCooldown * 16) % 2 === 0) return;
+  // some fights draw something else where the SOUL is (GIGA Queen: the Thrash Machine)
+  const boss = state.currentBoss;
+  if (boss && boss.drawSoul && boss.drawSoul(p)) return;
 
   if (p.mode === 'split' && p.halves) {
     drawSplitSoul(p);

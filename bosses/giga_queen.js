@@ -109,6 +109,7 @@ function gigaPunch(run) {
     const damage = 28 + (battle.flags.round === 0 ? 7 : 0);
     battle.bossHp = Math.max(0, battle.bossHp - damage);
     battle.bossHurt = 0.3;
+    battle.flags.punchAt = state.clock;
     battle.tp = Math.min(100, battle.tp + 1);
     addPopup(damage, at.x + rand(-20, 20), at.y - 10, '#ff4fd8');
     sfx.damage();
@@ -256,6 +257,7 @@ const GIGA_ATTACKS = {
 };
 
 BULLET_DRAWERS.baseball = b => {
+  if (drawArt('gq_baseball', b.x, b.y, b.r * 2.4, b.r * 2.4, { angle: b.life * 8 })) return;
   ctx.fillStyle = '#ffffff';
   fillCircle(b.x, b.y, b.r);
   ctx.strokeStyle = '#ff3030';
@@ -269,3 +271,70 @@ BULLET_DRAWERS.baseball = b => {
 };
 
 GigaQueen.attacks = ['moves', 'cone', 'baseballs', 'walls'].map(id => GIGA_ATTACKS[id]);
+
+// ---------------------------------------------------------------- the look of the fight
+// A punching match on a night-time city street: buildings lean in from both sides, GIGA Queen
+// towers in the middle and you are the Thrash Machine (seen from behind) instead of a SOUL.
+Object.assign(GigaQueen, {
+  hideBoard: true,
+  hideParty: true,
+
+  drawBackdrop() {
+    const horizon = 150;
+    // the road
+    const road = ctx.createLinearGradient(0, horizon, 0, VIEW_H);
+    road.addColorStop(0, '#0a0a5a');
+    road.addColorStop(1, '#1a1ab0');
+    ctx.fillStyle = road;
+    ctx.beginPath();
+    ctx.moveTo(-20, VIEW_H + 20);
+    ctx.quadraticCurveTo(360, horizon - 40, VIEW_W + 20, VIEW_H + 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 140, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-20, VIEW_H + 20);
+    ctx.quadraticCurveTo(360, horizon - 40, VIEW_W + 20, VIEW_H + 20);
+    ctx.stroke();
+    // buildings on both sides, getting taller towards the edges of the screen
+    const img = attackImage('gq_city');
+    if (img) {
+      const scroll = (state.clock * 20) % 1000;
+      for (let i = 0; i < 64; i++) {
+        const t = i / 63;                 // 0 at the screen edge, 1 at the middle
+        const colW = 4.2;
+        const h = 300 - t * 220;
+        const sx = Math.floor((i * 9 + scroll) % 990);
+        for (const side of [-1, 1]) {
+          const x = side < 0 ? i * colW : VIEW_W - (i + 1) * colW;
+          ctx.globalAlpha = 0.55 + t * 0.45;
+          ctx.drawImage(img, sx, 0, 8, 142, x, horizon + 30 - h * 0.9, colW + 0.5, h);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    return true;
+  },
+
+  drawScene(battle) {
+    let x = 360;
+    if (battle && battle.bossHurt > 0) x += Math.sin(battle.bossHurt * 60) * 10 * battle.bossHurt;
+    drawBossFigure(GigaQueen, x, 112, state.clock, { maxH: 230, scale: 3, hurt: battle ? Math.min(1, battle.bossHurt * 2) : 0 });
+  },
+
+  drawSoul(p) {
+    if (p.mode !== 'plus' || !attackImage('gq_hero')) return false;
+    const battle = state.battle;
+    const punching = battle && battle.flags.punchAt && state.clock - battle.flags.punchAt < 0.18;
+    let frame = Math.floor(state.clock * 3) % 2 ? 3 : 0;
+    let flip = false;
+    if (p.spot === 'left' || p.spot === 'right') { frame = 4; flip = p.spot === 'left'; }
+    if (p.spot === 'down') frame = 6;
+    if (p.spot === 'up') frame = 2;
+    if (punching) frame = 2;
+    drawArt('gq_hero', p.x, p.y - 14, 130, 118, { frame, flipX: flip });
+    // the SOUL glows in its chest, so you still see where you can be hit
+    drawSoulShape(p.x, p.y + 2, 5, '#ff1a1a');
+    return true;
+  }
+});

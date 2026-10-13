@@ -464,7 +464,7 @@ function drawCharacters() {
   }
 
   // Susie only fights Deltarune bosses; in Undertale the player is just the SOUL
-  if (isUndertale()) return;
+  if (isUndertale() || (boss && boss.hideParty)) return;
   const susieX = SUSIE_POS.x + getSusieOffset();
   ctx.save();
   if (effects.susieHurt > 0 && Math.floor(effects.susieHurt * 20) % 2 === 0) ctx.globalAlpha = 0.45;
