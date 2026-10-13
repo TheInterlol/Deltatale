@@ -186,7 +186,7 @@ function sansWallBones(side, depth = 26, warn = 0.4, active = 0.55) {
 }
 
 function sansBeam(x, y, angle, width, warn = 0.55, active = 0.4) {
-  return spawnBeam(x, y, angle, width, warn, active, { karma: 3 });
+  return spawnBeam(x, y, angle, width, warn, active, { karma: 3, emitter: 'blaster' });
 }
 
 // Beams along each edge of the board (the centre stays safe).

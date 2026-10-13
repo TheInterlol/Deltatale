@@ -78,6 +78,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden && state.running && !state.paused) togglePause();
 });
 
+preloadAttackArt();
 resetGame();
 openTitle();
 // redraw once the pixel fonts are in (the canvas doesn't wait for them by itself)

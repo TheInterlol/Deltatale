@@ -195,7 +195,7 @@ const BULLET_DRAWERS = {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.fillRect(0, -width / 5, 1600, width / 2.5);
     }
-    if (b.drawEmitter !== false) drawEmitter(b, charging);
+    if (b.drawEmitter !== false && !(b.emitter === 'blaster' && drawGasterBlaster(b, charging))) drawEmitter(b, charging);
   },
   zone(b, fill) {
     const x = b.x - b.hw;
