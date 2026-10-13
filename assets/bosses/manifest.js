@@ -46,7 +46,7 @@ const BOSS_ASSETS = {
   sound_of_justice: { fps: 1, frames: 1, scale: 2.0, sprite: "idle.png", music: "assets/music/sound_of_justice.mp3" },
   spamton: { fps: 1, frames: 1, hurt: "hurt.png", scale: 2.5, sprite: "idle.png", music: "assets/music/now_s_your_chance.mp3" },
   spamton_neo: { fps: 6, frames: 4, scale: 2.0, sprite: "idle.png", music: "assets/music/big_shot.mp3" },
-  sweet_cap_cakes: { fps: 8, frames: 7, scale: 1.25, sprite: "idle.png", music: "assets/music/cyber_battle.mp3" },
+  sweet_cap_cakes: { fps: 8, frames: 6, scale: 1.25, sprite: "idle.png", music: "assets/music/keygen.mp3" },
   tenna: { fps: 8, frames: 8, scale: 1.5, sprite: "idle.png", music: "assets/music/tenna_battle.mp3" },
   titan: { fps: 6, frames: 7, hurt: "hurt.png", scale: 0.75, sprite: "idle.png", music: "assets/music/titan_battle.mp3" },
   toriel: { fps: 1, frames: 1, hurt: "hurt.png", scale: 1.5, sprite: "idle.png", music: "assets/music/heartache.mp3" },

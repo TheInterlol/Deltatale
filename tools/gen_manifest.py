@@ -8,7 +8,7 @@ MUSIC = {
     'greater_dog': 'enemy_approaching', 'shyren': 'enemy_approaching', 'royal_guards': 'enemy_approaching',
     'so_sorry': 'enemy_approaching', 'glyde': 'enemy_approaching', 'glad_dummy': 'enemy_approaching',
     'lancer': 'vs_lancer', 'k_round': 'checker_dance', 'king': 'chaos_king', 'jevil': 'the_world_revolving',
-    'rouxls_kaard': 'rouxls_battle', 'sweet_cap_cakes': 'cyber_battle', 'berdly': 'berdly',
+    'rouxls_kaard': 'rouxls_battle', 'sweet_cap_cakes': 'keygen', 'berdly': 'berdly',
     'spamton': 'now_s_your_chance', 'spamton_neo': 'big_shot', 'queen': 'queen_boss', 'giga_queen': 'giga_size',
     'lanino_elnina': 'tv_game', 'shuttah': 'rude_buster', 'tenna': 'tenna_battle', 'knight': 'black_knife',
     'jackenstein': 'pumpkin_boss', 'sound_of_justice': 'sound_of_justice', 'titan': 'titan_battle',
