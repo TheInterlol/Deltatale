@@ -53,6 +53,13 @@ spriteDrawer('paw', b => {
 
 // Undyne's spears (pointing along their velocity / angle) and the green SOUL's arrows.
 spriteDrawer('spear', (b, fill) => {
+  const own = bossIs('mad_dummy') ? 'mad_knife' : bossIs('greater_dog') ? 'dog_spear' : null;
+  if (own && artReady(own)) {
+    const info = ATTACK_ART[own];
+    const len = (b.hw || 20) * 2.2;
+    // the sprites point right
+    return drawArt(own, b.x, b.y, len, len * info.h / info.w, { angle: b.angle !== undefined ? b.angle : Math.atan2(b.vy, b.vx), flipX: own === 'dog_spear' });
+  }
   if (!isUtBoss() || !artReady('undyne_spear')) return false;
   const len = (b.hw || 20) * 2;
   const angle = (b.angle !== undefined ? b.angle : Math.atan2(b.vy, b.vx)) - Math.PI / 2;
@@ -90,6 +97,33 @@ spriteDrawer('donut', b => drawArt('muffet_donut', b.x, b.y, 18, null));
 
 // (Asriel's stars are drawn in bosses/asriel.js.)
 
+// ---------------- Undertale minibosses ----------------
+const bossIs = (...ids) => state.currentBoss && ids.includes(state.currentBoss.id);
+
+spriteDrawer('tear', (b, fill) => bossIs('napstablook', 'mad_dummy') && drawArt('napsta_tear', b.x, b.y, 10, null, { tint: artTint(fill) }));
+spriteDrawer('scribble', b => drawArt('mad_dummyshot', b.x, b.y, 16, 16, { frame: state.clock * 10 }));
+spriteDrawer('miniDummy', b => drawArt('mad_dummybullet', b.x, b.y, 26, null, { frame: state.clock * 8, flipX: (b.vx || 0) < 0 }));
+spriteDrawer('rocket', b => drawArt('mad_missile', b.x, b.y, 22, null, { frame: state.clock * 12, angle: Math.atan2(b.vy || 1, b.vx || 0) - Math.PI / 2 }));
+spriteDrawer('note', b => bossIs('shyren') && drawArt('shyren_note', b.x, b.y, 18, null, { frame: state.clock * 8 }));
+spriteDrawer('paper', b => bossIs('so_sorry') && drawArt('sorry_doodle', b.x, b.y, 16, 16, { frame: state.clock * 8, angle: b.angle || 0 }));
+spriteDrawer('scythe', (b, fill) => bossIs('dogamy_dogaressa') && drawArt('dog_ax', b.x, b.y, b.r * 3.4, null, { frame: state.clock * 6, angle: b.angle || 0, tint: artTint(fill) }));
+
+// these kinds are shared, so only some fights swap in their own sprite
+const UT_NORMAL_ART = { royal_guards: ['rg_drop', 14], greater_dog: ['dog_bark', 18] };
+const UT_STAR_ART = { royal_guards: ['rg_star', 14], glyde: ['glyde_shot', 14] };
+
+spriteDrawer('normal', (b, fill) => {
+  const art = state.currentBoss && UT_NORMAL_ART[state.currentBoss.id];
+  if (!art || b.harmless || b.hw) return false;
+  return drawArt(art[0], b.x, b.y, art[1], null, { angle: Math.atan2(b.vy || 1, b.vx || 0) - Math.PI / 2 });
+});
+
+spriteDrawer('star', (b, fill) => {
+  const art = state.currentBoss && UT_STAR_ART[state.currentBoss.id];
+  if (!art) return false;
+  return drawArt(art[0], b.x, b.y, art[1] * (b.r >= 10 ? 2 : 1), null, { angle: b.life * 4 });
+});
+
 // ---------------- Deltarune ----------------
 
 const SUIT_ART = { spade: 'dr_spade', club: 'dr_club', diamond: 'dr_diamond', heart: 'dr_heart' };
@@ -103,6 +137,7 @@ function drawDrSuit(b, fill, spin) {
 }
 
 spriteDrawer('suit', (b, fill) => {
+  if (bossIs('dogamy_dogaressa') && b.suit === 'heart' && artReady('dog_heart')) return drawArt('dog_heart', b.x, b.y, 14, null, { tint: artTint(fill) });
   // the Roaring Knight's diamonds are long white shards
   if (state.currentBoss && state.currentBoss.id === 'knight' && b.suit === 'diamond' && artReady('knight_diamondm')) {
     return drawArt('knight_diamondm', b.x, b.y, b.r * 5, b.r * 2.4, { angle: Math.atan2(b.vy || 0, b.vx || 1), frame: state.clock * 10 });
