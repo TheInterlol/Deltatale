@@ -53,6 +53,9 @@ spriteDrawer('paw', b => {
 
 // Undyne's spears (pointing along their velocity / angle) and the green SOUL's arrows.
 spriteDrawer('spear', (b, fill) => {
+  if (bossIs('berdly') && artReady('berdly_spear')) {
+    return drawArt('berdly_spear', b.x, b.y, (b.hw || 14) * 3, (b.hw || 14) * 3, { angle: (b.angle !== undefined ? b.angle : Math.atan2(b.vy, b.vx)) + Math.PI / 4 });
+  }
   const own = bossIs('mad_dummy') ? 'mad_knife' : bossIs('greater_dog') ? 'dog_spear' : null;
   if (own && artReady(own)) {
     const info = ATTACK_ART[own];
@@ -105,7 +108,11 @@ spriteDrawer('scribble', b => drawArt('mad_dummyshot', b.x, b.y, 16, 16, { frame
 spriteDrawer('miniDummy', b => drawArt('mad_dummybullet', b.x, b.y, 26, null, { frame: state.clock * 8, flipX: (b.vx || 0) < 0 }));
 spriteDrawer('rocket', b => drawArt('mad_missile', b.x, b.y, 22, null, { frame: state.clock * 12, angle: Math.atan2(b.vy || 1, b.vx || 0) - Math.PI / 2 }));
 spriteDrawer('note', b => bossIs('shyren') && drawArt('shyren_note', b.x, b.y, 18, null, { frame: state.clock * 8 }));
-spriteDrawer('paper', b => bossIs('so_sorry') && drawArt('sorry_doodle', b.x, b.y, 16, 16, { frame: state.clock * 8, angle: b.angle || 0 }));
+spriteDrawer('paper', b => {
+  if (bossIs('berdly')) return drawArt('berdly_chirashi', b.x, b.y, 22, null, { frame: state.clock * 10, angle: b.angle || 0 });
+  return bossIs('so_sorry') && drawArt('sorry_doodle', b.x, b.y, 16, 16, { frame: state.clock * 8, angle: b.angle || 0 });
+});
+spriteDrawer('dollar', b => drawArt('spamton_dollar', b.x, b.y, 26, null, { angle: b.angle || 0 }));
 spriteDrawer('scythe', (b, fill) => bossIs('dogamy_dogaressa') && drawArt('dog_ax', b.x, b.y, b.r * 3.4, null, { frame: state.clock * 6, angle: b.angle || 0, tint: artTint(fill) }));
 
 // these kinds are shared, so only some fights swap in their own sprite

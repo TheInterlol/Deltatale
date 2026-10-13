@@ -178,6 +178,7 @@ const ATTACK_ART = {
   soul_shoe: { frames: 1, w: 45, h: 85 },
   soul_star: { frames: 1, w: 19, h: 21 },
   soul_thumbsup: { frames: 1, w: 58, h: 50 },
+  spamton_dollar: { frames: 1, w: 24, h: 24 },
   tenna_lightning: { frames: 1, w: 12, h: 20 },
   tenna_spotlight: { frames: 2, w: 96, h: 96 },
   tenna_stage: { frames: 1, w: 320, h: 240 },

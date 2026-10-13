@@ -215,6 +215,7 @@ SPRITES = {
     'gerson_arena': DR + '/../Locations/Ch4/Shared Locations/Gerson_s Study/Arena/Background/bg_dw_gerson_arena_battle',
     'gerson_glass': DR + '/../Locations/Ch4/Shared Locations/Gerson_s Study/Arena/Background/Window/bg_dw_gerson_arena_stained_glass',
     'king_arena': DR + '/../Locations/Ch1/05 - Card Castle/Backgrounds/bg_cc_arena',
+    'spamton_dollar': DB + 'Ch2/Spamton/spr_spamton_dollar',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 
