@@ -156,15 +156,17 @@ const QUEEN_ATTACKS = {
     update(run) {
       every(run, 'head', 1.0 / run.speed, () => {
         const p = pickPointAwayFromPlayer(80, 20);
+        // a wireframe Queen head flickers in, laughs and bursts into little heads
         spawn({
-          kind: 'neoHead', x: p.x, y: p.y, r: 13, hw: 13, hh: 12, noCull: true, warn: 0.8, activeFor: 0, maxLife: 0.9,
+          kind: 'queenHead', x: p.x, y: p.y, r: 13, hw: 13, hh: 12, noCull: true, warn: 0.8, activeFor: 0, maxLife: 0.9, ownWarn: true,
           update(b) {
             if (b.life >= 0.85 && !b.burst) {
               b.burst = true;
               sfx.pop();
+              spawn({ kind: 'queenBoom', x: b.x, y: b.y, r: 1, harmless: true, maxLife: 0.3, noFx: true });
               for (let i = 0; i < 6; i++) {
                 const a = (Math.PI * 2 * i) / 6;
-                spawn({ kind: 'neoHead', x: b.x, y: b.y, vx: Math.cos(a) * 130, vy: Math.sin(a) * 130, r: 5, hw: 5, hh: 5, maxLife: 3 });
+                spawn({ kind: 'queenHeadBullet', x: b.x, y: b.y, vx: Math.cos(a) * 130, vy: Math.sin(a) * 130, r: 5, hw: 5, hh: 6, maxLife: 3 });
               }
             }
           }
@@ -180,7 +182,7 @@ const QUEEN_ATTACKS = {
         const x = fromLeft ? arena.x - 50 : arena.x + arena.w + 50;
         const y = rand(arena.y - 40, arena.y + arena.h + 40);
         const p = state.player;
-        spawnBeam(x, y, Math.atan2(p.y - y, p.x - x), 12, 0.55, 0.15, { beamColor: '#7dff7d', drawEmitter: false });
+        spawnBeam(x, y, Math.atan2(p.y - y, p.x - x), 12, 0.55, 0.15, { kind: 'queenLaser', drawEmitter: false });
       }, 0.2);
     }
   },
@@ -188,9 +190,9 @@ const QUEEN_ATTACKS = {
     name: 'Berdly tornado', duration: 6.5,
     update(run) {
       every(run, 'wave', 1.3, () => {
-        for (let i = 0; i < 3; i++) {
-          spawn({ kind: 'tornado', x: arena.x - 20, y: arena.y + 25 + i * 60, vx: 120, r: 11, minLife: 1 });
-          spawn({ kind: 'tornado', x: arena.x + arena.w + 20, y: arena.y + 55 + i * 60, vx: -120, r: 11, minLife: 1 });
+        for (let i = 0; i < 2; i++) {
+          spawn({ kind: 'tornado', x: arena.x - 20, y: arena.y + 25 + i * 70, vx: 120, r: 11, minLife: 1 });
+          spawn({ kind: 'tornado', x: arena.x + arena.w + 20, y: arena.y + 60 + i * 70, vx: -120, r: 11, minLife: 1 });
         }
       }, 0.2);
     }
@@ -234,7 +236,7 @@ const QUEEN_ATTACKS = {
         const x = edge < 2 ? arena.x + arena.w * along : (edge === 2 ? arena.x : arena.x + arena.w);
         const y = edge >= 2 ? arena.y + arena.h * along : (edge === 0 ? arena.y : arena.y + arena.h);
         const v = aimAt(x, y, 130);
-        spawn({ kind: 'star', x, y, vx: v.vx, vy: v.vy, r: 4, maxLife: 3, color: '#ffe84d' });
+        spawn({ kind: 'queenElec', x, y, vx: v.vx, vy: v.vy, r: 5, maxLife: 3 });
       }, 0.2);
     },
     end(run) {
@@ -248,13 +250,13 @@ const QUEEN_ATTACKS = {
       every(run, 'laser', 1.4, () => {
         const x = arena.x - 50;
         const y = rand(arena.y, arena.y + arena.h);
-        spawnBeam(x, y, Math.atan2(state.player.y - y, state.player.x - x), 12, 0.55, 0.15, { beamColor: '#7dff7d', drawEmitter: false });
+        spawnBeam(x, y, Math.atan2(state.player.y - y, state.player.x - x), 12, 0.55, 0.15, { kind: 'queenLaser', drawEmitter: false });
       }, 0.8);
     }
   },
   wine: {
     name: 'Wine', duration: 7,
-    box: { w: 150, h: 190 },
+    box: { w: 150, h: 120 },
     line: 'Hold On. I Must Take A Sip',
     start(run) {
       run.data.level = arena.y + arena.h;
@@ -265,7 +267,7 @@ const QUEEN_ATTACKS = {
       const p = state.player;
       if (p.y > run.data.level - p.r) p.y = run.data.level - p.r;
       every(run, 'drop', 0.12, () => {
-        spawn({ kind: 'tear', x: rand(arena.x + 6, arena.x + arena.w - 6), y: arena.y - 8, vy: 170, r: 4, color: '#a8ffb0', maxLife: 3 });
+        spawn({ kind: 'queenDrop', x: rand(arena.x + 6, arena.x + arena.w - 6), y: arena.y - 8, vy: 170, r: 5, maxLife: 3 });
       }, 0.1);
       state.wineLevel = run.data.level;
     },
@@ -292,23 +294,81 @@ BULLET_DRAWERS.boot = (b, fill) => {
   const x = b.x - b.hw;
   const y = b.y - b.hh;
   if (b.life < b.warn) {
+    // the "!" pops up where her leg will come down
+    if (drawArt('queen_excl', b.x, b.y, 20, 37, { frame: Math.min(9, b.life * 30) })) return;
     ctx.fillStyle = Math.floor(b.life * 12) % 2 === 0 ? '#ff3030' : '#801010';
     ctx.font = `22px ${FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.fillText('!', b.x, b.y + 8);
     return;
   }
-  // a big boot coming down
+  // her long leg stomps down through the column
+  const h = b.hh * 2 + 70;
+  const k = Math.min(1, (b.life - b.warn) / 0.06);
+  if (drawArt('queen_leg', b.x, y + b.hh * 2 - h / 2 - (1 - k) * 80, b.hw * 2 * 0.9, h)) return;
   ctx.fillStyle = '#7fd4ff';
   ctx.fillRect(x + 8, y, b.hw * 2 - 16, b.hh * 2 - 22);
   fillRoundRect(x, y + b.hh * 2 - 26, b.hw * 2, 26, 8);
 };
 
+BULLET_DRAWERS.queenHead = b => {
+  ctx.globalAlpha *= Math.floor(b.life * 14) % 2 ? 0.9 : 0.5;
+  if (drawArt('queen_head', b.x, b.y, 34, 46, { frame: b.life * 6 })) return;
+  ctx.strokeStyle = '#5a8cff';
+  ctx.strokeRect(b.x - 12, b.y - 14, 24, 28);
+};
+
+BULLET_DRAWERS.queenHeadBullet = b => {
+  if (drawArt('queen_headbullet', b.x, b.y, 13, 17, { frame: state.clock * 12 })) return;
+  ctx.fillStyle = '#fff';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.queenBoom = b => {
+  drawArt('queen_head_explode', b.x, b.y, 56, 56, { frame: (b.life / 0.3) * 6 });
+};
+
+BULLET_DRAWERS.queenLaser = b => {
+  const charging = b.life < b.warn;
+  ctx.translate(b.originX, b.originY);
+  ctx.rotate(b.angle);
+  // her green laser gun, then a pale blue beam
+  drawArt('queen_gun', 0, 0, 30, 30, { angle: Math.PI });
+  if (charging) {
+    ctx.fillStyle = Math.floor(b.life * 16) % 2 ? '#a01010' : '#ff3030';
+    ctx.fillRect(14, -1, 900, 2);
+    return;
+  }
+  if (!drawArt('queen_laser', 460, 0, 900, b.hh * 2.2)) {
+    ctx.fillStyle = '#c8d8ff';
+    ctx.fillRect(14, -b.hh, 900, b.hh * 2);
+  }
+};
+
+BULLET_DRAWERS.queenElec = b => {
+  if (drawArt('queen_elec', b.x, b.y, 14, 14, { angle: b.life * 8 })) return;
+  ctx.fillStyle = '#ffe84d';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.queenDrop = b => {
+  if (drawArt('queen_drop', b.x, b.y, 12, 12)) return;
+  ctx.fillStyle = '#a8ffb0';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.tornado = b => {
+  if (drawArt('berdly_tornado', b.x, b.y, 26, null, { flipX: Math.floor(state.clock * 10) % 2 === 0 })) return;
+  ctx.strokeStyle = '#9fd8ff';
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.stroke();
+};
+
 BULLET_DRAWERS.icon = b => {
+  if (drawArt('queen_face', b.x, b.y, 26, null, { frame: Math.floor(state.clock * 3) % 2 })) return;
   ctx.fillStyle = '#3d7cff';
   fillRoundRect(b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2, 4);
-  ctx.fillStyle = '#fff';
-  fillCircle(b.x, b.y, 4);
 };
 
 BULLET_DRAWERS.popup = b => {
@@ -316,10 +376,43 @@ BULLET_DRAWERS.popup = b => {
   ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2);
   ctx.fillStyle = '#3d7cff';
   ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, 8);
+  if (drawArt('queen_error', b.x, b.y + 4, Math.min(b.hw * 1.6, 48), null)) return;
   ctx.fillStyle = '#000';
   ctx.font = `9px ${FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.fillText('ERROR', b.x, b.y + 6);
 };
+
+Object.assign(Queen, {
+  // the acid shield in front of her while it holds, the wine glass and the electrified board
+  drawScene(battle) {
+    const at = bossPosition(Queen);
+    let x = at.x;
+    if (battle && battle.bossHurt > 0) x += Math.sin(battle.bossHurt * 60) * 12 * battle.bossHurt;
+    drawBossFigure(Queen, x, at.y, state.clock, battle ? { hurt: Math.min(1, battle.bossHurt * 2) } : {});
+    if (battle && battle.flags.shield > 0) {
+      ctx.globalAlpha *= 0.9;
+      drawArt('queen_shield', x - 70, at.y + 10, 40, 116, { frame: state.clock * 6 });
+    }
+  },
+  drawArenaOverlay(box) {
+    const run = state.battle && state.battle.attack;
+    if (!run) return;
+    if (run.attack === QUEEN_ATTACKS.plug) drawArt('queen_elecbox', box.x + box.w / 2, box.y + box.h / 2, box.w + 22, box.h + 22, { frame: state.clock * 12 });
+    if (run.attack === QUEEN_ATTACKS.wine) {
+      // the board is the cup of her wine glass
+      const info = ATTACK_ART.queen_glass;
+      const img = info && attackImage('queen_glass');
+      if (img) {
+        const scale = (box.w + 20) / info.w;
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, info.w, 56, box.x - 10, box.y - 6, info.w * scale, 56 * (box.h + 12) / 56);
+        ctx.restore();
+      }
+      if (state.wineLevel) drawArt('queen_winewave', box.x + box.w / 2, state.wineLevel, box.w, 10, {});
+    }
+  }
+});
 
 Queen.attacks = Object.values(QUEEN_ATTACKS);
