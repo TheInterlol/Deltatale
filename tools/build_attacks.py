@@ -165,6 +165,13 @@ SPRITES = {
     'tenna_spotlight': DB + 'Ch3/Tenna/Battle/Misc/spr_tenna_popularboy_spotlight',
     'tenna_star': DB + 'Ch3/Tenna/Battle/Attacks/Stars/spr_tenna_allstars_star',
     'tenna_lightning': DB + 'Ch3/Tenna/Battle/Attacks/Smash Cut/spr_tenna_smash_lightning',
+    'knight_sword': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_roaringknight_sword_ol',
+    'knight_star': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_bullet_star',
+    'knight_diamondm': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondbullet_m',
+    'knight_quickslash': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_rk_quickslash',
+    'knight_flow': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_bullet_flow',
+    'knight_gradient': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Misc/spr_bg_knight_gradient',
+    'knight_spark': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_spark',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 

@@ -96,6 +96,10 @@ function drawDrSuit(b, fill, spin) {
 }
 
 spriteDrawer('suit', (b, fill) => {
+  // the Roaring Knight's diamonds are long white shards
+  if (state.currentBoss && state.currentBoss.id === 'knight' && b.suit === 'diamond' && artReady('knight_diamondm')) {
+    return drawArt('knight_diamondm', b.x, b.y, b.r * 5, b.r * 2.4, { angle: Math.atan2(b.vy || 0, b.vx || 1), frame: state.clock * 10 });
+  }
   const spin = b.angle !== undefined && b.faceVelocity !== false ? Math.atan2(b.vy, b.vx) + Math.PI / 2 : 0;
   // the sprites point right; our suits point "up" along the velocity
   return drawDrSuit(b, fill, spin - Math.PI / 2);

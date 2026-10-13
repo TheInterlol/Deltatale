@@ -404,6 +404,12 @@ const KNIGHT_ATTACKS = {
 };
 
 function drawKnightBlade(len, red) {
+  // his sword sprite (pointing right), red when it is about to strike
+  if (drawArt('knight_sword', 0, 0, len * 1.1, Math.max(8, len * 1.1 * 31 / 175), { flipX: true, tint: red ? '#ff5050' : null })) return;
+  drawKnightBladeShape(len, red);
+}
+
+function drawKnightBladeShape(len, red) {
   // a long, thin blade with a cross guard (pointing +x)
   ctx.fillStyle = red ? '#ff4040' : '#e8e8ff';
   ctx.beginPath();
@@ -460,6 +466,7 @@ BULLET_DRAWERS.knightStar = b => {
     }
   }
   ctx.rotate(b.life * 3);
+  if (drawArt('knight_star', 0, 0, b.r * 4.2, b.r * 4.2, { frame: state.clock * 8, tint: b.red ? '#ff4d4d' : null })) return;
   const color = b.red ? '#ff4d4d' : '#ffffff';
   ctx.fillStyle = withAlpha(b.red ? '#ff4d4d' : '#c8c8ff', 0.3);
   fillCircle(0, 0, b.r * 1.5);
@@ -499,9 +506,21 @@ BULLET_DRAWERS.slashLine = b => {
     ctx.fillStyle = 'rgba(255, 40, 40, 0.6)';
     ctx.fillRect(-b.hw, -1, b.hw * 2, 2);
   } else {
+    if (drawArt('knight_quickslash', 0, 0, b.hw * 2, Math.max(b.hh * 4, 16), { frame: (b.life - b.warn) * 24 })) return;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(-b.hw, -b.hh, b.hw * 2, b.hh * 2);
   }
 };
 
 Knight.attacks = KNIGHT_CYCLE.map(id => KNIGHT_ATTACKS[id]).concat([KNIGHT_ATTACKS.roar]);
+
+// The dark: purple smoke drifting behind everything (from the fight).
+Knight.drawBackdrop = () => {
+  if (!attackImage('knight_flow')) return false;
+  ctx.save();
+  ctx.globalAlpha = 0.6;
+  const off = (state.clock * 14) % 720;
+  for (let x = -off; x < VIEW_W; x += 720) drawArt('knight_flow', x + 360, 202, 720, 540, { frame: 0 });
+  ctx.restore();
+  return true;
+};
