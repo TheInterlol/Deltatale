@@ -313,3 +313,29 @@ BULLET_DRAWERS.fireZone = (b, fill) => {
 };
 
 Asgore.attacks = Object.values(ASGORE_ATTACKS);
+
+// The throne room fight: a deep purple glow rising from the bottom of the screen with orange
+// embers drifting up through it (from the fight).
+const asgoreEmbers = [];
+Asgore.drawBackdrop = () => {
+  const grad = ctx.createLinearGradient(0, 240, 0, VIEW_H);
+  grad.addColorStop(0, 'rgba(60, 0, 60, 0)');
+  grad.addColorStop(0.6, 'rgba(60, 0, 58, 0.75)');
+  grad.addColorStop(1, 'rgba(105, 0, 95, 1)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(-20, 240, VIEW_W + 40, VIEW_H - 220);
+  // embers: a fixed set, positions worked out from the clock so nothing needs updating
+  if (!asgoreEmbers.length) for (let i = 0; i < 26; i++) asgoreEmbers.push({ x: Math.random() * VIEW_W, speed: 18 + Math.random() * 26, phase: Math.random() * 10, f: i % 8 });
+  for (const e of asgoreEmbers) {
+    const t = state.clock * e.speed + e.phase * 40;
+    const y = VIEW_H + 10 - (t % 190);
+    const x = e.x + Math.sin(state.clock * 1.3 + e.phase) * 8;
+    ctx.globalAlpha = Math.min(1, (y - (VIEW_H - 190)) / 60);
+    if (!drawArt('asgore_particle', x, y, 6, 6, { frame: e.f })) {
+      ctx.fillStyle = '#ff7a1a';
+      ctx.fillRect(x - 2, y - 2, 4, 4);
+    }
+  }
+  ctx.globalAlpha = 1;
+  return true;
+};

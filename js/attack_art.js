@@ -1,6 +1,7 @@
 // Projectile and effect sprites (assets/attacks/<name>.png, a strip of `frames` frames of w x h),
 // built by tools/build_attacks.py from the supplied sprite pack. See js/attackart.js.
 const ATTACK_ART = {
+  asgore_particle: { frames: 8, w: 10, h: 10 },
   asriel_bg: { frames: 1, w: 1600, h: 600 },
   asriel_bigstar: { frames: 2, w: 127, h: 121 },
   asriel_bolt: { frames: 2, w: 32, h: 200 },
