@@ -1289,6 +1289,27 @@ test('Omega Flowey: calling the six SOULs for help, then his HP runs out and MER
   }
 });
 
+test('Omega Flowey: no board, his body fills the screen and a saved SOUL heals with its own attack', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'omega_flowey');
+    const result = await page.evaluate(() => {
+      const b = state.battle;
+      const soul = OMEGA_SOULS[0];
+      b.nextAttack = { ...OMEGA_ATTACKS[soul.attack], name: soul.name, soul, soulSegment: true, healing: true };
+      startAttack(b);
+      for (let i = 0; i < 90; i++) updateGame(1 / 60);
+      const kinds = new Set(state.bullets.map(x => x.kind));
+      const allHeal = state.bullets.filter(x => x.kind === 'soulKnife').every(x => x.heal > 0 && x.harmless);
+      render();
+      return { hidden: OmegaFlowey.hideBoard, free: OmegaFlowey.freeBullets, scene: typeof OmegaFlowey.drawScene, segment: omegaSegmentNow(b) === soul, knives: kinds.has('soulKnife'), allHeal };
+    });
+    assert.deepEqual(result, { hidden: true, free: true, scene: 'function', segment: true, knives: true, allHeal: true });
+  } finally {
+    await close();
+  }
+});
+
 test('Undertale minibosses: each one can be spared its own way', async () => {
   const { page, close } = await openGame();
   try {

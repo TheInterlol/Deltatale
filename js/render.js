@@ -40,6 +40,8 @@ function updateBox(dt) {
 function drawArena() {
   const box = state.box;
   const boss = state.currentBoss;
+  // an invisible board: the SOUL just moves around the lower part of the screen
+  if (boss && boss.hideBoard && isSoulVisible()) return;
 
   ctx.fillStyle = isUndertale() ? '#000' : '#0d0d0d';
   ctx.fillRect(box.x, box.y, box.w, box.h);
@@ -398,7 +400,7 @@ function drawBulletTrail(b) {
 function drawBullets() {
   const box = state.box;
   // Deltarune shows bullets everywhere (the board only limits the SOUL); Undertale clips them
-  if (!isUndertale()) {
+  if (!isUndertale() || (state.currentBoss && state.currentBoss.freeBullets)) {
     const trails = state.bullets.length < 140;
     for (const b of state.bullets) {
       if (trails) drawBulletTrail(b);
@@ -425,7 +427,13 @@ function drawCharacters() {
   const boss = state.currentBoss;
   const battle = state.battle;
 
-  if (boss) {
+  // a boss that fills the whole screen draws itself (Omega Flowey)
+  if (boss && boss.drawScene) {
+    ctx.save();
+    if (battle) ctx.globalAlpha = battle.bossAlpha;
+    boss.drawScene(battle);
+    ctx.restore();
+  } else if (boss) {
     const at = bossPosition(boss);
     let x = at.x;
     ctx.save();

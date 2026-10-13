@@ -125,7 +125,12 @@ The full roster (every major, optional and secret boss of both games) is listed 
   (Sans, Undyne, Muffet, Mettaton EX, Asgore, Asriel…) play their original chiptune song from
   `js/songs.js` until a file is added.
 - Bosses without a sprite (Mad Mew Mew) show an animated sigil (`js/presence.js`).
-- Projectiles are drawn in code; the fonts are DotGothic16 and Pixelify Sans (SIL OFL).
+- **Projectiles and props** (bones, Gaster Blasters, spears, suits, Mettaton's legs and bombs,
+  Omega Flowey's weapons and the human SOULs' attacks, Sweet Cap'n Cakes' speakers…) come from the
+  same pack via `tools/build_attacks.py` (`assets/attacks/`, listed in `js/attack_art.js`); every
+  one keeps a code-drawn fallback. Omega Flowey's body is put together from its parts by
+  `tools/build_omega.py`.
+- The fonts are DotGothic16 and Pixelify Sans (SIL OFL).
 
 UNDERTALE and DELTARUNE belong to Toby Fox. Deltatale is a non-commercial fan project.
 
@@ -140,7 +145,8 @@ const BOSS_ASSETS = {
 
 A sprite is a horizontal strip of equally wide frames. Only listed files are requested. To rebuild
 everything from the packs: `SPRITE_ARCHIVE="/path/to/UTDR Orgranized Sprite Archive" python3
-tools/build_sprites.py && python3 tools/gen_manifest.py`.
+tools/build_sprites.py && python3 tools/gen_manifest.py`, then `tools/build_attacks.py` and
+`tools/build_omega.py` with the same `SPRITE_ARCHIVE`.
 
 ## Structure
 
