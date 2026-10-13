@@ -124,7 +124,8 @@ const UNDYING_ATTACKS = {
   rings: {
     name: 'Spear rings',
     duration: 7,
-    box: { w: 220, h: 170 },
+    // the huge board from the fight, reaching up over her legs
+    box: { w: 560, h: 250 },
     update(run) {
       const pace = run.battle ? run.battle.flags.pace : 1.3;
       every(run, 'ring', 1.7 / pace, () => {
@@ -154,7 +155,7 @@ const UNDYING_ATTACKS = {
   straight: {
     name: 'Spear barrage',
     duration: 7,
-    box: { w: 220, h: 170 },
+    box: { w: 184, h: 184 },
     update(run) {
       const pace = run.battle ? run.battle.flags.pace : 1.3;
       every(run, 'spear', 0.22 / pace, () => {
@@ -179,11 +180,11 @@ const UNDYING_ATTACKS = {
   pit: {
     name: 'Spears from below',
     duration: 6,
-    box: { w: 160, h: 110 },
+    box: { w: 80, h: 110 },
     update(run) {
       const pace = run.battle ? run.battle.flags.pace : 1.3;
       every(run, 'rise', 0.75 / pace, () => {
-        const cols = 4;
+        const cols = 2;
         const w = arena.w / cols;
         const safe = randInt(0, cols - 1);
         for (let i = 0; i < cols; i++) {

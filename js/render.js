@@ -51,7 +51,6 @@ function drawArena() {
   if (boss && boss.drawArenaBackground && isSoulVisible()) boss.drawArenaBackground(box);
 
   // the frame goes on top, otherwise the fill would cover its inner half
-  const green = state.player && state.player.mode === 'green' && isSoulVisible();
   if (!isUndertale() && isSoulVisible()) {
     // Deltarune's bullet board: a green frame with a darker inner line
     ctx.strokeStyle = '#0b5d12';
@@ -61,7 +60,7 @@ function drawArena() {
     ctx.lineWidth = 3;
     ctx.strokeRect(box.x - 1, box.y - 1, box.w + 2, box.h + 2);
   } else {
-    ctx.strokeStyle = green ? '#16c916' : '#fff';
+    ctx.strokeStyle = '#fff';
     ctx.lineWidth = 4;
     ctx.strokeRect(box.x, box.y, box.w, box.h);
   }
