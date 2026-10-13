@@ -24,7 +24,7 @@ const Asgore = registerBoss({
   gold: 0,
   noMercy: true,
   hitsLeaveOne: true,
-  box: { w: 240, h: 160 },
+  box: { w: 224, h: 184 },
   check: 'Knows best for you.',
   intro: '* ASGORE attacks!\n* (The MERCY button was destroyed.)',
   flavor: [

@@ -49,7 +49,7 @@ const Toriel = registerBoss({
   gold: 0,
   canFlee: true,
   cannotLose: true,
-  box: { w: 200, h: 150 },
+  box: { w: 184, h: 136 },
   fixedSpeed: true,
   check: 'Knows best for you.',
   intro: '* Toriel blocks the way!',

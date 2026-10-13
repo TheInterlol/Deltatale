@@ -26,7 +26,7 @@ const MadDummy = registerBoss({
   checkAttack: 30,
   checkDefense: 255,
   gold: 0,
-  box: { w: 240, h: 150 },
+  box: { w: 184, h: 184 },
   fixedSpeed: true,
   check: 'Because they\'re a ghost, physical attacks will fail.',
   intro: '* Mad Dummy blocks the way!',

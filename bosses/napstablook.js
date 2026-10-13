@@ -18,7 +18,7 @@ const Napstablook = registerBoss({
   checkAttack: 10,
   checkDefense: 10,
   gold: 0,
-  box: { w: 220, h: 150 },
+  box: { w: 164, h: 136 },
   fixedSpeed: true,
   check: 'This monster doesn\'t seem to have a sense of humor...',
   intro: '* Here comes Napstablook.',

@@ -27,7 +27,7 @@ const Papyrus = registerBoss({
   checkAttack: 20,
   checkDefense: 20,
   gold: 0,
-  box: { w: 300, h: 140 },
+  box: { w: 254, h: 138 },
   fixedSpeed: true,
   check: 'He likes to say: "Nyeh heh heh!"',
   gameOverText: 'Papyrus captured you! (Try again?)',

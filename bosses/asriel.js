@@ -41,7 +41,7 @@ const Asriel = registerBoss({
   cannotBeFought: true,
   cannotLose: true,
   gold: 0,
-  box: { w: 230, h: 160 },
+  box: { w: 316, h: 136 },
   fixedSpeed: true,
   check: 'The absolute GOD of HYPERDEATH.',
   intro: '* Asriel Dreemurr blocks the way!\n* (...it\'s the end.)',
