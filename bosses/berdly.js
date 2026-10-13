@@ -18,7 +18,7 @@ const Berdly = registerBoss({
   checkAttack: 10,
   checkDefense: 0,
   gold: 0,
-  box: { w: 240, h: 170 },
+  box: { w: 140, h: 140 },
   fixedSpeed: true,
   check: 'Self-proclaimed smartest student. Has a lot of "facts".',
   intro: '* Berdly blocks the way!\n* "Prepare to be out-smarted!"',

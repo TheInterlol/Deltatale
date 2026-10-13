@@ -24,7 +24,7 @@ const Queen = registerBoss({
   checkAttack: 14,
   checkDefense: 15,
   gold: 0,
-  box: { w: 230, h: 170 },
+  box: { w: 140, h: 140 },
   check: 'Ruler of the Cyber World. Her chair has HP.',
   intro: '* Queen and Berdly attack!\n* (Berdly is plugged into a cable...)',
   flavor: [

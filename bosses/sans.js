@@ -29,7 +29,8 @@ const Sans = registerBoss({
   iframes: 1 / 30,
   gold: 0,
   fixedSpeed: true,
-  box: { w: 230, h: 140 },
+  // the wide, low board most of his blue attacks use (the opening and the finale are square)
+  box: { w: 330, h: 118 },
   check: 'Can only deal 1 damage. The easiest enemy around.',
   intro: '* You feel like you\'re going to have a bad time.',
   gameOverText: 'you\'re gonna have to try a little harder than that.',
@@ -232,6 +233,7 @@ const SANS_ATTACKS = {
   opening: {
     name: 'Strongest attack',
     duration: 9.4,
+    box: { w: 140, h: 140 },
     soul: 'blue',
     line: 'it\'s a beautiful day... let\'s get this over with.',
     start(run) {
@@ -310,7 +312,7 @@ const SANS_ATTACKS = {
     name: 'Platforms',
     duration: 9,
     soul: 'blue',
-    box: { w: 300, h: 150 },
+    box: { w: 380, h: 128 },
     start(run) {
       // a sea of short bones; ride the platforms across
       for (let x = arena.x + 8; x < arena.x + arena.w; x += 12) floorBone(x, 18, 0, { karma: 1, maxLife: 20 });
@@ -359,7 +361,7 @@ const SANS_ATTACKS = {
     name: 'Platforms over the bones',
     duration: 9,
     soul: 'blue',
-    box: { w: 300, h: 150 },
+    box: { w: 380, h: 128 },
     start(run) {
       for (let x = arena.x + 8; x < arena.x + arena.w; x += 12) floorBone(x, 18, 0, { karma: 1, maxLife: 20 });
       const p = state.player;
@@ -390,7 +392,7 @@ const SANS_ATTACKS = {
     name: 'Riding the platform',
     duration: 9,
     soul: 'blue',
-    box: { w: 300, h: 160 },
+    box: { w: 380, h: 136 },
     start(run) {
       for (let x = arena.x + 8; x < arena.x + arena.w; x += 12) floorBone(x, 18, 0, { karma: 1, maxLife: 20 });
       const p = state.player;
@@ -427,7 +429,7 @@ const SANS_ATTACKS = {
     name: 'Platforms and beams',
     duration: 9,
     soul: 'blue',
-    box: { w: 300, h: 150 },
+    box: { w: 380, h: 128 },
     start(run) {
       for (let x = arena.x + 8; x < arena.x + arena.w; x += 12) floorBone(x, 18, 0, { karma: 1, maxLife: 20 });
       const p = state.player;
@@ -481,6 +483,7 @@ const SANS_ATTACKS = {
   surprise: {
     name: 'Surprise',
     duration: 6,
+    box: { w: 150, h: 150 },
     soul: 'blue',
     line: 'heh. guess you\'re not a fan of second chances.',
     start(run) {
@@ -513,6 +516,7 @@ const SANS_ATTACKS = {
   final: {
     name: 'Final attack',
     duration: 26,
+    box: { w: 150, h: 150 },
     soul: 'blue',
     line: 'ready? here comes my special attack.',
     start(run) {

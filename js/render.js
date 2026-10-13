@@ -397,6 +397,15 @@ function drawBulletTrail(b) {
 
 function drawBullets() {
   const box = state.box;
+  // Deltarune shows bullets everywhere (the board only limits the SOUL); Undertale clips them
+  if (!isUndertale()) {
+    const trails = state.bullets.length < 140;
+    for (const b of state.bullets) {
+      if (trails) drawBulletTrail(b);
+      drawBullet(b);
+    }
+    return;
+  }
   ctx.save();
   ctx.beginPath();
   ctx.rect(box.x + 2, box.y + 2, box.w - 4, box.h - 4);

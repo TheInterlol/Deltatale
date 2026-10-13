@@ -20,7 +20,7 @@ const KRound = registerBoss({
   gold: 0,
   cannotBeFought: true,
   showMercy: true,
-  box: { w: 220, h: 180 },
+  box: { w: 140, h: 140 },
   check: 'A checker piece with a crown. Show it some respect.',
   intro: '* K. Round crashed down from above!',
   flavor: [

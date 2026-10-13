@@ -27,7 +27,7 @@ const Knight = registerBoss({
   checkDefense: '???',
   hideHp: true,
   gold: 0,
-  box: { w: 220, h: 170 },
+  box: { w: 140, h: 140 },
   check: '...',
   intro: '* The Knight is here.',
   flavor: [

@@ -25,7 +25,7 @@ const Titan = registerBoss({
   checkAttack: 30,
   checkDefense: 18,
   gold: 0,
-  box: { w: 240, h: 180 },
+  box: { w: 150, h: 150 },
   cannotBeFought: true,
   check: 'A colossal creature of darkness. Fight with LIGHT.',
   intro: '* The TITAN rises out of the dark!\n* (Your SOUL glows. White bullets become COURAGE.)',

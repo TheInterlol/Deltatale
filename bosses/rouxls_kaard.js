@@ -22,7 +22,7 @@ const RouxlsKaard = registerBoss({
   checkAttack: 12,
   checkDefense: 0,
   gold: 0,
-  box: { w: 240, h: 170 },
+  box: { w: 140, h: 140 },
   fixedSpeed: true,
   check: 'The Duke of Puzzles. Thinketh he is very clever.',
   intro: '* Rouxls Kaard challenges thee to a game of HOUSES!',

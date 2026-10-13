@@ -23,7 +23,7 @@ const SpamtonNeo = registerBoss({
   checkAttack: 13,
   checkDefense: 0,
   gold: 0,
-  box: { w: 300, h: 170 },
+  box: { w: 250, h: 125 },
   check: 'A BIG SHOT with strings attached. Snap the wires to free him.',
   intro: '* SPAMTON NEO is here to make you a DEAL!',
   flavor: [

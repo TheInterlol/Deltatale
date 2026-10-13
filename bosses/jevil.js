@@ -25,7 +25,7 @@ const Jevil = registerBoss({
   checkAttack: 10,
   checkDefense: 5,
   gold: 0,
-  box: { w: 220, h: 190 },
+  box: { w: 140, h: 140 },
   check: 'A chaotic, freed jester. Tire him out to make him sleep!',
   intro: '* JEVIL appeared! THE GAMES BEGIN!',
   flavor: [

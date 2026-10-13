@@ -25,7 +25,7 @@ const Tenna = registerBoss({
   checkAttack: 13,
   checkDefense: 0,
   gold: 0,
-  box: { w: 230, h: 170 },
+  box: { w: 140, h: 140 },
   check: 'The star of the show! Reach 1000 POINTS for a peaceful finale!',
   intro: '* Tenna\'s show is ON THE AIR!',
   flavor: [

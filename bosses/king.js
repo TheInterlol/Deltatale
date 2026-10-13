@@ -26,7 +26,7 @@ const King = registerBoss({
   checkAttack: 8,
   checkDefense: 0,
   gold: 0,
-  box: { w: 220, h: 170 },
+  box: { w: 140, h: 140 },
   fixedSpeed: true,
   check: 'The King of the Card Kingdom. Lancer\'s dad.',
   intro: '* King blocks the way!',

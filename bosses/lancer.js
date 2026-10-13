@@ -19,7 +19,7 @@ const Lancer = registerBoss({
   checkAttack: 7,
   checkDefense: 0,
   gold: 30,
-  box: { w: 240, h: 170 },
+  box: { w: 140, h: 140 },
   fixedSpeed: true,
   check: 'He\'s the Bad Guy. ...Or is he?',
   intro: '* Lancer rode in on his bike! Ho ho ho!',

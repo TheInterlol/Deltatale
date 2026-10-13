@@ -22,7 +22,7 @@ const Spamton = registerBoss({
   checkAttack: 8,
   checkDefense: 0,
   gold: 0,
-  box: { w: 240, h: 160 },
+  box: { w: 140, h: 140 },
   fixedSpeed: true,
   check: 'A salesman who wants to make you a [[Big Deal]].',
   intro: '* Spamton wants to make a DEAL!',
