@@ -172,6 +172,12 @@ SPRITES = {
     'knight_flow': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_bullet_flow',
     'knight_gradient': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Misc/spr_bg_knight_gradient',
     'knight_spark': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_spark',
+    'gerson_arrow': DB + 'Ch4/Gerson/Battle/Attacks/Arrow/spr_spear_arrow',
+    'gerson_star': DB + 'Ch4/Gerson/Battle/Attacks/Star/spr_gerson_star',
+    'gerson_shell': DB + 'Ch4/Gerson/Battle/Attacks/Shell/spr_bounce_shell_idle_color',
+    'gerson_hammer': DB + 'Ch4/Gerson/Battle/Attacks/Hammer/spr_gerson_red_hammer',
+    'gerson_bighammer': DB + 'Ch4/Gerson/Battle/Attacks/Hammer/spr_gerson_hammer_only',
+    'gerson_telegraph': DB + 'Ch4/Gerson/Battle/Attacks/Swing Down/spr_gerson_swing_down_telegraph',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 

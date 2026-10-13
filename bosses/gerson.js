@@ -43,27 +43,43 @@ const Gerson = registerBoss({
             text: "* Susie said Gerson's hammer is pretty badass.\n* \"Hohoho! Finally someone with taste!\""
         }
     ],
+    box: { w: 120, h: 120 },
+    // From the fight: green-SOUL spear arrows, his spinning shell throwing stars and shells,
+    // the hammer swung down on half the board, and red hammers thrown like boomerangs.
     attacks: [
         {
-            name: "Falling axes",
-            duration: 6,
-            update(run) {
-                every(run, "axes", 1.2 / run.speed, () => spawnGersonSpears(run.speed), 0.4);
-            }
+            name: "Spear arrows (green SOUL)",
+            soul: "green",
+            box: { w: 84, h: 84 },
+            start(run) {
+                run.data.pace = 1.05 + Math.min(0.4, (run.battle ? run.battle.turn : 0) * 0.05);
+                run.data.script = makeSpearScript(1 + Math.floor((run.battle ? run.battle.turn : 0) / 3), run.data.pace);
+                run.data.next = 0;
+                run.data.clock = 0;
+            },
+            update: (run, dt) => UNDYNE_ATTACKS.green.update(run, dt)
         },
         {
-            name: "Boomerangs",
-            duration: 6.5,
+            name: "Shell spin",
+            duration: 7,
             update(run) {
-                every(run, "boomerang", 0.9 / run.speed, () => spawnGersonBoomerang(run.speed), 0.3);
+                every(run, "star", 0.5 / run.speed, () => gersonStar(), 0.3);
+                every(run, "shell", 1.6 / run.speed, () => gersonShell(), 0.8);
             }
         },
         {
             name: "Hammer of Justice",
-            duration: 8,
+            duration: 7,
             update(run) {
-                every(run, "axes", 1.4 / run.speed, () => spawnGersonSpears(run.speed), 0.4);
-                every(run, "boomerang", 1.6 / run.speed, () => spawnGersonBoomerang(run.speed), 1);
+                every(run, "swing", 1.25 / run.speed, () => gersonSwing(run), 0.3);
+                every(run, "star", 1.1 / run.speed, () => gersonStar(), 0.9);
+            }
+        },
+        {
+            name: "Hammer throw",
+            duration: 6.5,
+            update(run) {
+                every(run, "boomerang", 0.85 / run.speed, () => spawnGersonBoomerang(run.speed), 0.3);
             }
         }
     ],
@@ -155,6 +171,71 @@ function spawnGersonBoomerang(speedMult = 1){
     const speed = 330 * speedMult;
     const reach = 300;
 
-    const axe = spawnBullet(x, y, dir * speed, 0, 12, "axe01");
+    const axe = spawnBullet(x, y, dir * speed, 0, 10, "gersonHammer");
     axe.ax = -dir * (speed * speed) / (2 * reach);
 }
+
+// stars flung out of his spinning shell, arcing into the board from his side
+function gersonStar() {
+    const x = arena.x + arena.w + 70;
+    const y = arena.y - 20 + Math.random() * 40;
+    const tx = arena.x + Math.random() * arena.w;
+    const t = 0.9;
+    spawn({ kind: "gersonStar", x, y, vx: (tx - x) / t, vy: -120, ay: 2 * (arena.y + arena.h * (0.3 + Math.random() * 0.6) - y + 120 * t) / (t * t), r: 6, maxLife: 3, minLife: 1 });
+}
+
+// a green shell sliding across the board, bouncing along its floor
+function gersonShell() {
+    const fromRight = Math.random() < 0.6;
+    spawn({ kind: "gersonShell", x: fromRight ? arena.x + arena.w + 20 : arena.x - 20, y: arena.y + arena.h - 14,
+        vx: (fromRight ? -1 : 1) * 150, r: 11, minLife: 1, maxLife: 5, bounceT: 0,
+        update(b, dt) {
+            b.x += b.vx * dt;
+            b.bounceT += dt;
+            b.y = arena.y + arena.h - 14 - Math.abs(Math.sin(b.bounceT * 3.2)) * (arena.h - 40);
+        } });
+}
+
+// the hammer comes down on the left or right half - its outline flashes first
+function gersonSwing(run) {
+    const left = Math.random() < 0.5;
+    const half = arena.w / 2;
+    const x = left ? arena.x : arena.x + half;
+    warnZone(x, arena.y, half, arena.h, 0.55, 0.22, { kind: "gersonSlam", left, ownWarn: true, clip: false });
+}
+
+BULLET_DRAWERS.gersonHammer = b => {
+    if (drawArt("gerson_hammer", b.x, b.y, 30, 30, { frame: state.clock * 16 })) return;
+    ctx.fillStyle = "#e04040";
+    fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.gersonStar = b => {
+    if (drawArt("gerson_star", b.x, b.y, 18, 18, { angle: b.life * 6 })) return;
+    ctx.fillStyle = "#fff";
+    fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.gersonShell = b => {
+    if (drawArt("gerson_shell", b.x, b.y, 30, 30, { frame: state.clock * 20 })) return;
+    ctx.fillStyle = "#3ddc5a";
+    fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.gersonSlam = b => {
+    const x = b.x - b.hw;
+    const y = b.y - b.hh;
+    if (b.life < b.warn) {
+        ctx.globalAlpha *= Math.floor(b.life * 14) % 2 ? 0.7 : 0.3;
+        if (!drawArt("gerson_telegraph", b.x, b.y, b.hw * 2, b.hh * 2 + 30)) {
+            ctx.strokeStyle = "#fff";
+            ctx.strokeRect(x + 2, y + 2, b.hw * 2 - 4, b.hh * 2 - 4);
+        }
+        return;
+    }
+    // the giant hammer head slams through
+    const k = Math.min(1, (b.life - b.warn) / 0.08);
+    drawArt("gerson_bighammer", b.x, y - 40 + k * (b.hh * 2), b.hw * 2.2, b.hw * 2.2 * 39 / 67, { flipX: b.left });
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
+};

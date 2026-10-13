@@ -105,6 +105,8 @@ SPECS = {
         (dr(DB + 'Ch4/Jackenstein/Overworld/Parts/spr_jackenstein_layer_5_arm_right'), 0, 0),
         (dr(DB + 'Ch4/Jackenstein/Overworld/Parts/spr_jackenstein_layer_6_head'), 0, 0),
         (dr(DB + 'Ch4/Jackenstein/Battle/spr_jackenstein_battle_eyes'), 0, 0)]), 'height': 170, 'fps': 6},
+    'gerson': {'idle': F(DB + 'Ch4/Gerson/Battle/Hammer of Justice/spr_gerson_idle', dr),
+               'hurt': F(DB + 'Ch4/Gerson/Battle/Hammer of Justice/spr_gerson_hurt2', dr), 'height': 110, 'fps': 10},
     'sound_of_justice': {'idle': lambda: frames(dr(DB + 'Ch4/Gerson/Battle/Sound of Justice/spr_statue_sound_of_justice_crumble'))[:1],
                          'height': 130, 'fps': 1},
     'titan': {'idle': lambda: layered([

@@ -18,6 +18,7 @@ const BOSS_ASSETS = {
   dogamy_dogaressa: { fps: 6, frames: 11, scale: 1.0, sprite: "idle.png", music: "assets/music/enemy_approaching.mp3" },
   doggo: { fps: 6, frames: 13, scale: 1.5, sprite: "idle.png", music: "assets/music/enemy_approaching.mp3" },
   dummy: { fps: 2, frames: 2, scale: 1.0, sprite: "idle.png", music: "assets/music/enemy_approaching.mp3" },
+  gerson: { fps: 10, frames: 14, hurt: "hurt.png", scale: 3.0, sprite: "idle.png" },
   giga_queen: { fps: 3, frames: 2, hurt: "hurt.png", scale: 1.5, sprite: "idle.png", music: "assets/music/giga_size.mp3" },
   glad_dummy: { fps: 2, frames: 2, scale: 1.0, sprite: "idle.png", music: "assets/music/enemy_approaching.mp3" },
   glyde: { fps: 1, frames: 1, scale: 0.657, sprite: "idle.png", music: "assets/music/enemy_approaching.mp3" },

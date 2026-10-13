@@ -36,6 +36,13 @@
   "scale": 1.0,
   "sprite": "idle.png"
  },
+ "gerson": {
+  "fps": 10,
+  "frames": 14,
+  "hurt": "hurt.png",
+  "scale": 3.0,
+  "sprite": "idle.png"
+ },
  "giga_queen": {
   "fps": 3,
   "frames": 2,

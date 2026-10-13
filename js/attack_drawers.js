@@ -60,6 +60,9 @@ spriteDrawer('spear', (b, fill) => {
 });
 
 spriteDrawer('arrow', b => {
+  if (state.currentBoss && state.currentBoss.id === 'gerson' && artReady('gerson_arrow')) {
+    return drawArt('gerson_arrow', b.x, b.y, 24, 24, { angle: Math.atan2(b.vy, b.vx) + Math.PI / 4, tint: b.reverse && !b.reversed ? '#ffe14d' : null });
+  }
   const name = b.reverse && !b.reversed ? 'undyne_arrow' : 'undyne_arrow_blue';
   if (!artReady(name)) return false;
   return drawArt(name, b.x, b.y, 30, null, { angle: Math.atan2(b.vy, b.vx) });
