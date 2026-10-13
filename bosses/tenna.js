@@ -178,7 +178,7 @@ function tennaPoints(battle, amount) {
 }
 
 function laughingStar(x, y, vx, vy, r = 8) {
-  return spawn({ kind: 'star', x, y, vx, vy, r, color: '#ffe14d', maxLife: 5, minLife: 1 });
+  return spawn({ kind: 'tennaStar', x, y, vx, vy, r, color: '#ffe14d', maxLife: 5, minLife: 1 });
 }
 
 const TENNA_ATTACKS = {
@@ -215,7 +215,7 @@ const TENNA_ATTACKS = {
           const width = arena.w / (fives ? 9 : 6);
           for (let i = 0; i < count; i++) {
             const x = fives ? arena.x + width * (i * 2 + 0.5) : arena.x + width * (i * 2 + 0.5 + randInt(0, 1));
-            warnZone(x, arena.y, width, arena.h, 0.55, 0.2, { kind: 'bolt', color: '#fff7a8' });
+            warnZone(x, arena.y, width, arena.h, 0.55, 0.2, { kind: 'tennaBolt', color: '#fff7a8', ownWarn: true });
           }
         }]);
       }
@@ -230,7 +230,7 @@ const TENNA_ATTACKS = {
     name: 'Rimshot', duration: 7,
     start(run) {
       run.data.stars = [0, 1].map(i => spawn({
-        kind: 'star', x: arena.x + 40 + i * 120, y: arena.y + 40 + i * 60, vx: (i ? -1 : 1) * 110, vy: 90, r: 12, color: '#ffe14d', noCull: true,
+        kind: 'tennaStar', x: arena.x + 40 + i * 120, y: arena.y + 40 + i * 60, vx: (i ? -1 : 1) * 110, vy: 90, r: 12, color: '#ffe14d', noCull: true,
         update: bounceInArena
       }));
     },
@@ -301,7 +301,7 @@ const TENNA_ATTACKS = {
         const h = run.data.head;
         if (h.dead) return;
         const v = aimAt(h.x, h.y, 150);
-        spawn({ kind: 'star', x: h.x, y: h.y + 14, vx: v.vx, vy: v.vy, r: 6, color: '#ffe14d', maxLife: 3, shootHp: 1 });
+        spawn({ kind: 'tennaStar', x: h.x, y: h.y + 14, vx: v.vx, vy: v.vy, r: 6, color: '#ffe14d', maxLife: 3, shootHp: 1 });
       }, 0.5);
     }
   }
@@ -346,3 +346,59 @@ BULLET_DRAWERS.tvHead = b => {
 };
 
 Tenna.attacks = Object.values(TENNA_ATTACKS);
+
+// ---------------------------------------------------------------- the studio
+// The fight happens on his game show stage (the game's own background); the lights go down
+// while he attacks.
+Tenna.drawBackdrop = battle => {
+  const img = attackImage('tenna_stage');
+  if (!img) return false;
+  // sky behind the set
+  const sky = ctx.createLinearGradient(0, 0, 0, 200);
+  sky.addColorStop(0, '#8fd8ff');
+  sky.addColorStop(1, '#ffd0e8');
+  ctx.fillStyle = sky;
+  ctx.fillRect(-20, -20, VIEW_W + 40, 240);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0, 320, 240, 0, -150, 720, 540);
+  ctx.restore();
+  // the big screen shows the score
+  ctx.save();
+  ctx.fillStyle = '#ffe14d';
+  ctx.font = `bold 22px ${TITLE_FAMILY}`;
+  ctx.textAlign = 'center';
+  const score = battle ? battle.flags.points || 0 : 0;
+  ctx.fillText('SCORE', 360, 18);
+  ctx.fillText(String(score), 360, 40);
+  ctx.restore();
+  if (battle && (battle.phase === 'attack' || battle.phase === 'enemyTalk')) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.62)';
+    ctx.fillRect(-20, -20, VIEW_W + 40, VIEW_H + 40);
+  }
+  return true;
+};
+
+BULLET_DRAWERS.tennaStar = b => {
+  if (drawArt('tenna_star', b.x, b.y, b.r * 3.4, b.r * 3.4, { angle: b.life * 3 })) return;
+  ctx.fillStyle = '#ffe14d';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.tennaBolt = b => {
+  const left = b.x - b.hw;
+  if (b.life < b.warn) {
+    ctx.fillStyle = Math.floor(b.life * 14) % 2 ? 'rgba(255, 247, 168, 0.22)' : 'rgba(255, 247, 168, 0.08)';
+    ctx.fillRect(left, b.y - b.hh, b.hw * 2, b.hh * 2);
+    return;
+  }
+  // a column of zig-zag lightning down from the rafters
+  for (let x = left + 6; x < left + b.hw * 2; x += 14) {
+    for (let y = b.y + b.hh; y > -20; y -= 22) {
+      if (!drawArt('tenna_lightning', x, y - 11, 14, 24, { flipX: Math.floor(y / 22 + state.clock * 20) % 2 === 0 })) {
+        ctx.fillStyle = '#fff7a8';
+        ctx.fillRect(x - 3, y - 22, 6, 22);
+      }
+    }
+  }
+};

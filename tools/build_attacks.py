@@ -161,6 +161,10 @@ SPRITES = {
     'gq_wheel': DB + 'Ch2/Giga Queen/Battle/Misc/Attacks/spr_boxing_wheel',
     'gq_light': DB + 'Ch2/Giga Queen/Battle/Misc/Attacks/spr_green_light',
     'gq_crescent': DB + 'Ch2/Giga Queen/Battle/Misc/Effects/spr_boxing_crescent',
+    'tenna_stage': DR + '/../Locations/Ch3/02 - Game Show/Background/spr_dw_gameshow_bg',
+    'tenna_spotlight': DB + 'Ch3/Tenna/Battle/Misc/spr_tenna_popularboy_spotlight',
+    'tenna_star': DB + 'Ch3/Tenna/Battle/Attacks/Stars/spr_tenna_allstars_star',
+    'tenna_lightning': DB + 'Ch3/Tenna/Battle/Attacks/Smash Cut/spr_tenna_smash_lightning',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 
