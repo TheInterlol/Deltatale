@@ -261,3 +261,14 @@ BULLET_DRAWERS.chain = b => {
 };
 
 King.attacks = Object.values(KING_ATTACKS);
+
+// The battle happens on his arena at the top of Card Castle (the game's own background).
+King.drawBackdrop = () => {
+  const img = attackImage('king_arena');
+  if (!img) return false;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0, 320, 240, 0, -40, 720, 540);
+  ctx.restore();
+  return true;
+};

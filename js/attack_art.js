@@ -63,6 +63,7 @@ const ATTACK_ART = {
   jevil_bomb_spade: { frames: 2, w: 23, h: 23 },
   jevil_carousel: { frames: 3, w: 36, h: 29 },
   jevil_scythe: { frames: 1, w: 48, h: 45 },
+  king_arena: { frames: 1, w: 320, h: 240 },
   knight_diamond: { frames: 2, w: 33, h: 32 },
   knight_diamondm: { frames: 3, w: 66, h: 32 },
   knight_flow: { frames: 3, w: 320, h: 240 },
