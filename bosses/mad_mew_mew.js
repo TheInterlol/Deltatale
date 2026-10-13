@@ -103,20 +103,21 @@ const MadMewMew = registerBoss({
 
 // One falling row: a block for each half's three slots, with one free slot per half.
 function mmmRow(speed, colored = false) {
+  // each half has one free slot; with `colored`, one blocked slot becomes a half-coloured
+  // circle instead - only the half of the SOUL with the matching colour may pass through it
+  const circle = colored ? { half: randInt(0, 1), color: chance(0.5) ? 'red' : 'blue' } : null;
   for (let half = 0; half < 2; half++) {
     const free = randInt(0, 2);
+    if (circle && circle.half === half) circle.slot = pick([0, 1, 2].filter(s => s !== free));
     for (let slot = 0; slot < 3; slot++) {
       if (slot === free) continue;
       const pos = halfPosition(half, slot);
+      if (circle && circle.half === half && circle.slot === slot) {
+        spawn({ kind: 'halfCircle', x: pos.x, y: arena.y - 10, vy: speed, r: 11, passColor: circle.color, maxLife: 4, minLife: 1 });
+        continue;
+      }
       spawn({ kind: 'normal', x: pos.x, y: arena.y - 10, vy: speed, hw: 10, hh: 8, maxLife: 4, minLife: 1, color: '#ff7ab8' });
     }
-  }
-  if (colored) {
-    // a half-coloured circle: only the matching half of the SOUL may pass
-    const color = chance(0.5) ? 'red' : 'blue';
-    const half = randInt(0, 1);
-    const pos = halfPosition(half, randInt(0, 2));
-    spawn({ kind: 'halfCircle', x: pos.x, y: arena.y - 30, vy: speed, r: 11, passColor: color, maxLife: 4, minLife: 1 });
   }
 }
 

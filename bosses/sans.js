@@ -169,11 +169,13 @@ const Sans = registerBoss({
 });
 
 // ---------------- Building blocks ----------------
-function sansFloor(warnTime = 0.45, height = 26) {
+// Bones that pop out of a wall stay up a little less than a full jump lasts, so a jump timed
+// with the red warning always clears them.
+function sansFloor(warnTime = 0.45, height = 26, active = 0.36) {
   // red outline on the floor, then bones pop up there
   return spawn({
     kind: 'boneField', x: arena.x + arena.w / 2, y: arena.y + arena.h - height / 2, hw: arena.w / 2, hh: height / 2,
-    warn: warnTime, activeFor: 0.55, noCull: true, karma: 2
+    warn: warnTime, activeFor: active, noCull: true, karma: 2
   });
 }
 
@@ -238,7 +240,7 @@ const SANS_ATTACKS = {
     line: 'it\'s a beautiful day... let\'s get this over with.',
     start(run) {
       run.data.events = [
-        [0.05, () => { slamSoul('down'); sansFloor(0.5); }],
+        [0.05, () => { slamSoul('down'); sansFloor(0.5, 22); }],
         [1.5, () => setSoulMode('red')],
         [1.6, () => {
           // a wall of bones from the left with one horizontal gap
@@ -279,18 +281,19 @@ const SANS_ATTACKS = {
 
   blueBones: {
     name: 'Blue bones',
-    duration: 8,
+    duration: 8.5,
     soul: 'blue',
     start(run) {
       const speed = 170;
-      // left: long cyan then short white; right: short white then long cyan
-      for (let i = 0; i < 6; i++) {
+      // from the left: long cyan then short white; then from the right: short white then
+      // long cyan (the second wave only starts once the first one is through)
+      for (let i = 0; i < 4; i++) {
         floorBone(arena.x - 12 - i * 130, arena.h - 10, speed, { color: 'cyan', karma: 1 });
         floorBone(arena.x - 12 - i * 130 - 60, 18, speed, { karma: 1 });
       }
-      for (let i = 0; i < 6; i++) {
-        floorBone(arena.x + arena.w + 12 + i * 130 + 65, 18, -speed, { karma: 1 });
-        floorBone(arena.x + arena.w + 12 + i * 130 + 125, arena.h - 10, -speed, { color: 'cyan', karma: 1 });
+      for (let i = 0; i < 4; i++) {
+        floorBone(arena.x + arena.w + 12 + 650 + i * 130, 18, -speed, { karma: 1 });
+        floorBone(arena.x + arena.w + 12 + 650 + i * 130 + 60, arena.h - 10, -speed, { color: 'cyan', karma: 1 });
       }
     },
     update() {}
@@ -330,7 +333,7 @@ const SANS_ATTACKS = {
       }, 0.6);
       every(run, 'top', 2.2, () => {
         // bones hanging from the top force short hops
-        ceilingBone(arena.x + arena.w + 12, arena.h - 92, -70, { karma: 1 });
+        ceilingBone(arena.x + arena.w + 12, arena.h - 100, -70, { karma: 1 });
       }, 1.5);
     }
   },
@@ -458,7 +461,7 @@ const SANS_ATTACKS = {
       every(run, 'slam', 1.1, () => {
         const side = pick(['down', 'up', 'left', 'right']);
         slamSoul(side);
-        sansWallBones(side, 26, 0.4, 0.5);
+        sansWallBones(side, 24, 0.45, 0.34);
       }, 0.2);
     }
   },
@@ -488,10 +491,10 @@ const SANS_ATTACKS = {
     line: 'heh. guess you\'re not a fan of second chances.',
     start(run) {
       run.data.events = [
-        [0.1, () => { slamSoul('down'); sansWallBones('down', 30, 0.35, 0.5); }],
-        [1.0, () => { slamSoul('up'); sansWallBones('up', 30, 0.35, 0.5); }],
-        [1.9, () => { slamSoul('left'); sansWallBones('left', 30, 0.35, 0.5); }],
-        [2.8, () => { slamSoul('right'); sansWallBones('right', 30, 0.35, 0.5); }],
+        [0.1, () => { slamSoul('down'); sansWallBones('down', 26, 0.4, 0.34); }],
+        [1.0, () => { slamSoul('up'); sansWallBones('up', 26, 0.4, 0.34); }],
+        [1.9, () => { slamSoul('left'); sansWallBones('left', 26, 0.4, 0.34); }],
+        [2.8, () => { slamSoul('right'); sansWallBones('right', 26, 0.4, 0.34); }],
         [3.7, () => { setSoulMode('red'); beamsCross(); }],
         [4.8, beamsOnEdges]
       ];
@@ -506,7 +509,7 @@ const SANS_ATTACKS = {
     duration: 3,
     line: 'should\'ve seen that coming.',
     start() {
-      const zone = sansFloor(0.2, arena.h);
+      const zone = sansFloor(0.2, arena.h, 0.55);
       zone.damage = 99;
       zone.karma = 0;
     },
@@ -535,7 +538,7 @@ const SANS_ATTACKS = {
         slamSoul(side);
         const p = state.player;
         if (p.hp > 1) p.hp -= 1;
-        sansWallBones(side, 22, 0.35, 0.4);
+        sansWallBones(side, 22, 0.35, 0.3);
       }, 0.3);
       if (run.t > 10) every(run, 'beam', 0.9, () => beamAtSoul(30), 0);
       if (run.t > 17) every(run, 'cross', 2.2, beamsCross, 0);

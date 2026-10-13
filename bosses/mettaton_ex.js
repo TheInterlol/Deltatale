@@ -164,6 +164,7 @@ function mttStyle(run, dt) {
 // his core, REC / REW replays a wave backwards and the finale strikes one half of the board
 // after the other.
 const MTT_BOX = { w: 130, h: 100 };
+const MTT_FUSE = 0.4;
 const MTT_LEG_TINT = '#ecec6a';
 
 function mttCore() {
@@ -196,7 +197,14 @@ function mttBomb(x, y, vy, extra = {}) {
   return spawn({
     kind: 'mttBomb', x, y, vy, r: 9, noCull: true, clip: false, maxLife: 9, shootHp: 1, update: mttFall, ...extra,
     onDestroyed: b => {
-      mttBlast(b.x, b.y);
+      // a shot bomb flashes for a moment before it blows - time to step out of its lines
+      spawn({
+        kind: 'mttBomb', lit: true, x: b.x, y: b.y, vy: b.vy, r: 9, harmless: true, noCull: true, clip: false, maxLife: 2,
+        update(l, dt) {
+          mttFall(l, dt);
+          if (l.life >= MTT_FUSE) { l.dead = true; mttBlast(l.x, l.y); }
+        }
+      });
       if (state.battle) mttRatings(state.battle, 50);
     }
   });
@@ -227,10 +235,10 @@ const MTT_ATTACKS = {
     line: 'Lights! Camera! Action!',
     update(run, dt) {
       mttStyle(run, dt);
-      every(run, 'leg', 0.5, () => {
+      every(run, 'leg', 0.68, () => {
         run.data.n = (run.data.n || 0) + 1;
         const side = run.data.n % 2 ? 'left' : 'right';
-        const reach = rand(0.3, 0.68) * arena.w;
+        const reach = rand(0.28, 0.6) * arena.w;
         const tipX = side === 'left' ? arena.x + reach : arena.x + arena.w - reach;
         mttLeg(side, tipX, arena.y - 70, 78);
       }, 0.1);
@@ -288,11 +296,11 @@ const MTT_ATTACKS = {
       const ball = { x: arena.x + arena.w / 2, y: arena.y + 6 };
       run.data.ball = ball;
       spawn({ kind: 'mttDisco', x: ball.x, y: ball.y, r: 12, harmless: true, noCull: true, clip: false });
-      // two blue beams (move = hurt) and one white beam (always hurts), sweeping
-      const beams = [{ color: 'cyan', off: -1 }, { color: 'cyan', off: 1 }, { color: null, off: 0 }];
+      // two blue beams (move = hurt) and one orange beam (stand still = hurt), sweeping
+      const beams = [{ color: 'cyan', off: -1 }, { color: 'cyan', off: 1 }, { color: 'orange', off: 0 }];
       for (const beam of beams) {
         spawn({
-          kind: 'mttRay', x: ball.x, y: ball.y, hw: 120, hh: 2, angle: Math.PI / 2, color: beam.color || undefined,
+          kind: 'mttRay', x: ball.x, y: ball.y, hw: 120, hh: 2, angle: Math.PI / 2, color: beam.color,
           warn: 0.5, noCull: true, noFx: true, ownWarn: true,
           update(b) {
             const t = run.t;
@@ -348,8 +356,10 @@ const MTT_ATTACKS = {
         run.data.pour -= dt;
         if (run.data.pour <= 0) {
           run.data.pour = undefined;
-          for (let i = 0; i < 7; i++) {
-            const x = arena.x + 10 + (i + rand(0, 0.6)) * (arena.w - 20) / 7;
+          // three bolts in five lanes: there is always a free lane
+          const lanes = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, 3);
+          for (const i of lanes) {
+            const x = arena.x + (i + 0.5) * arena.w / 5;
             spawn({ kind: 'mttBolt', x: c.x, y: c.y + 10, r: 6, noCull: true, clip: false, maxLife: 4, minLife: 1,
               vx: (x - c.x) / 0.6, vy: (arena.y - c.y) / 0.6, ay: 0,
               update(b, dt2) {
@@ -362,16 +372,16 @@ const MTT_ATTACKS = {
     }
   },
   column: {
-    name: 'Bomb column', duration: 9, box: { w: 40, h: 110 },
+    name: 'Bomb column', duration: 9, box: { w: 44, h: 110 },
     line: 'Here\'s a little puzzle for you, darling!',
     update(run, dt) {
       mttStyle(run, dt);
-      // a box and then a bomb above it: blow up the bomb so its blast clears the box,
-      // and don't stand in the blast yourself
+      // a box with a bomb beside it: blow up the bomb so its blast clears the box,
+      // then step out of the bomb's column before it goes off
       every(run, 'pair', 1.8, () => {
-        const x = arena.x + arena.w / 2 + pick([-8, 0, 8]);
-        mttBlock(x, arena.y - 12, 55);
-        mttBomb(arena.x + arena.w / 2 + pick([-9, 9]), arena.y - 60, 55);
+        const side = pick([-1, 1]);
+        mttBlock(arena.x + arena.w / 2 + side * 10, arena.y - 12, 50);
+        mttBomb(arena.x + arena.w / 2 - side * 10, arena.y - 12, 50);
       }, 0.1);
     }
   },
@@ -399,7 +409,7 @@ const MTT_ATTACKS = {
     }
   },
   rewind: {
-    name: 'REC / REW', duration: 9, box: { w: 70, h: 100 },
+    name: 'REC / REW', duration: 9, box: { w: 84, h: 100 },
     update(run, dt) {
       mttStyle(run, dt);
       // REC: rows fall; REW: everything plays backwards for a moment
@@ -408,10 +418,10 @@ const MTT_ATTACKS = {
       run.data.mode = rewinding ? 'rew' : 'rec';
       if (rewinding !== run.data.wasRew) {
         run.data.wasRew = rewinding;
-        for (const b of state.bullets) if (b.kind === 'mttBlock' || b.kind === 'mttBomb') b.vy = rewinding ? -95 : 60;
+        for (const b of state.bullets) if (b.kind === 'mttBlock' || b.kind === 'mttBomb') b.vy = rewinding ? -60 : 60;
       }
       if (!rewinding) {
-        every(run, 'row', 0.75, () => {
+        every(run, 'row', 0.95, () => {
           const cols = 3;
           const w = arena.w / cols;
           const skip = randInt(0, cols - 1);
@@ -429,8 +439,11 @@ const MTT_ATTACKS = {
     name: 'Box avalanche', duration: 8.5, box: MTT_BOX,
     update(run, dt) {
       mttStyle(run, dt);
-      every(run, 'drop', 0.32, () => {
-        const x = rand(arena.x + 10, arena.x + arena.w - 10);
+      every(run, 'drop', 0.4, () => {
+        // never right next to the last one, so the gaps don't close up
+        let x;
+        do x = rand(arena.x + 10, arena.x + arena.w - 10); while (run.data.lastX !== undefined && Math.abs(x - run.data.lastX) < 26);
+        run.data.lastX = x;
         if (chance(0.4)) mttBomb(x, arena.y - 16, 75);
         else mttBlock(x, arena.y - 16, 75);
       }, 0.1);
@@ -460,7 +473,7 @@ const MTT_ATTACKS = {
     start(run) { MTT_ATTACKS.disco.start(run); },
     update(run, dt) {
       mttStyle(run, dt);
-      every(run, 'box', 1.1, () => mttBlock(rand(arena.x + 12, arena.x + arena.w - 12), arena.y - 12, 65), 0.6);
+      every(run, 'box', 1.5, () => mttBlock(rand(arena.x + 12, arena.x + arena.w - 12), arena.y - 12, 65), 0.6);
     }
   }
 };
@@ -526,6 +539,11 @@ Object.assign(MettatonEx, {
 
 // ---------------------------------------------------------------- drawing
 BULLET_DRAWERS.mttBomb = b => {
+  if (b.lit && Math.floor(b.life * 16) % 2) {
+    ctx.fillStyle = '#ffffff';
+    fillCircle(b.x, b.y, b.r + 1);
+    return;
+  }
   if (drawArt('mett_bomb', b.x, b.y, 20, null, { frame: state.clock * 6 })) return;
   ctx.fillStyle = '#333';
   fillCircle(b.x, b.y, b.r);
@@ -590,7 +608,7 @@ BULLET_DRAWERS.mttRay = (b, fill) => {
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
   ctx.globalAlpha *= charging ? 0.35 : 1;
-  ctx.fillStyle = b.color === 'cyan' ? '#14a9ff' : '#ffffff';
+  ctx.fillStyle = b.color === 'cyan' ? '#14a9ff' : b.color === 'orange' ? '#ffa040' : '#ffffff';
   ctx.fillRect(-b.hw, -b.hh, b.hw * 2, b.hh * 2);
 };
 

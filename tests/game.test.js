@@ -887,7 +887,7 @@ test('Mettaton EX: posing raises the ratings and 10000 ratings end the show', as
   }
 });
 
-test('Mettaton EX: shots bounce off boxes, a shot bomb blasts its row and column', async () => {
+test('Mettaton EX: shots bounce off boxes, a shot bomb flashes and then blasts its row and column', async () => {
   const { page, close } = await openGame();
   try {
     await startMode(page, 'battle', 'mettaton_ex');
@@ -902,10 +902,15 @@ test('Mettaton EX: shots bounce off boxes, a shot bomb blasts its row and column
       const boxSurvived = !box.dead;
       state.shots = [{ x: 360, y: 205, vx: 0, vy: -1, r: 4, life: 0 }];
       updateShots(0.001);
+      // the shot bomb flashes first (time to step aside), then blows
+      const lit = state.bullets.find(b => b.lit && !b.dead);
+      const earlyBlasts = state.bullets.filter(b => b.kind === 'mttBlast').length;
+      lit.life = MTT_FUSE;
+      lit.update(lit, 0);
       const blasts = state.bullets.filter(b => b.kind === 'mttBlast').length;
-      return { boxSurvived, bombGone: bomb.dead, rowCleared: box.dead, farKept: !far.dead, blasts };
+      return { boxSurvived, bombGone: bomb.dead, rowCleared: box.dead, farKept: !far.dead, earlyBlasts, blasts };
     });
-    assert.deepEqual(result, { boxSurvived: true, bombGone: true, rowCleared: true, farKept: true, blasts: 2 });
+    assert.deepEqual(result, { boxSurvived: true, bombGone: true, rowCleared: true, farKept: true, earlyBlasts: 0, blasts: 2 });
   } finally {
     await close();
   }
@@ -1595,8 +1600,15 @@ test('GIGA Queen: punching while she is open hurts her, and the final baseball e
       b.flags.round = 2;
       b.bossHp = 1;
       b.phase = 'menu';
+      // a missed final baseball comes back next turn (no soft lock)
       startEnemyTalk(b);
       startAttack(b);
+      const first = b.attack.attack.name;
+      endAttack(b);
+      b.phase = 'menu';
+      startEnemyTalk(b);
+      startAttack(b);
+      if (b.attack.attack.name !== first) return { name: b.attack.attack.name, outcome: 'no retry' };
       const ball = b.attack.data.ball;
       state.player.x = ball.x;
       state.player.y = ball.y + 20;
@@ -1605,6 +1617,32 @@ test('GIGA Queen: punching while she is open hurts her, and the final baseball e
       return { name: b.attack.attack.name, outcome: b.outcome };
     });
     assert.deepEqual(outcome, { name: 'Final baseball', outcome: 'defeated' });
+  } finally {
+    await close();
+  }
+});
+
+test('Mad Mew Mew: every row leaves both halves of the split SOUL a way through', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'mad_mew_mew');
+    const bad = await page.evaluate(() => {
+      setSoulMode('split');
+      let bad = 0;
+      for (let i = 0; i < 300; i++) {
+        state.bullets = [];
+        mmmRow(140, true);
+        for (const [half, color] of [[0, 'red'], [1, 'blue']]) {
+          const open = [0, 1, 2].some(slot => {
+            const pos = halfPosition(half, slot);
+            return !state.bullets.some(b => Math.abs(b.x - pos.x) < 4 && !(b.passColor === color));
+          });
+          if (!open) bad++;
+        }
+      }
+      return bad;
+    });
+    assert.equal(bad, 0);
   } finally {
     await close();
   }

@@ -195,12 +195,19 @@ const Toriel = registerBoss({
         } else if (!run.data.launched) {
           run.data.launched = true;
           for (const paw of run.data.paws) paw.dead = true;
-          // the fireballs fly at the SOUL and bounce off the walls
-          for (const f of run.data.fires) {
-            const v = aimAt(f.x, f.y, rand(105, 150), rand(-0.25, 0.25));
+          run.data.launchT = run.t;
+          run.data.next = 0;
+        }
+        // the fireballs fly at the SOUL one after another, in the order they were dropped
+        if (run.data.launched) {
+          const fires = run.data.fires;
+          while (run.data.next < fires.length && run.t - run.data.launchT >= run.data.next * 0.09) {
+            const f = fires[run.data.next++];
+            if (f.dead) continue;
+            const v = aimAt(f.x, f.y, rand(115, 140), 0);
             f.vx = v.vx;
             f.vy = v.vy;
-            f.update = bounceInArena;
+            f.noCull = false;
             f.maxLife = f.life + 4;
           }
         }
@@ -216,7 +223,7 @@ const Toriel = registerBoss({
       update(run) {
         every(run, 'emit', 0.07, () => {
           run.data.columns.forEach((x, i) => {
-            const drift = Math.sin(run.t * 1.4 + i * 2) * 18;
+            const drift = Math.sin(run.t * 1.4) * 18; // both columns sway together
             torielFire(x + drift + rand(-9, 9), arena.y - 10, 0, 150);
           });
         }, 0);

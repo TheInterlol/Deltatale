@@ -207,11 +207,12 @@ const QUEEN_ATTACKS = {
           update(b, dt) {
             b.x += b.vx * dt;
             b.timer = (b.timer || 0) + dt;
-            if (b.timer > 0.9 && b.x < arena.x + arena.w) {
+            // icons only post while they are over the board
+            if (b.timer > 1.1 && b.x < arena.x + arena.w && b.x > arena.x + 10) {
               b.timer = 0;
               const word = pick(['LOL', 'DRAMA', 'OMG', '#BERDLY', 'LIKE']);
               const v = aimAt(b.x, b.y, 150);
-              spawn({ kind: 'word', word, x: b.x, y: b.y, vx: v.vx, vy: v.vy, hw: word.length * 6, hh: 6, maxLife: 3 });
+              spawn({ kind: 'word', word, x: b.x, y: b.y, vx: v.vx, vy: v.vy, hw: word.length * 4.5, hh: 5, maxLife: 3 });
             }
           }
         });
@@ -266,7 +267,7 @@ const QUEEN_ATTACKS = {
       run.data.level = Math.max(arena.y + 30, run.data.level - 22 * dt);
       const p = state.player;
       if (p.y > run.data.level - p.r) p.y = run.data.level - p.r;
-      every(run, 'drop', 0.12, () => {
+      every(run, 'drop', 0.15, () => {
         spawn({ kind: 'queenDrop', x: rand(arena.x + 6, arena.x + arena.w - 6), y: arena.y - 8, vy: 170, r: 5, maxLife: 3 });
       }, 0.1);
       state.wineLevel = run.data.level;

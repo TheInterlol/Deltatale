@@ -105,17 +105,20 @@ const Berdly = registerBoss({
           const baseY = rand(arena.y + 40, arena.y + arena.h - 40);
           const amp = rand(20, 45);
           const points = [];
-          for (let i = 0; i <= 8; i++) {
-            const x = fromLeft ? arena.x + (arena.w * i) / 8 : arena.x + arena.w - (arena.w * i) / 8;
-            points.push({ x, y: baseY + Math.sin(i * 0.9) * amp });
+          // five points, so there's room to stand between the spikes they shoot
+          const off = rand(0.25, 0.75);
+          for (let i = 0; i < 5; i++) {
+            const k = (i + off) / 5;
+            const x = fromLeft ? arena.x + arena.w * k : arena.x + arena.w * (1 - k);
+            points.push({ x, y: baseY + Math.sin(i * 1.8) * amp });
           }
           points.forEach((pt, i) => {
             spawn({
-              kind: 'normal', x: pt.x, y: pt.y, r: 4, warn: 0.6 + i * 0.05, activeFor: 0.1, harmless: false, noCull: true, color: '#5ec8ff',
+              kind: 'normal', x: pt.x, y: pt.y, r: 4, warn: 0.6 + i * 0.09, activeFor: 0.1, harmless: false, noCull: true, color: '#5ec8ff',
               onLand: null
             });
             run.data.spikes = run.data.spikes || [];
-            run.data.spikes.push({ x: pt.x, y: pt.y, at: run.t + 0.7 + i * 0.05 });
+            run.data.spikes.push({ x: pt.x, y: pt.y, at: run.t + 0.7 + i * 0.09 });
           });
         }, 0.2);
         // when the trail fires, little spikes burst up and down from it

@@ -210,11 +210,13 @@ const TENNA_ATTACKS = {
       run.data.events = [];
       for (let w = 0; w < 5; w++) {
         run.data.events.push([0.3 + w * 1.25, () => {
-          const fives = w % 2 === 0;
-          const count = fives ? 5 : 3;
-          const width = arena.w / (fives ? 9 : 6);
+          // alternating waves: three bolts with two safe lanes, then two bolts on a random side
+          const odd = w % 2 === 0;
+          const count = odd ? 3 : 2;
+          const width = arena.w / (odd ? 5 : 4);
+          const shift = randInt(0, 1);
           for (let i = 0; i < count; i++) {
-            const x = fives ? arena.x + width * (i * 2 + 0.5) : arena.x + width * (i * 2 + 0.5 + randInt(0, 1));
+            const x = arena.x + width * (i * 2 + (odd ? 0 : shift));
             warnZone(x, arena.y, width, arena.h, 0.55, 0.2, { kind: 'tennaBolt', color: '#fff7a8', ownWarn: true });
           }
         }]);

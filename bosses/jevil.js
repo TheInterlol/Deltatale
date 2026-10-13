@@ -277,6 +277,7 @@ function spadeSpiral(run, count, speed, spin, reverseChance = 0) {
           state0.dir *= -1;
         }
         const r = startR - b.life * speed;
+        if (r < 4) { b.dead = true; return; } // the ring closes in and vanishes in the middle
         const a = offset + (Math.PI * 2 * i) / count + b.life * spin * state0.dir;
         b.x = c.x + Math.cos(a) * r;
         b.y = c.y + Math.sin(a) * r;
@@ -346,7 +347,7 @@ const JEVIL_ATTACKS = {
   spadeSpiral: {
     name: 'Spade spiral', duration: 6,
     update(run) {
-      every(run, 'spiral', 2.6, () => spadeSpiral(run, 10, 62 * run.speed, 1.3), 0.1);
+      every(run, 'spiral', 2.6, () => spadeSpiral(run, 8, 60 * run.speed, 0.9), 0.1);
     }
   },
   heartBombs: {
@@ -382,13 +383,13 @@ const JEVIL_ATTACKS = {
   diamondRelease: {
     name: 'Diamond release', duration: 5.5,
     update(run) {
-      every(run, 'rise', 0.16 / run.speed, () => diamondRise(330 * run.speed), 0.2);
+      every(run, 'rise', 0.2 / run.speed, () => diamondRise(300 * run.speed, 0.4), 0.2);
     }
   },
   spadeSpiral2: {
     name: 'Spade spiral II', duration: 7.5,
     update(run) {
-      every(run, 'spiral', 2.2, () => spadeSpiral(run, 12, 78 * run.speed, 1.7, 0.6), 0.1);
+      every(run, 'spiral', 2.4, () => spadeSpiral(run, 8, 66 * run.speed, 1.1, 0.6), 0.1);
     }
   },
   carousel2: {
@@ -411,14 +412,14 @@ const JEVIL_ATTACKS = {
   threeClub: {
     name: 'Three-club', duration: 6,
     update(run) {
-      every(run, 'burst', 1.0 / run.speed, () => {
+      every(run, 'burst', 1.25 / run.speed, () => {
         // three bursts from the edges at where the SOUL was
         const p = { x: state.player.x, y: state.player.y };
         for (let i = 0; i < 3; i++) {
           const from = jevilSidePoint(i === 1 ? 'right' : 'left');
           const a = Math.atan2(p.y - from.y, p.x - from.x);
           for (const off of [-0.25, 0, 0.25]) {
-            suitBullet('club', from.x, from.y, Math.cos(a + off) * 160 * run.speed, Math.sin(a + off) * 160 * run.speed, 7, { faceVelocity: true, minLife: 1, maxLife: 4 });
+            suitBullet('club', from.x, from.y, Math.cos(a + off) * 140 * run.speed, Math.sin(a + off) * 140 * run.speed, 7, { faceVelocity: true, minLife: 1, maxLife: 4 });
           }
         }
       }, 0.3);
@@ -490,9 +491,10 @@ const JEVIL_ATTACKS = {
       const colW = arena.w / cols;
       const drop = (col, at) => run.data.events.push([at, () => fallingKnife(arena.x + colW * (col + 0.5), colW)]);
       run.data.events = [];
-      // random drops, then from the edges inwards, then down the middle
+      // random drops, then from the edges inwards (stopping short of the middle two),
+      // then down the middle - by then the outer columns are safe again
       for (let i = 0; i < 8; i++) drop(randInt(0, cols - 1), 0.4 + i * 0.4);
-      for (let i = 0; i < cols / 2; i++) {
+      for (let i = 0; i < cols / 2 - 1; i++) {
         drop(i, 4 + i * 0.35);
         drop(cols - 1 - i, 4 + i * 0.35);
       }

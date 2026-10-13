@@ -307,7 +307,7 @@ function saberSwipe(side, warn) {
   const half = arena.w / 2;
   const x = side === 'left' ? arena.x : arena.x + half;
   warnZone(x, arena.y, half, arena.h, warn, 0.18, { kind: 'saber', color: '#ffe14d', side, ownWarn: true, clip: false });
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 2; i++) {
     const sx = rand(x + 10, x + half - 10);
     const sy = rand(arena.y + 10, arena.y + arena.h - 10);
     asrielStar(sx, sy, 0, 0, 4, {
@@ -315,7 +315,7 @@ function saberSwipe(side, warn) {
       update(b, dt) {
         if (b.life < b.warn) return;
         const t = b.life - b.warn;
-        b.x += (side === 'left' ? 1 : -1) * (t < 0.8 ? 25 : 200) * dt;
+        b.x += (side === 'left' ? 1 : -1) * (t < 0.8 ? 25 : 130) * dt;
       }
     });
   }
@@ -374,7 +374,7 @@ const ASRIEL_ATTACKS = {
       for (let i = 0; i < 3; i++) run.data.events.push([0.2 + i * 0.55, () => lightningColumn(arena.x + arena.w * (0.2 + 0.3 * i), 28, 0.5)]);
       for (let i = 0; i < 4; i++) run.data.events.push([2 + i * 0.6, () => lightningColumn(state.player.x, 36, 0.45)]);
       // a sweep of big bolts from left to right
-      for (let i = 0; i < 5; i++) run.data.events.push([4.8 + i * 0.32, () => lightningColumn(arena.x + arena.w * (0.1 + i * 0.2), arena.w * 0.2, 0.4)]);
+      for (let i = 0; i < 5; i++) run.data.events.push([4.6 + i * 0.42, () => lightningColumn(arena.x + arena.w * (0.1 + i * 0.2), arena.w * 0.2, 0.4, 0.2)]);
     },
     update(run) {
       timeline(run, run.data.events);
@@ -387,7 +387,7 @@ const ASRIEL_ATTACKS = {
       run.data.events = [];
       const sides = ['right', 'left', 'right', 'left', 'right'];
       sides.forEach((side, i) => run.data.events.push([0.2 + i * 0.95, () => saberSwipe(side, 0.55)]));
-      run.data.events.push([5.2, () => { saberSwipe('left', 0.6); saberSwipe('right', 0.9); }]);
+      run.data.events.push([5.2, () => { saberSwipe('left', 0.6); saberSwipe('right', 1.05); }]);
     },
     update(run) {
       timeline(run, run.data.events);
@@ -399,7 +399,7 @@ const ASRIEL_ATTACKS = {
     start(run) {
       run.data.events = [];
       for (let i = 0; i < 6; i++) run.data.events.push([0.2 + i * 0.75, () => saberSwipe(i % 2 ? 'left' : 'right', 0.42)]);
-      run.data.events.push([5, () => { saberSwipe('left', 0.45); saberSwipe('right', 0.75); }]);
+      run.data.events.push([5, () => { saberSwipe('left', 0.45); saberSwipe('right', 0.9); }]);
     },
     update(run) {
       timeline(run, run.data.events);
