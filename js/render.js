@@ -7,7 +7,21 @@ function drawBackground() {
   // a boss with its own backdrop (Asriel's shifting colours)
   const boss = state.screen === 'fight' && state.currentBoss;
   if (boss && boss.drawBackdrop && boss.drawBackdrop(state.battle)) return;
-  if (state.screen === 'fight' && isUndertale()) return;
+  if (state.screen === 'fight' && isUndertale()) {
+    // Undertale's green grid behind the enemy (the Ruins have one on each side)
+    if (boss && boss.utBackground) {
+      const info = typeof ATTACK_ART !== 'undefined' && ATTACK_ART.ut_battlebg;
+      const img = info && attackImage('ut_battlebg');
+      if (img) {
+        const frame = boss.utBackground === 'ruins' ? 1 : 0;
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.drawImage(img, frame * info.w, 0, info.w, 250, 40, -4, 640, 172);
+        ctx.restore();
+      }
+    }
+    return;
+  }
 
   const size = 40;
   const offset = (state.clock * 12) % size;

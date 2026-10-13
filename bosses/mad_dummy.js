@@ -13,6 +13,7 @@ const MadDummy = registerBoss({
   id: 'mad_dummy',
   name: 'Mad Dummy',
   game: 'undertale',
+  utBackground: 'grid',
   color: '#ff6b6b',
   emblem: 'dummy',
 

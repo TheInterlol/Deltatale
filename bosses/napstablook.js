@@ -7,6 +7,7 @@ const Napstablook = registerBoss({
   id: 'napstablook',
   name: 'Napstablook',
   game: 'undertale',
+  utBackground: 'ruins',
   color: '#cfd8ff',
   emblem: 'tear',
 

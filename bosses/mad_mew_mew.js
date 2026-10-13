@@ -10,6 +10,7 @@ const MadMewMew = registerBoss({
   id: 'mad_mew_mew',
   name: 'Mad Mew Mew',
   game: 'undertale',
+  utBackground: 'grid',
   color: '#ff7ab8',
   emblem: 'heart',
 

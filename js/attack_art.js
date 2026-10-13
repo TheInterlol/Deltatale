@@ -109,5 +109,6 @@ const ATTACK_ART = {
   undyne_arrow_blue: { frames: 2, w: 27, h: 24 },
   undyne_risespear: { frames: 1, w: 24, h: 60 },
   undyne_spear: { frames: 1, w: 20, h: 80 },
+  ut_battlebg: { frames: 2, w: 640, h: 480 },
   ut_fire: { frames: 2, w: 16, h: 16 },
 };

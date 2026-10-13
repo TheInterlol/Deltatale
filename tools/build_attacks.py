@@ -20,6 +20,7 @@ SUITS = DR + '/Enemies/Ch1/# Suits Bullets/'
 
 SPRITES = {
     # Undertale
+    'ut_battlebg': UT + '/UI/BG/spr_battlebg',      # frame 0: full grid, frame 1: the Ruins' side grids
     'gaster_blaster': UC + 'Sans/Attacks/spr_gasterblaster',
     'sans_bone_top': UC + 'Sans/Attacks/spr_s_bonebul_top',
     'sans_bone_bottom': UC + 'Sans/Attacks/spr_s_bonebul_bottom',

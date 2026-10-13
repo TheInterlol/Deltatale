@@ -4,6 +4,7 @@ const TrainingDummy = registerBoss({
   id: 'dummy',
   name: 'Training Dummy',
   game: 'undertale',
+  utBackground: 'ruins',
   color: '#d9b77e',
   emblem: 'dummy',
 

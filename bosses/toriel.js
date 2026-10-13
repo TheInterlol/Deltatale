@@ -36,6 +36,7 @@ const Toriel = registerBoss({
   id: 'toriel',
   name: 'Toriel',
   game: 'undertale',
+  utBackground: 'ruins',
   color: '#c9a2ff',
   emblem: 'flame',
 

@@ -19,6 +19,7 @@ const Doggo = registerBoss({
   id: 'doggo',
   name: 'Doggo',
   game: 'undertale',
+  utBackground: 'grid',
   color: '#8fd3ff',
   emblem: 'sword',
 
@@ -100,6 +101,7 @@ const DogamyDogaressa = registerBoss({
   name: 'Dogamy & Dogaressa',
   shortName: 'Dogamy & Dogaressa',
   game: 'undertale',
+  utBackground: 'grid',
   color: '#c8a2ff',
   emblem: 'heart',
 
@@ -218,6 +220,7 @@ const GreaterDog = registerBoss({
   id: 'greater_dog',
   name: 'Greater Dog',
   game: 'undertale',
+  utBackground: 'grid',
   color: '#ffffff',
   emblem: 'spear',
 
