@@ -183,6 +183,13 @@ SPRITES = {
     'titan_dark': DB + 'Ch4/Titan/Battle/Attacks/Hand/spr_wibblywobbly_dark_bullet',
     'titan_spawnbullet': DB + 'Ch4/Titan/Battle/Titan Spawn/Unused/spr_darkshape_spawnbullet',
     'titan_spawn': DB + 'Ch4/Titan/Battle/Titan Spawn/Standard/spr_titan_spawn_idle',
+    'jack_key': DB + 'Ch4/Jackenstein/Battle/Attacks/spr_battle_key',
+    'jack_exit': DB + 'Ch4/Jackenstein/Battle/Attacks/spr_exit_arrow',
+    'jack_dot': DB + 'Ch4/Jackenstein/Battle/Attacks/spr_ghost_house_dot',
+    'jack_bullet': DB + 'Ch4/Jackenstein/Battle/Attacks/spr_ghost_house_bullet',
+    'jack_house': DB + 'Ch4/Jackenstein/Battle/Attacks/Ghost Houses/spr_ghost_house_3x2',
+    'jack_pumpkin': DB + 'Ch4/Jackenstein/Battle/Attacks/Pumpkin Bullets/spr_ghost_house_pumpkin_spin',
+    'jack_face': DB + 'Ch4/Jackenstein/Battle/Attacks/YOUR TAKING TOO LONG/spr_guywhoappearswhenyouhavetakentoolonginaghosthouse',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 

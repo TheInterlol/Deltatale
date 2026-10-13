@@ -659,13 +659,26 @@ const JACK_MAZE = {
     maze.forEach((row, y) => [...row].forEach((c, x) => {
       const cx = arena.x + cw * (x + 0.5);
       const cy = arena.y + ch * (y + 0.5);
-      if (c === '#') spawn({ kind: 'wall', x: cx, y: cy, hw: cw / 2, hh: ch / 2, solid: true, noCull: true });
+      if (c === '#') {
+        // the ghost house's walls are thin white lines along the open corridors
+        const open = (dx, dy) => { const r = maze[y + dy]; return r !== undefined && r[x + dx] !== undefined && r[x + dx] !== '#'; };
+        spawn({ kind: 'wall', x: cx, y: cy, hw: cw / 2, hh: ch / 2, solid: true, noCull: true,
+          edges: { l: open(-1, 0), r: open(1, 0), t: open(0, -1), b: open(0, 1) } });
+      }
       if (c === 'K') run.data.key = spawn({ kind: 'key', x: cx, y: cy, r: 7, harmless: true, noCull: true });
       if (c === 'T') spawn({ kind: 'treasure', x: cx, y: cy, r: 6, harmless: true, noCull: true });
       if (c === 'E') run.data.exit = spawn({ kind: 'exit', x: cx, y: cy, r: 9, harmless: true, noCull: true });
       if (c === 'S') {
         state.player.x = cx;
         state.player.y = cy;
+      }
+      // ghosts (white dots) drift through the open corridors
+      if (c === '.' && Math.random() < 0.12) {
+        spawn({ kind: 'jackGhost', x: cx, y: cy, r: 5, noCull: true, home: { x: cx, y: cy }, phase: Math.random() * 6,
+          update(b) {
+            b.x = b.home.x + Math.sin(b.life * 1.3 + b.phase) * cw * 0.35;
+            b.y = b.home.y + Math.cos(b.life * 1.7 + b.phase) * ch * 0.3;
+          } });
       }
     }));
   },
@@ -685,7 +698,7 @@ const JACK_MAZE = {
       if (run.battle) run.battle.tp = Math.min(100, run.battle.tp + 10);
       sfx.select();
       // the pumpkin shows up and gives chase
-      run.data.pumpkin = spawn({ kind: 'pumpkin', x: arena.x + arena.w - 20, y: arena.y + 20, r: 10, noCull: true, clip: false,
+      run.data.pumpkin = spawn({ kind: 'jackFace', x: arena.x + arena.w - 20, y: arena.y + 20, r: 12, noCull: true, clip: false,
         update(b, dt) {
           const v = aimAt(b.x, b.y, 55);
           b.x += v.vx * dt;
@@ -704,48 +717,67 @@ const JACK_RAIN = {
   name: 'Bullet rain', duration: 6.5,
   box: { w: 240, h: 170 },
   update(run) {
-    every(run, 'drop', 0.12, () => spawn({ kind: 'normal', x: rand(arena.x, arena.x + arena.w), y: arena.y - 8, vy: 180, r: 4, maxLife: 3, color: '#ff9a1a' }), 0.1);
+    every(run, 'drop', 0.16, () => spawn({ kind: 'pumpkin', x: rand(arena.x, arena.x + arena.w), y: arena.y - 8, vy: 170, r: 7, maxLife: 3, color: '#ff9a1a' }), 0.1);
   }
 };
 
 Jackenstein.attacks = [JACK_MAZE, JACK_RAIN];
 
 BULLET_DRAWERS.wall = b => {
-  ctx.fillStyle = '#3a2a5a';
+  ctx.fillStyle = '#000';
   ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2);
+  const e = b.edges;
+  if (!e) return;
+  ctx.fillStyle = '#ffffff';
+  if (e.l) ctx.fillRect(b.x - b.hw, b.y - b.hh, 2, b.hh * 2);
+  if (e.r) ctx.fillRect(b.x + b.hw - 2, b.y - b.hh, 2, b.hh * 2);
+  if (e.t) ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, 2);
+  if (e.b) ctx.fillRect(b.x - b.hw, b.y + b.hh - 2, b.hw * 2, 2);
 };
 
 BULLET_DRAWERS.key = b => {
+  if (drawArt('jack_key', b.x, b.y, 12, 18)) return;
   ctx.fillStyle = '#ffe14d';
   fillCircle(b.x - 3, b.y, 4);
-  ctx.fillRect(b.x, b.y - 1, 8, 3);
-  ctx.fillRect(b.x + 5, b.y + 1, 2, 4);
 };
 
 BULLET_DRAWERS.treasure = b => {
-  ctx.fillStyle = '#7dff7d';
+  if (drawArt('jack_dot', b.x, b.y, 10, 10)) return;
   drawSuit('diamond', b.x, b.y, 12, '#7dff7d');
 };
 
 BULLET_DRAWERS.exit = b => {
+  if (drawArt('jack_exit', b.x + Math.sin(state.clock * 6) * 2, b.y, 22, 11)) return;
   ctx.strokeStyle = '#7fd4ff';
-  ctx.lineWidth = 2;
   ctx.strokeRect(b.x - 8, b.y - 8, 16, 16);
 };
 
+BULLET_DRAWERS.jackGhost = b => {
+  if (drawArt('jack_bullet', b.x, b.y, 11, 11)) return;
+  ctx.fillStyle = '#fff';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.jackFace = b => {
+  // YOUR TAKING TOO LONG
+  if (drawArt('jack_face', b.x, b.y, 54, null, { frame: state.clock * 6 })) return;
+  BULLET_DRAWERS.pumpkin(b);
+};
+
 BULLET_DRAWERS.pumpkin = b => {
+  if (drawArt('jack_pumpkin', b.x, b.y, b.r * 2.6, b.r * 2.6, { frame: state.clock * 12 })) return;
   ctx.fillStyle = '#ff9a1a';
   fillCircle(b.x, b.y, b.r);
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.moveTo(b.x - 5, b.y - 2);
-  ctx.lineTo(b.x - 2, b.y - 5);
-  ctx.lineTo(b.x - 2, b.y);
-  ctx.moveTo(b.x + 5, b.y - 2);
-  ctx.lineTo(b.x + 2, b.y - 5);
-  ctx.lineTo(b.x + 2, b.y);
-  ctx.fill();
-  ctx.fillRect(b.x - 5, b.y + 3, 10, 2);
+};
+
+// the board is a ghost house: its outline (with the roof) frames the maze
+Jackenstein.drawArenaDecor = box => {
+  const battle = state.battle;
+  if (!battle || !battle.attack || !battle.attack.attack.maze) return;
+  // the house body lines up with the board, its roof sits on top
+  const w = box.w * 200 / 190;
+  const h = box.h * 120 / 75;
+  drawArt('jack_house', box.x + box.w / 2, box.y - h * 0.375 + h / 2, w, h, { tint: '#3ddc5a' });
 };
 
 // ---------------------------------------------------------------- Sound of Justice
