@@ -161,8 +161,11 @@ const ASGORE_ATTACKS = {
     duration: 7,
     update(run) {
       const pace = asgorePace(run);
-      // small waves down the middle...
-      every(run, 'wave', 0.14 / pace, () => asgoreFire(arena.x + arena.w / 2 + rand(-22, 22), arena.y - 8, 0, 150, 5, 6), 0);
+      // small waves down the middle... with a gap in the stream each time before a cloud,
+      // so you can get across to the safe side
+      const phase = (((run.t - 0.5) * pace) % 1.6 + 1.6) % 1.6;
+      const gap = phase > 0.95 && phase < 1.5;
+      every(run, 'wave', 0.14 / pace, () => { if (!gap) asgoreFire(arena.x + arena.w / 2 + rand(-22, 22), arena.y - 8, 0, 150, 5, 6); }, 0);
       // ...alternating with a huge cloud of fire over one side
       every(run, 'cloud', 1.6 / pace, () => {
         const left = run.data.left = !run.data.left;
@@ -231,12 +234,13 @@ const ASGORE_ATTACKS = {
     name: 'Corner rings',
     duration: 7,
     update(run) {
-      every(run, 'ring', 1.3, () => {
+      every(run, 'ring', 1.8, () => {
         run.data.n = (run.data.n || 0) + 1;
         const fromLeft = run.data.n % 2 === 1;
         const start = { x: fromLeft ? arena.x - 20 : arena.x + arena.w + 20, y: arena.y - 20 };
         const end = { x: fromLeft ? arena.x + arena.w + 40 : arena.x - 40, y: arena.y + arena.h + 40 };
-        const count = 6 + Math.min(4, run.data.n);
+        // (at most 8 flames, so there is always a SOUL-sized gap in the ring)
+        const count = 6 + Math.min(2, run.data.n);
         const vx = (end.x - start.x) / 3;
         const vy = (end.y - start.y) / 3;
         for (let i = 0; i < count; i++) {
