@@ -494,6 +494,9 @@ function renderFight() {
   drawCharacters();
   drawArena();
   if (isSoulVisible()) {
+    // props around the board that bullets fly over (Sweet Cap'n Cakes' speakers and dancers)
+    const decorBoss = state.currentBoss;
+    if (decorBoss && decorBoss.drawArenaDecor) decorBoss.drawArenaDecor(state.box);
     drawBullets();
     drawShots();
     drawPlayer();

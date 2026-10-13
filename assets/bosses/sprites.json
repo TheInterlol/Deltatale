@@ -211,7 +211,7 @@
  },
  "sweet_cap_cakes": {
   "fps": 8,
-  "frames": 7,
+  "frames": 6,
   "scale": 1.25,
   "sprite": "idle.png"
  },

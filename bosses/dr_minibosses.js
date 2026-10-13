@@ -7,6 +7,7 @@
 // turns into a party and ends. Their bullets fire on the beat of the music: circles with
 // trails from the top, notes from the speakers that follow your height, wave bullets.
 const SCC_BEAT = 0.5; // 120 BPM
+const SCC_BOX = { w: 116, h: 138 };
 
 const SweetCapnCakes = registerBoss({
   id: 'sweet_cap_cakes',
@@ -24,7 +25,7 @@ const SweetCapnCakes = registerBoss({
   checkDefense: 0,
   gold: 0,
   cannotBeFought: true,
-  box: { w: 140, h: 140 },
+  box: SCC_BOX,
   fixedSpeed: true,
   check: 'A band of three. They heal each other with the power of music.',
   intro: '* Sweet Cap\'n Cakes is playing a song!',
@@ -64,37 +65,181 @@ const SweetCapnCakes = registerBoss({
     for (const k in m) if (m[k] && m[k] < 99) m[k] -= 1;
   },
 
-  getDialogue() {
-    return pick(['Yo! Let\'s jam!', 'Feel the beat!', 'One, two, three, four!', 'Turn it UP!']);
+  getDialogue(battle) {
+    const lines = [['Hey, I love this song!!', 'Can we dance?', 'Isn\'t this mix... schway?'],
+      ['Dance! Dance! Everybody dance!', 'Alright, alright.', 'Feel the beat!'], ['Turn it UP!', 'One, two, three, four!']];
+    return lines[battle.turn % lines.length].join('\n');
+  },
+
+  // A tall board between two big speakers, with the three of them dancing on top of it
+  // (taken from the fight): K_K's notes pour out of the speakers, Cap'n throws streams of beads
+  // from the top and Sweet fires zig-zag electricity from the speaker cones. Whoever is
+  // dancing stops attacking.
+  chooseAttack(battle) {
+    const m = battle.flags.members;
+    for (let i = 0; i < this.attacks.length; i++) {
+      const attack = this.attacks[(battle.turn + i) % this.attacks.length];
+      if (!attack.member || !m[attack.member]) return attack;
+    }
+    return this.attacks[3];
+  },
+
+  drawArenaDecor(box) {
+    drawSccStage(box);
   },
 
   attacks: [
-    {
-      name: 'Musical bullets', duration: 7,
-      update(run) {
-        // everything happens on the beat
-        every(run, 'beat', SCC_BEAT, () => {
-          run.data.beat = (run.data.beat || 0) + 1;
-          const b = run.data.beat;
-          if (b % 2 === 0) spawn({ kind: 'normal', x: rand(arena.x + 10, arena.x + arena.w - 10), y: arena.y - 8, vy: 160, r: 6, maxLife: 3, color: '#ff7ab8' });
-          if (b % 4 === 1) {
-            const left = chance(0.5);
-            const y = state.player.y + rand(-15, 15);
-            spawn({ kind: 'note', x: left ? arena.x - 10 : arena.x + arena.w + 10, y, vx: left ? 170 : -170, r: 6, maxLife: 3, minLife: 0.5, color: '#ffe14d' });
-          }
-          if (b % 8 === 4) {
-            for (const left of [true, false]) {
-              for (let i = 0; i < 4; i++) {
-                const a = (left ? 0 : Math.PI) + rand(-0.7, 0.7);
-                spawn({ kind: 'normal', x: left ? arena.x - 5 : arena.x + arena.w + 5, y: arena.y + arena.h / 2, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, r: 5, maxLife: 3, minLife: 0.5, color: '#7fd4ff' });
-              }
-            }
-          }
-        }, 0.2);
-      }
-    }
+    { name: 'Speaker notes', member: 'KK', duration: 7, box: SCC_BOX, update: run => sccBand(run, { notes: 2, beads: 0.5 }) },
+    { name: 'Bead fountain', member: 'Capn', duration: 7, box: SCC_BOX, update: run => sccBand(run, { beads: 2, notes: 0.5 }) },
+    { name: 'Electric waves', member: 'Sweet', duration: 7, box: SCC_BOX, update: run => sccBand(run, { waves: 2, notes: 0.5 }) },
+    { name: 'Full band', duration: 8, box: SCC_BOX, update: run => sccBand(run, { notes: 1, beads: 1, waves: 1 }) }
   ]
 });
+
+function sccSpeakers(box = arena) {
+  const h = box.h + 16;
+  const w = h * 86 / 218;
+  const gap = 10;
+  const y = box.y + box.h / 2;
+  const left = box.x - gap - w / 2;
+  const right = box.x + box.w + gap + w / 2;
+  // the two cones of each speaker
+  const cones = x => [{ x, y: y - h * 0.2 }, { x, y: y + h * 0.22 }];
+  return { w, h, y, left, right, cones: { left: cones(left), right: cones(right) } };
+}
+
+// beat counter for the speakers' thump and the dancers' bob
+function sccBeat() {
+  return state.clock / SCC_BEAT;
+}
+
+function drawSccStage(box) {
+  const s = sccSpeakers(box);
+  const beat = sccBeat();
+  const thump = 1 + 0.035 * Math.max(0, 1 - (beat % 1) * 4);
+  const fire = state.battle && state.battle.flags.sccFire;
+  for (const side of ['left', 'right']) {
+    // a speaker that fires kicks harder
+    const kick = fire && fire[side] ? Math.max(0, 1 - (state.clock - fire[side]) / 0.3) : 0;
+    const k = thump + 0.06 * kick;
+    const x = s[side];
+    if (!drawArt('scc_speaker', x, s.y, s.w * k, s.h * k, { flipX: side === 'right' })) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - s.w / 2, s.y - s.h / 2, s.w, s.h);
+      for (const c of s.cones[side]) { ctx.beginPath(); ctx.arc(c.x, c.y, s.w * 0.32, 0, Math.PI * 2); ctx.stroke(); }
+    }
+  }
+  // the three of them dancing on top of the board: Cap'n, K_K, Sweet (body + head)
+  const members = state.battle ? state.battle.flags.members : {};
+  const heads = [['Capn', 2], ['KK', 5], ['Sweet', 8]];
+  heads.forEach(([who, head], i) => {
+    const x = box.x + box.w / 2 + (i - 1) * 34;
+    const dancing = members[who];
+    const bob = Math.abs(Math.sin(beat * Math.PI)) * (dancing ? 5 : 2);
+    const y = box.y - 30 - bob;
+    const flip = dancing && Math.floor(beat) % 2 === 0;
+    if (!drawArt('scc_dancer', x, y, 34, 42, { frame: 1, flipX: flip })) return;
+    drawArt('scc_dancer', x, y - (dancing ? 2 : 0), 34, 42, { frame: head + (Math.floor(beat * (dancing ? 2 : 1)) % 3), flipX: flip });
+  });
+}
+
+function sccBand(run, parts) {
+  const battle = state.battle;
+  const m = battle ? battle.flags.members : {};
+  if (battle) battle.flags.sccFire = battle.flags.sccFire || {};
+  const level = (part, who) => (m[who] ? 0 : parts[part] || 0);
+  const notes = level('notes', 'KK');
+  const beads = level('beads', 'Capn');
+  const waves = level('waves', 'Sweet');
+  const s = sccSpeakers();
+
+  every(run, 'beat', SCC_BEAT, () => {
+    run.data.beat = (run.data.beat || 0) + 1;
+    const beat = run.data.beat;
+    // K_K: a burst of notes out of one speaker, arcing into the board
+    if (notes && beat % (notes >= 2 ? 1 : 2) === 0) {
+      const side = beat % 4 < 2 ? 'left' : 'right';
+      const dir = side === 'left' ? 1 : -1;
+      const cone = pick(s.cones[side]);
+      const count = notes >= 2 ? 3 : 2;
+      for (let i = 0; i < count; i++) {
+        spawn({ kind: 'sccNote', x: cone.x, y: cone.y, vx: dir * rand(70, 125), vy: rand(-150, -40), ay: 170, r: 6,
+          maxLife: 4, minLife: 1.5, noTrail: true });
+      }
+      battle && (battle.flags.sccFire[side] = state.clock);
+    }
+    // Cap'n: a stream of beads thrown from the top, aimed where the SOUL is now
+    if (beads && beat % (beads >= 2 ? 3 : 6) === 1) {
+      const fromX = arena.x + arena.w / 2 + (pick([-1, 0, 1])) * 34;
+      const fromY = arena.y - 34;
+      const target = state.player.x + rand(-12, 12);
+      const tFall = 0.75;
+      const vx = (target - fromX) / tFall;
+      run.data.streams = run.data.streams || [];
+      run.data.streams.push({ x: fromX, y: fromY, vx, left: beads >= 2 ? 0.7 : 0.5, t: 0 });
+    }
+    // Sweet: zig-zag electricity from a speaker cone, in a small fan
+    if (waves && beat % (waves >= 2 ? 3 : 5) === 2) {
+      const side = (beat / 3) % 2 < 1 ? 'right' : 'left';
+      const cone = pick(s.cones[side]);
+      const base = Math.atan2(state.player.y - cone.y, state.player.x - cone.x);
+      const spread = waves >= 2 ? [-0.32, 0, 0.32] : [-0.2, 0.2];
+      battle && (battle.flags.sccFire[side] = state.clock);
+      for (const off of spread) {
+        const a = base + off;
+        spawn({ kind: 'sccWave', x: cone.x, y: cone.y, angle: a, hw: 42, hh: 5, warn: 0.35, maxLife: 3, minLife: 1.2, noFx: true,
+          update(b, dt) {
+            if (b.life < b.warn) return;
+            b.x += Math.cos(b.angle) * 250 * dt;
+            b.y += Math.sin(b.angle) * 250 * dt;
+          } });
+      }
+    }
+  }, 0.4);
+
+  // the bead streams: one bead every few hundredths of a second, all on the same arc
+  for (const st of run.data.streams || []) {
+    if (st.left <= 0) continue;
+    st.left -= run.dt;
+    st.t += run.dt;
+    st.next = (st.next || 0) - run.dt;
+    while (st.next <= 0) {
+      st.next += 0.045;
+      spawn({ kind: 'sccBead', x: st.x, y: st.y, vx: st.vx + Math.sin(st.t * 9) * 8, vy: -40, ay: 380, r: 5, maxLife: 3, minLife: 1, noTrail: true });
+    }
+  }
+}
+
+BULLET_DRAWERS.sccNote = (b, fill) => {
+  if (drawArt('scc_note', b.x, b.y, 18, 18, { tint: artTint(fill) })) return;
+  BULLET_DRAWERS.note ? BULLET_DRAWERS.note(b, fill) : fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.sccBead = b => {
+  ctx.fillStyle = '#ffffff';
+  fillCircle(b.x, b.y, b.r);
+  ctx.fillStyle = '#c8c8c8';
+  fillCircle(b.x + 1, b.y + 1, b.r * 0.45);
+};
+
+BULLET_DRAWERS.sccWave = b => {
+  const charging = b.life < b.warn;
+  ctx.save();
+  if (charging) ctx.globalAlpha *= 0.3 + 0.7 * (b.life / b.warn);
+  // grows out of the speaker while it charges
+  const k = charging ? 0.3 + 0.7 * (b.life / b.warn) : 1;
+  if (!drawArt('scc_wave', b.x, b.y, b.hw * 2 * k, 20, { angle: b.angle })) {
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.angle);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 12; i++) ctx.lineTo(-b.hw * k + (i / 12) * b.hw * 2 * k, i % 2 ? -6 : 6);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
 
 function sccDance(battle, count) {
   const f = battle.flags;

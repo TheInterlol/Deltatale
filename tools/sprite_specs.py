@@ -73,7 +73,7 @@ SPECS = {
     'sweet_cap_cakes': {'idle': lambda: side_by_side([
         frames(dr(DB + 'Ch2/Sweet Cap_n Cakes/Sweet/Ch2/spr_sweet_idle')),
         frames(dr(DB + 'Ch2/Sweet Cap_n Cakes/Cap_n/Ch2/spr_hatguy_idle')),
-        frames(dr(DB + 'Ch2/Sweet Cap_n Cakes/K_K/Ch2/spr_kk_dance'))]), 'height': 110, 'scale': 1.25, 'fps': 8},
+        frames(dr(DB + 'Ch2/Sweet Cap_n Cakes/K_K/Ch2/spr_kk_static'))]), 'height': 110, 'scale': 1.25, 'fps': 8},
     'berdly': {'idle': F('Characters/NPCs/Light World/Berdly/Ch2/Dark World/Battle/spr_berdlyb_idle', dr),
                'hurt': F('Characters/NPCs/Light World/Berdly/Ch2/Dark World/Battle/spr_berdly_hurt_kneel_battle', dr), 'height': 86, 'fps': 6},
     'spamton': {'idle': F(DB + 'Ch2/Spamton/spr_spamton_idle', dr), 'hurt': F(DB + 'Ch2/Spamton/spr_spamton_hurt', dr), 'height': 86, 'fps': 1},

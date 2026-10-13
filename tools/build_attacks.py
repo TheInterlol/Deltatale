@@ -66,7 +66,11 @@ SPRITES = {
     'sneo_phonehand': DB + 'Ch2/Spamton NEO/Attacks/spr_sneo_phonehand',
     'sneo_wireheart': DB + 'Ch2/Spamton NEO/Attacks/spr_sneo_wireheart',
     'sneo_bullet': DB + 'Ch2/Spamton NEO/Attacks/spr_sneo_bullet0',
-    'knight_diamond': DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
+    'scc_speaker': DB + 'Ch2/Sweet Cap_n Cakes/Attacks/spr_musicenemy_boombox',
+    'scc_note': DB + 'Ch2/Sweet Cap_n Cakes/Attacks/spr_musical_notes',
+    'scc_wave': DB + 'Ch2/Sweet Cap_n Cakes/Attacks/spr_electricity_wave',
+    'scc_dancer': DB + 'Ch2/Sweet Cap_n Cakes/Attacks/spr_musicenemy_dancer',
+    'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 
 def frames(base):
