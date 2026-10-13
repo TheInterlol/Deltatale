@@ -359,7 +359,7 @@ function drawBullet(b, fx = true) {
   const drawer = BULLET_DRAWERS[b.kind] || BULLET_DRAWERS.normal;
   const fill = bulletFill(b);
   ctx.save();
-  if (b.warn && b.life < b.warn && b.kind !== 'zone' && b.kind !== 'beam') ctx.globalAlpha = drawWarningOverlay(b);
+  if (b.warn && b.life < b.warn && b.kind !== 'zone' && b.kind !== 'beam' && !b.ownWarn) ctx.globalAlpha = drawWarningOverlay(b);
   if (b.alpha !== undefined) ctx.globalAlpha *= b.alpha;
   if (b.flash) ctx.globalAlpha *= 0.5;
   const plain = NO_FX_KINDS.has(b.kind) || b.noFx;
@@ -457,8 +457,11 @@ function drawHud() {
   if (isUndertale()) drawUtStats();
   else drawPartyPanel();
 
-  if (state.battle) drawBattleUi(state.battle);
-  else if (state.gameMode === 'battle') drawCommandButtons(null);
+  if (state.battle) {
+    drawBattleUi(state.battle);
+    // extra HUD a boss brings along (Mettaton EX's ratings graph)
+    if (state.battle.boss.drawHud) state.battle.boss.drawHud(state.battle);
+  } else if (state.gameMode === 'battle') drawCommandButtons(null);
   else drawSurvivalHud();
 }
 

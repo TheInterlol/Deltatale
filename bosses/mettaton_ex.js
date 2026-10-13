@@ -26,7 +26,6 @@ const MettatonEx = registerBoss({
   checkAttack: 47,
   checkDefense: 47,
   gold: 0,
-  box: { w: 240, h: 170 },
   fixedSpeed: true,
   check: 'His weak point is his heart-shaped core.',
   intro: '* Mettaton EX makes his premiere!\n* RATINGS are live!',
@@ -116,15 +115,6 @@ const MettatonEx = registerBoss({
     ]);
   },
 
-  chooseAttack(battle) {
-    const f = battle.flags;
-    const order = ['legs', 'bombs', 'disco', 'minis', 'heart', 'bombs2', 'disco2', 'legsShoot', 'minis', 'lightning'];
-    let id = order[battle.turn % order.length];
-    if (id === 'heart' && f.armsOff) id = 'bombs';
-    if (id === 'legsShoot' && f.legsOff) id = 'disco';
-    return MTT_ATTACKS[id];
-  },
-
   onTurnEnd(battle) {
     const f = battle.flags;
     // the audience gets a little bored every turn - unless the goal was reached
@@ -165,150 +155,168 @@ function mttStyle(run, dt) {
   }
 }
 
-function mttBomb(x, y, vy) {
+
+// ---------------------------------------------------------------- attacks
+// Taken from the fight: a small square board under Mettaton, and narrow columns for the
+// bomb puzzles. Legs come down from both sides, mini Mettatons float down on parasols and
+// throw hearts, black boxes and plus bombs fall (shoot a bomb and it blasts its whole row
+// and column - boxes too), a disco ball sweeps blue and white beams, lightning swirls into
+// his core, REC / REW replays a wave backwards and the finale strikes one half of the board
+// after the other.
+const MTT_BOX = { w: 130, h: 100 };
+const MTT_LEG_TINT = '#ecec6a';
+
+function mttCore() {
+  const at = bossPosition(MettatonEx);
+  return { x: at.x - 4, y: at.y - 12 };
+}
+
+function mttBlast(x, y) {
+  // the plus-shaped explosion runs over the whole screen
+  const opts = { kind: 'mttBlast', activeFor: 0.3, fadeOut: 0.15, noCull: true, clip: false, damage: 5 };
+  spawn({ ...opts, x: VIEW_W / 2, y, hw: VIEW_W / 2, hh: 7, horizontal: true });
+  spawn({ ...opts, x, y: VIEW_H / 2, hw: 7, hh: VIEW_H / 2, horizontal: false });
+  addBurst(x, y, '#ffffff', 10, 140);
+  sfx.pop();
+  for (const other of state.bullets) {
+    if (other.kind === 'mttBlock' && (Math.abs(other.y - y) < 14 || Math.abs(other.x - x) < 14)) {
+      other.dead = true;
+      addBurst(other.x, other.y, '#ffffff', 6, 80);
+    }
+  }
+}
+
+// falling props vanish once they pass the bottom of the board
+function mttFall(b, dt) {
+  b.y += b.vy * dt;
+  if (b.y > arena.y + arena.h + 12 || (b.vy < 0 && b.y < arena.y - 90)) b.dead = true;
+}
+
+function mttBomb(x, y, vy, extra = {}) {
   return spawn({
-    kind: 'mttBomb', x, y, vy, r: 9, noCull: true, maxLife: 6, shootHp: 1, harmless: false,
+    kind: 'mttBomb', x, y, vy, r: 9, noCull: true, clip: false, maxLife: 9, shootHp: 1, update: mttFall, ...extra,
     onDestroyed: b => {
-      // explodes in a plus shape: clears blocks in that row and column
-      warnZone(arena.x, b.y - 8, arena.w, 16, 0.12, 0.25, { color: '#ffe14d', damage: 6 });
-      warnZone(b.x - 8, arena.y, 16, arena.h, 0.12, 0.25, { color: '#ffe14d', damage: 6 });
-      for (const other of state.bullets) {
-        if (other.kind === 'mttBlock' && (Math.abs(other.y - b.y) < 16 || Math.abs(other.x - b.x) < 16)) {
-          other.dead = true;
-          addBurst(other.x, other.y, '#ffffff', 6, 80);
-        }
-      }
-      if (state.battle) mttRatings(state.battle, 60);
+      mttBlast(b.x, b.y);
+      if (state.battle) mttRatings(state.battle, 50);
     }
   });
 }
 
-function mttBlock(x, y, vy) {
-  return spawn({ kind: 'mttBlock', x, y, vy, hw: 13, hh: 13, noCull: true, maxLife: 6, shootHp: 6 });
+// black boxes swallow shots; only a bomb blast clears them
+function mttBlock(x, y, vy, extra = {}) {
+  return spawn({ kind: 'mttBlock', x, y, vy, hw: 10, hh: 10, noCull: true, clip: false, maxLife: 9, shootHp: Infinity, update: mttFall, ...extra });
+}
+
+// a long leg with a heel, sliding in from one side as it comes down
+function mttLeg(side, tipX, y, vy) {
+  const len = 162;
+  const dir = side === 'left' ? 1 : -1;
+  const endX = tipX - dir * len / 2;
+  return spawn({
+    kind: 'mttLegBullet', side, x: endX - dir * 60, y, vy, hw: len / 2, hh: 5, noCull: true, maxLife: 6, clip: false,
+    update(b, dt) {
+      b.x += (endX - b.x) * Math.min(1, dt * 9);
+      b.y += b.vy * dt;
+    }
+  });
 }
 
 const MTT_ATTACKS = {
   legs: {
-    name: 'Leg kicks',
-    duration: 6,
-    soul: 'yellow',
+    name: 'Legs', duration: 7.5, box: MTT_BOX,
+    line: 'Lights! Camera! Action!',
     update(run, dt) {
       mttStyle(run, dt);
-      every(run, 'kick', 0.7, () => {
-        const cols = 6;
-        const col = randInt(0, cols - 1);
-        const w = arena.w / cols;
-        warnZone(arena.x + col * w + 2, arena.y, w - 4, arena.h * 0.75, 0.45, 0.3, { kind: 'mttLeg' });
-      }, 0.2);
-    }
-  },
-  bombs: {
-    name: 'Bombs and blocks',
-    duration: 8,
-    soul: 'yellow',
-    line: 'Let\'s see if you can shoot your way out of THIS!',
-    update(run, dt) {
-      mttStyle(run, dt);
-      every(run, 'row', 1.25, () => {
-        // a row of blocks falls down with a bomb hidden in it
-        const cols = 8;
-        const w = arena.w / cols;
-        const bombCol = randInt(0, cols - 1);
-        for (let i = 0; i < cols; i++) {
-          const x = arena.x + w * (i + 0.5);
-          if (i === bombCol) mttBomb(x, arena.y - 14, 55);
-          else mttBlock(x, arena.y - 14, 55);
-        }
+      every(run, 'leg', 0.5, () => {
+        run.data.n = (run.data.n || 0) + 1;
+        const side = run.data.n % 2 ? 'left' : 'right';
+        const reach = rand(0.3, 0.68) * arena.w;
+        const tipX = side === 'left' ? arena.x + reach : arena.x + arena.w - reach;
+        mttLeg(side, tipX, arena.y - 70, 78);
       }, 0.1);
-    }
-  },
-  bombs2: {
-    name: 'Bombs and blocks II',
-    duration: 8,
-    soul: 'yellow',
-    update(run, dt) {
-      mttStyle(run, dt);
-      every(run, 'row', 1.0, () => {
-        const cols = 8;
-        const w = arena.w / cols;
-        for (let i = 0; i < cols; i++) {
-          const x = arena.x + w * (i + 0.5);
-          if (chance(0.25)) mttBomb(x, arena.y - 14, 70);
-          else if (chance(0.7)) mttBlock(x, arena.y - 14, 70);
-        }
-      }, 0.1);
-    }
-  },
-  disco: {
-    name: 'Disco ball',
-    duration: 6.5,
-    soul: 'yellow',
-    update(run, dt) {
-      mttStyle(run, dt);
-      every(run, 'laser', 0.75, () => {
-        // a laser line sweeps across: cyan = stand still, orange = keep moving
-        const color = chance(0.5) ? 'cyan' : 'orange';
-        const fromTop = chance(0.5);
-        spawn({
-          kind: 'laser', x: arena.x + arena.w / 2, y: fromTop ? arena.y - 4 : arena.y + arena.h + 4,
-          vy: fromTop ? 120 : -120, hw: arena.w / 2, hh: 3, color, noCull: true, maxLife: 2.4
-        });
-      }, 0.2);
-    }
-  },
-  disco2: {
-    name: 'Disco ball II',
-    duration: 7,
-    soul: 'yellow',
-    update(run, dt) {
-      mttStyle(run, dt);
-      every(run, 'laser', 0.5, () => {
-        const color = chance(0.5) ? 'cyan' : 'orange';
-        const vertical = chance(0.4);
-        if (vertical) {
-          const fromLeft = chance(0.5);
-          spawn({ kind: 'laser', x: fromLeft ? arena.x - 4 : arena.x + arena.w + 4, y: arena.y + arena.h / 2, vx: fromLeft ? 140 : -140, hw: 3, hh: arena.h / 2, color, noCull: true, maxLife: 2.2 });
-        } else {
-          const fromTop = chance(0.5);
-          spawn({ kind: 'laser', x: arena.x + arena.w / 2, y: fromTop ? arena.y - 4 : arena.y + arena.h + 4, vy: fromTop ? 140 : -140, hw: arena.w / 2, hh: 3, color, noCull: true, maxLife: 2.2 });
-        }
-      }, 0.2);
     }
   },
   minis: {
-    name: 'Mini Mettatons',
-    duration: 7,
-    soul: 'yellow',
+    name: 'Parasol Mettatons', duration: 8, box: MTT_BOX,
     update(run, dt) {
       mttStyle(run, dt);
-      every(run, 'mini', 0.6, () => {
-        // little boxes drift down and drop bombs; shoot them for ratings
-        const x = rand(arena.x + 15, arena.x + arena.w - 15);
+      every(run, 'mini', 0.9, () => {
+        // they float down beside the board and toss hearts in
+        const left = (run.data.k = (run.data.k || 0) + 1) % 2 === 0;
+        const x = left ? arena.x - 24 : arena.x + arena.w + 24;
         spawn({
-          kind: 'miniBox', x, y: arena.y - 10, vy: 45, hw: 9, hh: 9, noCull: true, maxLife: 6, shootHp: 2,
-          onDestroyed: () => state.battle && mttRatings(state.battle, 80),
+          kind: 'mttParasol', x, y: arena.y - 60, vy: 38, r: 10, harmless: true, noCull: true, clip: false, maxLife: 7,
           update(b, dt2) {
             b.y += b.vy * dt2;
-            b.drop = (b.drop || 0) + dt2;
-            if (b.drop > 1.1) {
-              b.drop = 0;
-              spawn({ kind: 'normal', x: b.x, y: b.y + 10, vy: 170, r: 4, maxLife: 3 });
+            b.x += Math.sin(b.life * 2) * 10 * dt2;
+            b.toss = (b.toss || 0.4) - dt2;
+            if (b.toss <= 0 && b.y > arena.y - 30 && b.y < arena.y + arena.h - 10) {
+              b.toss = 1.1;
+              const dir = left ? 1 : -1;
+              spawn({ kind: 'mttHeart', x: b.x + dir * 12, y: b.y, vx: dir * rand(55, 95), vy: -rand(40, 90), ay: 110, r: 7, clip: false,
+                maxLife: 4, minLife: 1, shootHp: 1, onDestroyed: () => state.battle && mttRatings(state.battle, 30) });
             }
           }
         });
       }, 0.2);
     }
   },
+  bombs: {
+    name: 'Bombs and boxes', duration: 8.5, box: MTT_BOX,
+    line: 'Let\'s see if you can shoot your way out of THIS!',
+    update(run, dt) {
+      mttStyle(run, dt);
+      every(run, 'row', 1.3, () => {
+        // a row of boxes with a bomb somewhere in it
+        const cols = 6;
+        const w = arena.w / cols;
+        const bombCol = randInt(0, cols - 1);
+        const gap = chance(0.4) ? randInt(0, cols - 1) : -1;
+        for (let i = 0; i < cols; i++) {
+          if (i === gap && i !== bombCol) continue;
+          const x = arena.x + w * (i + 0.5);
+          if (i === bombCol) mttBomb(x, arena.y - 14, 50);
+          else mttBlock(x, arena.y - 14, 50);
+        }
+      }, 0.1);
+    }
+  },
+  disco: {
+    name: 'Disco ball', duration: 7.5, box: MTT_BOX,
+    line: 'Let\'s DANCE!',
+    start(run) {
+      const ball = { x: arena.x + arena.w / 2, y: arena.y + 6 };
+      run.data.ball = ball;
+      spawn({ kind: 'mttDisco', x: ball.x, y: ball.y, r: 12, harmless: true, noCull: true, clip: false });
+      // two blue beams (move = hurt) and one white beam (always hurts), sweeping
+      const beams = [{ color: 'cyan', off: -1 }, { color: 'cyan', off: 1 }, { color: null, off: 0 }];
+      for (const beam of beams) {
+        spawn({
+          kind: 'mttRay', x: ball.x, y: ball.y, hw: 120, hh: 2, angle: Math.PI / 2, color: beam.color || undefined,
+          warn: 0.5, noCull: true, noFx: true, ownWarn: true,
+          update(b) {
+            const t = run.t;
+            const swing = Math.sin(t * 1.1) * 0.55;
+            const spread = 0.45 + Math.sin(t * 0.7) * 0.2;
+            const a = Math.PI / 2 + swing + beam.off * spread + (beam.off === 0 ? Math.sin(t * 2.3) * 0.9 : 0);
+            b.angle = a;
+            b.x = ball.x + Math.cos(a) * b.hw;
+            b.y = ball.y + Math.sin(a) * b.hw;
+          }
+        });
+      }
+    },
+    update(run, dt) { mttStyle(run, dt); }
+  },
   heart: {
-    name: 'Heart and arms',
-    duration: 9,
-    soul: 'yellow',
+    name: 'Heart lightning', duration: 9, box: MTT_BOX,
     line: 'Ooh, aiming for my heart? How ROMANTIC!',
     start(run) {
-      const c = { x: arena.x + arena.w / 2, y: arena.y + 40 };
+      const c = mttCore();
+      // his core is open - shoot it enough and his arms come off
       run.data.heart = spawn({
-        kind: 'suit', suit: 'heart', x: c.x, y: c.y, r: 14, harmless: true, noCull: true, faceVelocity: false, color: '#ff4d6b',
-        shootHp: 24, onDestroyed: () => {
+        kind: 'mttCore', x: c.x, y: c.y, r: 12, harmless: true, noCull: true, clip: false, shootHp: 22,
+        onDestroyed: () => {
           if (run.battle) {
             run.battle.flags.armsOff = true;
             mttRatings(run.battle, 1000);
@@ -316,32 +324,59 @@ const MTT_ATTACKS = {
           run.done = true;
         }
       });
-      // two arms spin around the heart
-      for (let i = 0; i < 2; i++) {
-        spawn({
-          kind: 'normal', x: c.x, y: c.y, hw: 50, hh: 4, noCull: true, color: '#c8c8c8',
-          update(b, dt) {
-            b.angle = run.t * 1.8 + i * Math.PI / 2;
-            b.x = c.x + Math.cos(b.angle) * 56;
-            b.y = c.y + Math.sin(b.angle) * 56;
-          }
-        });
-      }
     },
     update(run, dt) {
       mttStyle(run, dt);
-      every(run, 'shot', 0.9, () => {
-        const h = run.data.heart;
-        if (h.dead) return;
-        const v = aimAt(h.x, h.y, 150);
-        spawn({ kind: 'normal', x: h.x, y: h.y, vx: v.vx, vy: v.vy, r: 4, maxLife: 4 });
-      }, 0.5);
+      const c = mttCore();
+      // lightning swirls in from all around and pours into the board
+      every(run, 'swirl', 2.4, () => {
+        for (let i = 0; i < 16; i++) {
+          const a0 = (i / 16) * Math.PI * 2;
+          spawn({ kind: 'mttBolt', x: c.x, y: c.y, r: 6, harmless: true, noCull: true, clip: false, maxLife: 1.3,
+            update(b) {
+              const k = b.life / 1.3;
+              const rad = 300 * (1 - k);
+              const a = a0 + k * 5;
+              b.x = c.x + Math.cos(a) * rad;
+              b.y = c.y + Math.sin(a) * rad * 0.7;
+              b.angle = a;
+            } });
+        }
+        run.data.pour = 1.3;
+      }, 0.3);
+      if (run.data.pour !== undefined) {
+        run.data.pour -= dt;
+        if (run.data.pour <= 0) {
+          run.data.pour = undefined;
+          for (let i = 0; i < 7; i++) {
+            const x = arena.x + 10 + (i + rand(0, 0.6)) * (arena.w - 20) / 7;
+            spawn({ kind: 'mttBolt', x: c.x, y: c.y + 10, r: 6, noCull: true, clip: false, maxLife: 4, minLife: 1,
+              vx: (x - c.x) / 0.6, vy: (arena.y - c.y) / 0.6, ay: 0,
+              update(b, dt2) {
+                if (b.life < 0.6) { b.x += b.vx * dt2; b.y += b.vy * dt2; return; }
+                                b.y += 150 * dt2;
+              } });
+          }
+        }
+      }
+    }
+  },
+  column: {
+    name: 'Bomb column', duration: 9, box: { w: 40, h: 110 },
+    line: 'Here\'s a little puzzle for you, darling!',
+    update(run, dt) {
+      mttStyle(run, dt);
+      // a box and then a bomb above it: blow up the bomb so its blast clears the box,
+      // and don't stand in the blast yourself
+      every(run, 'pair', 1.8, () => {
+        const x = arena.x + arena.w / 2 + pick([-8, 0, 8]);
+        mttBlock(x, arena.y - 12, 55);
+        mttBomb(arena.x + arena.w / 2 + pick([-9, 9]), arena.y - 60, 55);
+      }, 0.1);
     }
   },
   legsShoot: {
-    name: 'Dancing legs',
-    duration: 9,
-    soul: 'yellow',
+    name: 'Dancing legs', duration: 9, box: MTT_BOX,
     line: 'Behold! The legs everyone has been talking about!',
     start(run) {
       run.data.legs = [0, 1].map(i => spawn({
@@ -355,7 +390,7 @@ const MTT_ATTACKS = {
         },
         update(b) {
           // the legs kick down and back up
-          b.y = arena.y + 30 + Math.max(0, Math.sin(run.t * 2.4 + i * Math.PI)) * (arena.h - 80);
+          b.y = arena.y + 30 + Math.max(0, Math.sin(run.t * 2.4 + i * Math.PI)) * (arena.h - 70);
         }
       }));
     },
@@ -363,30 +398,137 @@ const MTT_ATTACKS = {
       mttStyle(run, dt);
     }
   },
-  lightning: {
-    name: 'Lightning finale',
-    duration: 7,
-    soul: 'yellow',
+  rewind: {
+    name: 'REC / REW', duration: 9, box: { w: 70, h: 100 },
+    update(run, dt) {
+      mttStyle(run, dt);
+      // REC: rows fall; REW: everything plays backwards for a moment
+      const cycle = run.t % 3.2;
+      const rewinding = cycle > 2.2;
+      run.data.mode = rewinding ? 'rew' : 'rec';
+      if (rewinding !== run.data.wasRew) {
+        run.data.wasRew = rewinding;
+        for (const b of state.bullets) if (b.kind === 'mttBlock' || b.kind === 'mttBomb') b.vy = rewinding ? -95 : 60;
+      }
+      if (!rewinding) {
+        every(run, 'row', 0.75, () => {
+          const cols = 3;
+          const w = arena.w / cols;
+          const skip = randInt(0, cols - 1);
+          for (let i = 0; i < cols; i++) {
+            if (i === skip) continue;
+            const x = arena.x + w * (i + 0.5);
+            if (chance(0.3)) mttBomb(x, arena.y - 14, 60);
+            else mttBlock(x, arena.y - 14, 60);
+          }
+        }, 0.1);
+      }
+    }
+  },
+  cascade: {
+    name: 'Box avalanche', duration: 8.5, box: MTT_BOX,
+    update(run, dt) {
+      mttStyle(run, dt);
+      every(run, 'drop', 0.32, () => {
+        const x = rand(arena.x + 10, arena.x + arena.w - 10);
+        if (chance(0.4)) mttBomb(x, arena.y - 16, 75);
+        else mttBlock(x, arena.y - 16, 75);
+      }, 0.1);
+    }
+  },
+  finale: {
+    name: 'Grand finale', duration: 8, box: MTT_BOX,
     line: 'Time for the GRAND FINALE!',
     update(run, dt) {
       mttStyle(run, dt);
-      every(run, 'bolt', 0.42, () => {
-        const w = 22;
-        const x = rand(arena.x, arena.x + arena.w - w);
-        warnZone(x, arena.y, w, arena.h, 0.5, 0.18, { kind: 'bolt', color: '#fff7a8' });
-      }, 0.1);
+      // one half of the board lights up with a "!" - then legs stab through it
+      every(run, 'half', 1.2, () => {
+        run.data.h = (run.data.h || 0) + 1;
+        const left = run.data.h % 2 === 1 ? chance(0.5) : !run.data.lastLeft;
+        run.data.lastLeft = left;
+        const w = arena.w / 2;
+        const x = left ? arena.x : arena.x + w;
+        warnZone(x, arena.y, w, arena.h, 0.65, 0.35, { kind: 'mttHalf', left, ownWarn: true });
+      }, 0.2);
+      every(run, 'bolt', 0.7, () => {
+        spawn({ kind: 'mttBolt', x: rand(arena.x + 8, arena.x + arena.w - 8), y: arena.y - 30, vy: 150, r: 6, maxLife: 3, clip: false });
+      }, 0.5);
+    }
+  },
+  disco2: {
+    name: 'Disco ball II', duration: 8, box: MTT_BOX,
+    start(run) { MTT_ATTACKS.disco.start(run); },
+    update(run, dt) {
+      mttStyle(run, dt);
+      every(run, 'box', 1.1, () => mttBlock(rand(arena.x + 12, arena.x + arena.w - 12), arena.y - 12, 65), 0.6);
     }
   }
 };
 
+Object.assign(MettatonEx, {
+  box: MTT_BOX,
+
+  chooseAttack(battle) {
+    const f = battle.flags;
+    const order = ['legs', 'minis', 'bombs', 'disco', 'heart', 'column', 'legsShoot', 'rewind', 'cascade', 'disco2', 'finale'];
+    let id = order[battle.turn % order.length];
+    if (id === 'heart' && f.armsOff) id = 'minis';
+    if (id === 'legsShoot' && f.legsOff) id = 'legs';
+    return MTT_ATTACKS[id];
+  },
+
+  // the ratings graph in the corner, like the show's
+  drawHud(battle) {
+    const f = battle.flags;
+    f.history = f.history || [];
+    if (!f.historyAt || state.clock - f.historyAt > 0.4) {
+      f.historyAt = state.clock;
+      f.history.push(f.ratings);
+      if (f.history.length > 40) f.history.shift();
+    }
+    const g = { x: 14, y: 26, w: 92, h: 46 };
+    ctx.save();
+    ctx.font = TINY_FONT;
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.fillText(`RATINGS ${f.ratings}`, g.x, g.y - 6);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(g.x, g.y);
+    ctx.lineTo(g.x, g.y + g.h);
+    ctx.lineTo(g.x + g.w, g.y + g.h);
+    ctx.stroke();
+    ctx.strokeStyle = '#3bd16f';
+    ctx.beginPath();
+    ctx.moveTo(g.x, g.y + 4);
+    ctx.lineTo(g.x + g.w, g.y + 4);
+    ctx.stroke();
+    ctx.strokeStyle = '#c04cff';
+    ctx.beginPath();
+    f.history.forEach((r, i) => {
+      const px = g.x + (i / 39) * g.w;
+      const py = g.y + g.h - (r / MTT_GOAL) * (g.h - 4) + Math.sin(i * 2.7) * 2;
+      if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+    });
+    ctx.stroke();
+    ctx.restore();
+  },
+
+  drawArenaOverlay() {
+    const run = state.battle && state.battle.attack;
+    if (!run || !run.data || !run.data.mode) return;
+    const name = run.data.mode === 'rew' ? 'mett_rew' : 'mett_rec';
+    if (run.data.mode === 'rec' && Math.floor(state.clock * 2) % 2) return;
+    drawArt(name, arena.x + arena.w - 20, arena.y + arena.h - 10, 36, null, { frame: state.clock * 4 });
+  }
+});
+
+// ---------------------------------------------------------------- drawing
 BULLET_DRAWERS.mttBomb = b => {
+  if (drawArt('mett_bomb', b.x, b.y, 20, null, { frame: state.clock * 6 })) return;
   ctx.fillStyle = '#333';
   fillCircle(b.x, b.y, b.r);
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-  ctx.stroke();
   ctx.fillStyle = '#ff4040';
   ctx.font = TINY_FONT;
   ctx.textAlign = 'center';
@@ -394,38 +536,104 @@ BULLET_DRAWERS.mttBomb = b => {
 };
 
 BULLET_DRAWERS.mttBlock = b => {
-  ctx.fillStyle = '#e8e8e8';
+  if (drawArt('mett_box', b.x, b.y, b.hw * 2.2, b.hh * 2.2)) return;
+  ctx.fillStyle = '#000';
   ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2);
-  ctx.strokeStyle = '#888';
-  ctx.strokeRect(b.x - b.hw + 2, b.y - b.hh + 2, b.hw * 2 - 4, b.hh * 2 - 4);
+  ctx.strokeStyle = '#fff';
+  ctx.strokeRect(b.x - b.hw + 1, b.y - b.hh + 1, b.hw * 2 - 2, b.hh * 2 - 2);
 };
 
-BULLET_DRAWERS.laser = (b, fill) => {
-  ctx.fillStyle = fill;
+BULLET_DRAWERS.mttBlast = b => {
+  const k = Math.max(0, 1 - Math.max(0, b.life - b.activeFor) / 0.15);
+  ctx.globalAlpha *= k;
+  const name = b.horizontal ? 'mett_blast_h' : 'mett_blast_v';
+  const info = ATTACK_ART[name];
+  const frame = state.clock * 24;
+  if (info && attackImage(name)) {
+    // tile the blast sprite along its length
+    const step = 18;
+    if (b.horizontal) for (let x = b.x - b.hw; x < b.x + b.hw; x += step) drawArt(name, x + step / 2, b.y, step, b.hh * 2.4, { frame });
+    else for (let y = b.y - b.hh; y < b.y + b.hh; y += step) drawArt(name, b.x, y + step / 2, b.hw * 2.4, step, { frame });
+    return;
+  }
+  ctx.fillStyle = '#fff';
   ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2);
 };
 
-BULLET_DRAWERS.miniBox = b => {
-  ctx.fillStyle = '#c8c8c8';
-  ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2);
-  ctx.fillStyle = '#ffe14d';
-  ctx.fillRect(b.x - 4, b.y - 2, 8, 4);
+BULLET_DRAWERS.mttLegBullet = b => {
+  const name = b.side === 'left' ? 'mett_leg_l' : 'mett_leg_r';
+  if (drawArt(name, b.x, b.y, b.hw * 2, 15, { tint: MTT_LEG_TINT })) return;
+  ctx.fillStyle = MTT_LEG_TINT;
+  ctx.fillRect(b.x - b.hw, b.y - 3, b.hw * 2, 6);
 };
 
-BULLET_DRAWERS.mttLeg = (b, fill) => {
+BULLET_DRAWERS.mttParasol = b => {
+  if (drawArt('mett_parasol', b.x, b.y, 44, null, { frame: state.clock * 8 })) return;
+  ctx.fillStyle = '#ccc';
+  ctx.fillRect(b.x - 8, b.y - 8, 16, 16);
+};
+
+BULLET_DRAWERS.mttHeart = b => {
+  if (drawArt('mett_heart', b.x, b.y, 16, null, { frame: b.flash ? 1 : 0 })) return;
+  ctx.fillStyle = '#fff';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.mttDisco = b => {
+  if (drawArt('mett_discoball', b.x, b.y - 18, 28, null)) return;
+  ctx.fillStyle = '#ddd';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.mttRay = (b, fill) => {
+  const charging = b.life < b.warn;
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.angle);
+  ctx.globalAlpha *= charging ? 0.35 : 1;
+  ctx.fillStyle = b.color === 'cyan' ? '#14a9ff' : '#ffffff';
+  ctx.fillRect(-b.hw, -b.hh, b.hw * 2, b.hh * 2);
+};
+
+BULLET_DRAWERS.mttCore = b => {
+  ctx.globalAlpha *= 0.6 + 0.4 * Math.sin(state.clock * 10);
+  if (drawArt('mett_heart', b.x, b.y, 22, null, { frame: b.flash ? 1 : 0 })) return;
+  ctx.fillStyle = '#ff4d6b';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.mttBolt = b => {
+  if (drawArt('mett_lightning', b.x, b.y, 18, null, { angle: b.harmless ? b.angle || 0 : 0 })) return;
+  ctx.fillStyle = '#fff';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.mttHalf = b => {
   const x = b.x - b.hw;
   const y = b.y - b.hh;
   if (b.life < b.warn) {
-    ctx.strokeStyle = Math.floor(b.life * 14) % 2 === 0 ? '#ff3030' : '#801010';
+    // a yellow frame with a big "!"
+    const on = Math.floor(b.life * 10) % 2 === 0;
+    ctx.strokeStyle = on ? '#ffe14d' : '#a08c20';
     ctx.lineWidth = 2;
-    ctx.strokeRect(x + 1, y + 1, b.hw * 2 - 2, b.hh * 2 - 2);
+    ctx.strokeRect(x + 2, y + 2, b.hw * 2 - 4, b.hh * 2 - 4);
+    ctx.fillStyle = on ? '#ffe14d' : '#a08c20';
+    ctx.font = TEXT_FONT;
+    ctx.textAlign = 'center';
+    ctx.fillText('!', b.x, b.y + 8);
     return;
   }
-  // a long leg kicking down with a heeled boot
-  ctx.fillStyle = '#d0d0d0';
-  ctx.fillRect(b.x - 6, y, 12, b.hh * 2 - 10);
-  ctx.fillStyle = '#ff6be2';
-  fillRoundRect(b.x - 10, y + b.hh * 2 - 14, 20, 14, 4);
+  // legs stab in from the wall, filling that half
+  const fromLeft = b.left;
+  const name = fromLeft ? 'mett_leg_l' : 'mett_leg_r';
+  for (let yy = y + 6; yy < y + b.hh * 2; yy += 12) {
+    const tip = fromLeft ? x + b.hw * 2 : x;
+    const len = 162;
+    const cx = fromLeft ? tip - len / 2 : tip + len / 2;
+    if (!drawArt(name, cx, yy, len, 18, { tint: '#ffffff' })) {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x, yy - 3, b.hw * 2, 6);
+    }
+  }
 };
 
 BULLET_DRAWERS.mttLegBody = b => {
@@ -435,21 +643,5 @@ BULLET_DRAWERS.mttLegBody = b => {
   fillRoundRect(b.x - 10, b.y + b.hh - 14, 20, 14, 4);
 };
 
-BULLET_DRAWERS.bolt = (b, fill) => {
-  const x = b.x - b.hw;
-  const y = b.y - b.hh;
-  if (b.life < b.warn) {
-    ctx.fillStyle = 'rgba(255, 247, 168, 0.18)';
-    ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
-    return;
-  }
-  ctx.strokeStyle = fill;
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(b.x, y);
-  for (let yy = y; yy <= y + b.hh * 2; yy += 18) ctx.lineTo(b.x + (Math.random() - 0.5) * b.hw * 1.6, yy);
-  ctx.stroke();
-};
-
 MettatonEx.attacks = Object.values(MTT_ATTACKS);
-MettatonEx.attacks.forEach(a => { a.soulOptions = { facing: 'up', bigShot: false }; });
+MettatonEx.attacks.forEach(a => { a.soul = 'yellow'; a.soulOptions = { facing: 'up', bigShot: false }; });

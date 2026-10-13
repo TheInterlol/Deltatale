@@ -31,9 +31,12 @@ function tintedAttackImage(name, color) {
     c.height = img.naturalHeight;
     const g = c.getContext('2d');
     g.drawImage(img, 0, 0);
-    g.globalCompositeOperation = 'source-atop';
+    // multiply: white turns into the colour, black outlines stay black; then restore the alpha
+    g.globalCompositeOperation = 'multiply';
     g.fillStyle = color;
     g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(img, 0, 0);
     tintedArt[key] = c;
   }
   return tintedArt[key];

@@ -44,6 +44,12 @@ SPRITES = {
     'mett_parasol': UC + 'Mettaton EX/Attacks/spr_parasolmett',
     'mett_blast_h': UC + 'Mettaton EX/Attacks/spr_plusbomb_horblast',
     'mett_blast_v': UC + 'Mettaton EX/Attacks/spr_plusbomb_verblast',
+    'mett_discoball': UC + 'Mettaton EX/Attacks/spr_discoball_pl',
+    'mett_rec': UC + 'Mettaton EX/Attacks/spr_recbox',
+    'mett_rew': UC + 'Mettaton EX/Attacks/spr_rewbox',
+    'mett_coreblast': UC + 'Mettaton EX/Attacks/spr_plusbomb_coreblast',
+    'mett_smallmett': UC + 'Mettaton EX/Attacks/spr_smallmett',
+    'mett_upbox': UC + 'Mettaton EX/Attacks/spr_upbox',
     'muffet_croissant': UE + '04 - Hotland/Muffet/Attacks/spr_croissantl',
     'muffet_donut': UE + '04 - Hotland/Muffet/Attacks/spr_donutbullet',
     'muffet_spider': UE + '04 - Hotland/Muffet/Attacks/spr_spiderbullet1',
@@ -80,6 +86,8 @@ def frames(base):
     return [Image.open(f).convert('RGBA') for f in files]
 
 def main():
+    if not os.path.isdir(ARCHIVE):
+        raise SystemExit(f'sprite archive not found: {ARCHIVE} (set SPRITE_ARCHIVE)')
     os.makedirs(OUT, exist_ok=True)
     meta = {}
     for name, base in SPRITES.items():

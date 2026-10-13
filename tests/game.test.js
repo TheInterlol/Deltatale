@@ -887,6 +887,30 @@ test('Mettaton EX: posing raises the ratings and 10000 ratings end the show', as
   }
 });
 
+test('Mettaton EX: shots bounce off boxes, a shot bomb blasts its row and column', async () => {
+  const { page, close } = await openGame();
+  try {
+    await startMode(page, 'battle', 'mettaton_ex');
+    const result = await page.evaluate(() => {
+      state.bullets = [];
+      const box = mttBlock(300, 200, 0);
+      const far = mttBlock(400, 260, 0);
+      const bomb = mttBomb(360, 200, 0);
+      // a shot into a box is swallowed and the box survives
+      state.shots = [{ x: 300, y: 205, vx: 0, vy: -1, r: 4, life: 0 }];
+      updateShots(0.001);
+      const boxSurvived = !box.dead;
+      state.shots = [{ x: 360, y: 205, vx: 0, vy: -1, r: 4, life: 0 }];
+      updateShots(0.001);
+      const blasts = state.bullets.filter(b => b.kind === 'mttBlast').length;
+      return { boxSurvived, bombGone: bomb.dead, rowCleared: box.dead, farKept: !far.dead, blasts };
+    });
+    assert.deepEqual(result, { boxSurvived: true, bombGone: true, rowCleared: true, farKept: true, blasts: 2 });
+  } finally {
+    await close();
+  }
+});
+
 test('Asgore: MERCY is destroyed and a lethal hit leaves you at 1 HP', async () => {
   const { page, close } = await openGame();
   try {

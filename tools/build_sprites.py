@@ -77,6 +77,8 @@ def save_strip(frames_list, path):
     return w, h
 
 def build(only=None):
+    if not os.path.isdir(ARCHIVE):
+        raise SystemExit(f'sprite archive not found: {ARCHIVE} (set SPRITE_ARCHIVE)')
     from sprite_specs import SPECS
     meta = {}
     path = os.path.join(OUT, 'sprites.json')
