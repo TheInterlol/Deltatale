@@ -4,6 +4,9 @@
 function drawBackground() {
   ctx.fillStyle = '#000';
   ctx.fillRect(-20, -20, VIEW_W + 40, VIEW_H + 40);
+  // a boss with its own backdrop (Asriel's shifting colours)
+  const boss = state.screen === 'fight' && state.currentBoss;
+  if (boss && boss.drawBackdrop && boss.drawBackdrop(state.battle)) return;
   if (state.screen === 'fight' && isUndertale()) return;
 
   const size = 40;

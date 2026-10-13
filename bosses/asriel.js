@@ -259,6 +259,9 @@ function asrielSave(battle) {
   showResult(battle, hints[Math.min(f.saves - 1, hints.length - 1)]);
 }
 
+// The small square board of Chaos Saber (from the fight).
+const ASRIEL_SABER_BOX = { w: 104, h: 92 };
+
 // ---------------- Building blocks ----------------
 function asrielStar(x, y, vx, vy, r = 6, options = {}) {
   return spawn({ kind: 'star', x, y, vx, vy, r, maxLife: 6, ...options });
@@ -296,19 +299,19 @@ function bigFallingStar(x, burstY, count, speed, spin, delay = 0) {
 }
 
 function lightningColumn(x, width, warn, active = 0.25) {
-  return warnZone(x - width / 2, arena.y, width, arena.h, warn, active, { kind: 'bolt', color: '#fff7a8' });
+  return warnZone(x - width / 2, arena.y, width, arena.h, warn, active, { kind: 'asrielBolt', color: '#fff7a8', ownWarn: true, clip: false });
 }
 
 function saberSwipe(side, warn) {
   // half of the board flashes, then the blade sweeps it; sparks stay behind
   const half = arena.w / 2;
   const x = side === 'left' ? arena.x : arena.x + half;
-  warnZone(x, arena.y, half, arena.h, warn, 0.18, { kind: 'saber', color: '#ffe14d', side });
+  warnZone(x, arena.y, half, arena.h, warn, 0.18, { kind: 'saber', color: '#ffe14d', side, ownWarn: true, clip: false });
   for (let i = 0; i < 4; i++) {
     const sx = rand(x + 10, x + half - 10);
     const sy = rand(arena.y + 10, arena.y + arena.h - 10);
     asrielStar(sx, sy, 0, 0, 4, {
-      warn: warn + 0.25, noCull: true, maxLife: warn + 3,
+      kind: 'asrielTwinkle', warn: warn + 0.25, noCull: true, maxLife: warn + 3,
       update(b, dt) {
         if (b.life < b.warn) return;
         const t = b.life - b.warn;
@@ -331,7 +334,7 @@ function busterWave(lines, warn = 0.5) {
 // ---------------- Attacks ----------------
 const ASRIEL_ATTACKS = {
   starBlazing: {
-    name: 'Star Blazing', duration: 7,
+    name: 'Star Blazing', duration: 7, pose: 'stars',
     line: 'Let\'s see how you like THIS!',
     start(run) {
       for (let i = 0; i < 4; i++) bigFallingStar(rand(arena.x + 30, arena.x + arena.w - 30), arena.y - 20, 10, 90, 0, 0.3 + i * 1.1);
@@ -340,7 +343,7 @@ const ASRIEL_ATTACKS = {
     update() {}
   },
   galacta: {
-    name: 'Galacta Blazing', duration: 7.5,
+    name: 'Galacta Blazing', duration: 7.5, pose: 'stars',
     line: 'Behold... GALACTA BLAZING!',
     start() {
       for (let i = 0; i < 7; i++) bigFallingStar(rand(arena.x + 20, arena.x + arena.w - 20), arena.y - 20, 12, 95, -0.8, 0.2 + i * 0.75);
@@ -349,7 +352,7 @@ const ASRIEL_ATTACKS = {
     update() {}
   },
   shocker: {
-    name: 'Shocker Breaker', duration: 6.5,
+    name: 'Shocker Breaker', duration: 6.5, pose: 'shocker',
     start(run) {
       run.data.events = [];
       for (let i = 0; i < 4; i++) {
@@ -365,7 +368,7 @@ const ASRIEL_ATTACKS = {
     }
   },
   shocker2: {
-    name: 'Shocker Breaker II', duration: 7.5,
+    name: 'Shocker Breaker II', duration: 7.5, pose: 'shocker',
     start(run) {
       run.data.events = [];
       for (let i = 0; i < 3; i++) run.data.events.push([0.2 + i * 0.55, () => lightningColumn(arena.x + arena.w * (0.2 + 0.3 * i), 28, 0.5)]);
@@ -378,7 +381,7 @@ const ASRIEL_ATTACKS = {
     }
   },
   saber: {
-    name: 'Chaos Saber', duration: 7,
+    name: 'Chaos Saber', duration: 7, box: ASRIEL_SABER_BOX, pose: 'saber',
     line: 'Chaos... SABER!',
     start(run) {
       run.data.events = [];
@@ -391,7 +394,7 @@ const ASRIEL_ATTACKS = {
     }
   },
   slicer: {
-    name: 'Chaos Slicer', duration: 7,
+    name: 'Chaos Slicer', duration: 7, box: ASRIEL_SABER_BOX, pose: 'saber',
     line: 'Chaos... SLICER!',
     start(run) {
       run.data.events = [];
@@ -403,7 +406,7 @@ const ASRIEL_ATTACKS = {
     }
   },
   buster: {
-    name: 'Chaos Buster', duration: 9,
+    name: 'Chaos Buster', duration: 9, pose: 'buster',
     line: 'Chaos... BUSTER!',
     start(run) {
       run.data.events = [];
@@ -415,7 +418,7 @@ const ASRIEL_ATTACKS = {
     }
   },
   blaster: {
-    name: 'Chaos Blaster', duration: 8,
+    name: 'Chaos Blaster', duration: 8, pose: 'buster',
     line: 'Chaos... BLASTER!',
     start(run) {
       run.data.events = [];
@@ -601,3 +604,194 @@ BULLET_DRAWERS.saber = (b, fill) => {
 };
 
 Asriel.attacks = ASRIEL_PHASE1.map(id => ASRIEL_ATTACKS[id]).concat([ASRIEL_ATTACKS.angel, ASRIEL_ATTACKS.lostBones, ASRIEL_ATTACKS.lostFire]);
+
+// ---------------------------------------------------------------- the look of the fight
+// God of Hyperdeath fights in front of the game's shifting rainbow background; the final form
+// spreads wings filled with it. Lost Souls show the friends they used to be, glitching.
+function asrielPattern(x, y, w, h, alpha = 1) {
+  const img = attackImage('asriel_bg');
+  if (!img) return false;
+  // drawn large and soft, so it reads as big blocks of colour
+  const scale = 1.25;
+  const tw = 1600 * scale;
+  const off = (state.clock * 40) % tw;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.globalAlpha *= alpha;
+  // the colours keep cycling, like in the game
+  ctx.filter = `hue-rotate(${Math.round((state.clock * 60) % 360)}deg)`;
+  ctx.imageSmoothingEnabled = true;
+  for (let tx = -off; tx < VIEW_W; tx += tw) ctx.drawImage(img, tx, -170, tw, 600 * scale);
+  ctx.restore();
+  return true;
+}
+
+let asrielWingCanvas = null;
+function drawAsrielWing(x, y, w, h, flip) {
+  const mask = attackImage('asriel_wing_mask');
+  if (!mask) return;
+  if (!asrielWingCanvas) asrielWingCanvas = document.createElement('canvas');
+  const c = asrielWingCanvas;
+  c.width = Math.ceil(w);
+  c.height = Math.ceil(h);
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.drawImage(mask, 0, 0, w, h);
+  g.globalCompositeOperation = 'source-in';
+  const img = attackImage('asriel_bg');
+  if (img) {
+    g.filter = `hue-rotate(${Math.round((state.clock * 60) % 360)}deg)`;
+    const off = (state.clock * 40) % 400;
+    g.drawImage(img, -off, -40, 1600 * 0.6, 600 * 0.6);
+  }
+  ctx.save();
+  ctx.translate(x, y);
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(c, 0, 0, w, h);
+  ctx.restore();
+}
+
+function asrielPose(battle) {
+  if (!battle || battle.phase !== 'attack' || !battle.attack) return null;
+  return battle.attack.attack.pose || null;
+}
+
+const LOST_SOUL_ART = [['undyne'], ['papyrus', 'sans'], ['toriel', 'asgore']];
+
+Object.assign(Asriel, {
+  drawBackdrop(battle) {
+    const form = battle ? battle.flags.form : 'god';
+    if (form !== 'god' && form !== 'goner') return false;
+    return asrielPattern(-20, -20, VIEW_W + 40, VIEW_H + 40, 0.8);
+  },
+
+  drawScene(battle) {
+    const f = battle ? battle.flags : { form: 'god' };
+    const at = bossPosition(Asriel);
+    const look = battle ? { hurt: Math.min(1, battle.bossHurt * 2) } : {};
+    if (f.form === 'souls' && f.soul < LOST_SOUL_ART.length) {
+      // the friends, flickering with white blocks where their faces should be
+      const ids = LOST_SOUL_ART[f.soul];
+      ids.forEach((id, i) => {
+        const x = ids.length === 1 ? at.x : at.x + (i ? 140 : -140);
+        const boss = BOSSES[id];
+        if (!boss) return;
+        drawBossFigure(boss, x, at.y, state.clock, { maxH: 130 });
+        const seed = Math.floor(state.clock * 8) + i * 7;
+        for (let k = 0; k < 8; k++) {
+          ctx.fillStyle = k % 3 ? '#fff' : '#000';
+          const rx = ((seed * 37 + k * 53) % 40) - 20;
+          const ry = ((seed * 17 + k * 29) % 34) - 62;
+          ctx.fillRect(x + rx - 6, at.y + ry, 10 + (k % 3) * 6, 8 + (k % 2) * 6);
+        }
+      });
+      return;
+    }
+    if (f.form === 'goner' && battle && battle.phase === 'attack') {
+      // HYPER GONER: a giant goat skull opens its jaws over the screen
+      const k = 1 + Math.sin(state.clock * 3) * 0.04;
+      if (drawArt('asriel_hg_face', at.x, 120, 300 * k, null)) return;
+    }
+    if (['final', 'souls', 'end'].includes(f.form)) {
+      // Angel of Death: rainbow wings and the white body
+      const bob = Math.sin(state.clock * 2) * 3;
+      const wingW = 230;
+      const wingH = wingW * 113 / 156;
+      drawAsrielWing(at.x + 30, -6 + bob, wingW, wingH, false);
+      drawAsrielWing(at.x - 30, -6 + bob, wingW, wingH, true);
+      if (!drawArt('asriel_final_body', at.x, 82 + bob, 140, null)) drawBossFigure(Asriel, at.x, at.y, state.clock, look);
+      return;
+    }
+    // God of Hyperdeath, with the props of the attack he is doing
+    const pose = asrielPose(battle);
+    const hx = 48;
+    const hy = at.y + 10;
+    if (pose === 'saber') {
+      drawArt('asriel_sword', at.x - hx - 10, hy - 50, 62, null, { flipX: true });
+      drawArt('asriel_sword', at.x + hx + 10, hy - 50, 62, null);
+    }
+    drawBossFigure(Asriel, at.x, at.y, state.clock, look);
+    if (pose === 'shocker' || pose === 'stars') {
+      for (const side of [-1, 1]) {
+        if (pose === 'shocker') drawArt('asriel_handlightning', at.x + side * (hx + 18), hy - 4, 60, 20, { flipX: side < 0, frame: 0 });
+        else if (Math.floor(state.clock * 10 + side) % 2) drawArt('asriel_star', at.x + side * (hx + 6), hy - 8, 16, 16, { angle: state.clock * 5 });
+      }
+    }
+    if (pose === 'buster') drawArt('asriel_gunarm', at.x + hx + 6, hy + 10, 40, null, { frame: state.clock * 6 });
+  }
+});
+
+// ---------------------------------------------------------------- bullets
+// stars: the big ones are pastel and see-through, the small ones white
+const ASRIEL_STAR_TINTS = ['#ffd6f5', '#d6e6ff', '#d8ffd6', '#fff3c4', '#e6d6ff'];
+BULLET_DRAWERS.star = (b, fill) => {
+  const asriel = state.currentBoss && state.currentBoss.id === 'asriel';
+  if (asriel && b.r >= 10 && attackImage('asriel_bigstar')) {
+    ctx.globalAlpha *= 0.8;
+    b.tint = b.tint || pick(ASRIEL_STAR_TINTS);
+    drawArt('asriel_bigstar', b.x, b.y, b.r * 7, null, { angle: b.life * 1.5, tint: b.tint });
+    return;
+  }
+  if (asriel && drawArt('asriel_star', b.x, b.y, b.r * 3.2, null, { angle: b.life * 4, tint: b.color && !SEMANTIC_COLORS[b.color] ? b.color : null })) return;
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.life * 4);
+  ctx.fillStyle = b.color && !SEMANTIC_COLORS[b.color] ? b.color : '#ffe14d';
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? b.r * 1.3 : b.r * 0.55;
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  ctx.closePath();
+  ctx.fill();
+};
+
+// Shocker Breaker: "!" targets, then rainbow lightning from the top of the screen
+BULLET_DRAWERS.asrielBolt = b => {
+  const left = b.x - b.hw;
+  const bottom = b.y + b.hh;
+  if (b.life < b.warn) {
+    ctx.globalAlpha *= 0.25;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(left, b.y - b.hh, b.hw * 2, b.hh * 2);
+    ctx.globalAlpha /= 0.25;
+    for (let x = left + 10; x <= left + b.hw * 2 - 8; x += 22) drawArt('asriel_target', x, bottom - 12, 18, 18, { frame: b.life * 12 });
+    return;
+  }
+  const hue = Math.round((state.clock * 300 + b.x) % 360);
+  const tint = `hsl(${hue}, 90%, 65%)`;
+  const n = Math.max(1, Math.round((b.hw * 2) / 30));
+  for (let i = 0; i < n; i++) {
+    const x = left + (i + 0.5) * (b.hw * 2 / n);
+    for (let y = bottom; y > -60; y -= 196) drawArt('asriel_bolt', x, y - 98, 32, 200, { frame: state.clock * 20 + i, tint });
+  }
+  ctx.globalAlpha *= 0.5;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(left + b.hw * 0.6, 0, b.hw * 0.8, bottom);
+};
+
+// Chaos Saber: the half flashes, then a huge white crescent slashes through it
+BULLET_DRAWERS.saber = b => {
+  const x = b.x - b.hw;
+  const y = b.y - b.hh;
+  if (b.life < b.warn) {
+    ctx.fillStyle = Math.floor(b.life * 14) % 2 === 0 ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.06)';
+    ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
+    return;
+  }
+  const k = Math.min(1, (b.life - b.warn) / 0.12);
+  ctx.globalAlpha *= 0.85;
+  const h = Math.max(b.hh * 2 * 2.4, 160);
+  if (drawArt('asriel_swordsmear', b.x + (b.side === 'left' ? -10 : 10), b.y - (1 - k) * 60, h * 158 / 168, h, { flipX: b.side === 'left' })) return;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
+};
+
+BULLET_DRAWERS.asrielTwinkle = b => {
+  ctx.globalAlpha *= b.life < b.warn ? 0.5 : 1;
+  if (drawArt('asriel_twinkle', b.x, b.y, 12, 12, { angle: b.life * 3 })) return;
+  ctx.fillStyle = '#fff';
+  fillCircle(b.x, b.y, 3);
+};

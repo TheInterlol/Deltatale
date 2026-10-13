@@ -34,6 +34,27 @@ SPRITES = {
     'asriel_star': UC + 'Asriel Dreemurr/Attacks/Star & Galacta Blazing/spr_regstar',
     'asriel_bigstar': UC + 'Asriel Dreemurr/Attacks/Star & Galacta Blazing/spr_stormstar',
     'asriel_bolt': UC + 'Asriel Dreemurr/Attacks/Shocker Breaker/spr_rainbowbolt',
+    'asriel_bg': UC + 'Asriel Dreemurr/Background/spr_asrielbg',
+    'asriel_handlightning': UC + 'Asriel Dreemurr/Attacks/Shocker Breaker/spr_handlightning',
+    'asriel_sword': UC + 'Asriel Dreemurr/Attacks/Chaos Saber/spr_asriel_sword',
+    'asriel_swordsmear': UC + 'Asriel Dreemurr/Attacks/Chaos Saber/spr_asriel_swordsmear',
+    'asriel_twinkle': UC + 'Asriel Dreemurr/Attacks/Chaos Saber/spr_asriel_swordtwinkle',
+    'asriel_gunarm': UC + 'Asriel Dreemurr/Attacks/Chaos Buster/spr_asriel_gunarm_shot',
+    'asriel_redtarget': UC + 'Asriel Dreemurr/Attacks/Chaos Buster/spr_redtarget',
+    'asriel_hg_face': UC + 'Asriel Dreemurr/Attacks/Hyper Goner/spr_hypergoner',
+    'asriel_hg_debris': UC + 'Asriel Dreemurr/Attacks/Hyper Goner/spr_hg_debris_small',
+    'asriel_final_wing': UC + 'Asriel Dreemurr/Final Form/spr_afinal_cosmoswing',
+    'asriel_final_face': UC + 'Asriel Dreemurr/Final Form/spr_afinal_face',
+    'asriel_final_cry': UC + 'Asriel Dreemurr/Final Form/spr_afinal_face_cry',
+    'asriel_final_orb': UC + 'Asriel Dreemurr/Final Form/spr_afinal_orb',
+    'asriel_final_stem': UC + 'Asriel Dreemurr/Final Form/spr_afinal_stem',
+    'asriel_final_arm': UC + 'Asriel Dreemurr/Final Form/spr_afinal_arm',
+    'asriel_final_shoulder': UC + 'Asriel Dreemurr/Final Form/spr_afinal_shoulder',
+    'asriel_final_orbwing': UC + 'Asriel Dreemurr/Final Form/spr_afinal_orbwing',
+    # the final form's body: the game's reference picture with the black around it removed
+    'asriel_final_body': (UC + 'Asriel Dreemurr/Final Form/Unused/spr_afinal_ref', 'keyout'),
+    # the wing as a solid shape (the game fills it with the shifting background)
+    'asriel_wing_mask': (UC + 'Asriel Dreemurr/Final Form/spr_afinal_cosmoswing', 'fill'),
     'asriel_target': UC + 'Asriel Dreemurr/Attacks/Shocker Breaker/spr_rainbowtarget',
     'asriel_gunbolt': UC + 'Asriel Dreemurr/Attacks/Chaos Buster/spr_asriel_gunbolt',
     'mett_bomb': UC + 'Mettaton EX/Attacks/spr_plusbomb',
@@ -119,13 +140,44 @@ def frames(base):
     files.sort(key=lambda f: int(re.search(r'_(\d+)\.png$', f).group(1)))
     return [Image.open(f).convert('RGBA') for f in files]
 
+def flood_outside(im):
+    """Pixels connected to the border through black / transparent pixels."""
+    w, h = im.size
+    px = im.load()
+    dark = lambda p: p[3] < 20 or (p[0] < 30 and p[1] < 30 and p[2] < 30)
+    seen = [[False] * w for _ in range(h)]
+    stack = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
+    while stack:
+        x, y = stack.pop()
+        if x < 0 or y < 0 or x >= w or y >= h or seen[y][x] or not dark(px[x, y]): continue
+        seen[y][x] = True
+        stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    return seen
+
+def process(frame, how):
+    im = frame.copy()
+    px = im.load()
+    out = flood_outside(im)
+    for y in range(im.height):
+        for x in range(im.width):
+            if how == 'keyout':
+                if out[y][x]: px[x, y] = (0, 0, 0, 0)
+            elif how == 'fill':
+                # the sprite is a black card with a see-through wing: fill the wing, drop the card
+                p = px[x, y]
+                px[x, y] = (255, 255, 255, 255) if p[3] < 20 else ((0, 0, 0, 0) if sum(p[:3]) < 90 else p)
+    return im
+
 def main():
     if not os.path.isdir(ARCHIVE):
         raise SystemExit(f'sprite archive not found: {ARCHIVE} (set SPRITE_ARCHIVE)')
     os.makedirs(OUT, exist_ok=True)
     meta = {}
     for name, base in SPRITES.items():
+        how = None
+        if isinstance(base, tuple): base, how = base
         fr = frames(base)
+        if how: fr = [process(f, how) for f in fr]
         if not fr:
             print('missing', name, base)
             continue

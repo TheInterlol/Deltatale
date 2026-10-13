@@ -81,14 +81,7 @@ spriteDrawer('spider', b => drawArt('muffet_spider', b.x, b.y, 22, null));
 spriteDrawer('croissant', b => drawArt('muffet_croissant', b.x, b.y, 22, null, { angle: b.angle || 0 }));
 spriteDrawer('donut', b => drawArt('muffet_donut', b.x, b.y, 18, null));
 
-// Asriel's stars: small ones, and the big falling stars.
-spriteDrawer('star', (b, fill) => {
-  if (!state.currentBoss || state.currentBoss.id !== 'asriel') return false;
-  if (b.r >= 10 && artReady('asriel_bigstar')) {
-    return drawArt('asriel_bigstar', b.x, b.y, b.r * 5, null, { frame: state.clock * 6, angle: b.life * 3 });
-  }
-  return drawArt('asriel_star', b.x, b.y, b.r * 3.2, null, { angle: b.life * 4, tint: artTint(fill) && b.color ? fill : null });
-});
+// (Asriel's stars are drawn in bosses/asriel.js.)
 
 // ---------------- Deltarune ----------------
 
