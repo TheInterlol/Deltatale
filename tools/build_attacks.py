@@ -197,6 +197,8 @@ SPRITES = {
     'shutta_ball': DR + '/Enemies/Ch3/Shuttah/Attacks/spr_shutta_ball',
     'shutta_lightning': DR + '/Enemies/Ch3/Shuttah/Attacks/spr_shutta_lightning',
     'soj_spear': DB + 'Ch4/Gerson/Battle/Sound of Justice/Attacks/spr_followspear',
+    'gerson_arena': DR + '/../Locations/Ch4/Shared Locations/Gerson_s Study/Arena/Background/bg_dw_gerson_arena_battle',
+    'gerson_glass': DR + '/../Locations/Ch4/Shared Locations/Gerson_s Study/Arena/Background/Window/bg_dw_gerson_arena_stained_glass',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 

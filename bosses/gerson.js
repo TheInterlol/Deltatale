@@ -239,3 +239,19 @@ BULLET_DRAWERS.gersonSlam = b => {
     ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
     ctx.fillRect(x, y, b.hw * 2, b.hh * 2);
 };
+
+// His arena at night: dark green, with the stained-glass window glowing in changing colours.
+Gerson.drawBackdrop = () => {
+    const img = attackImage("gerson_arena");
+    if (!img) return false;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0, 320, 240, 0, -60, 720, 540);
+    ctx.fillStyle = "rgba(0, 18, 8, 0.78)";
+    ctx.fillRect(-20, -20, VIEW_W + 40, VIEW_H + 40);
+    const colors = ["#3ddc84", "#9a5cff", "#35c8d8", "#d84a8a"];
+    ctx.globalAlpha = 0.4 + Math.sin(state.clock * 0.8) * 0.1;
+    drawArt("gerson_glass", 360, 56, 214, 124, { tint: colors[Math.floor(state.clock / 3) % colors.length] });
+    ctx.restore();
+    return true;
+};
