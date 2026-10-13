@@ -25,7 +25,7 @@ const Muffet = registerBoss({
   checkAttack: 38,
   checkDefense: 18,
   gold: 0,
-  box: { w: 300, h: 150 },
+  box: { w: 240, h: 136 },
   fixedSpeed: true,
   check: 'If you\'re looking for a deal... she\'s not the one to ask.',
   intro: '* Muffet traps you!',
@@ -118,7 +118,7 @@ const Muffet = registerBoss({
       const meal = ['breakfast', 'lunch', 'dinner'][MUFFET_PET_TURNS.indexOf(turn)];
       return { ...MUFFET_ATTACKS.pet, line: `It's time for my pet's ${meal}~ Ahuhuhu!`, meal: MUFFET_PET_TURNS.indexOf(turn) };
     }
-    const order = ['spiders', 'croissants', 'donuts', 'spiders2', 'mixed'];
+    const order = ['spiders', 'croissants', 'spiderPairs', 'donuts', 'spiders2', 'mixed'];
     return MUFFET_ATTACKS[order[turn % order.length]];
   },
 
@@ -149,7 +149,7 @@ function muffetSpider(lane, fromLeft, speed) {
   const y = laneY(lane);
   return spawn({
     kind: 'spider', x: fromLeft ? arena.x - 12 : arena.x + arena.w + 12, y, vx: (fromLeft ? 1 : -1) * speed, r: 6,
-    lane, damage: muffetDamage(), minLife: 1, maxLife: 6,
+    lane, damage: muffetDamage(), minLife: 1, maxLife: 6, clip: false,
     update(b, dt) {
       b.x += b.vx * dt;
       b.y = laneY(b.lane);
@@ -163,7 +163,7 @@ function muffetCroissant(lane) {
   const reach = arena.w * 0.85;
   return spawn({
     kind: 'croissant', x: arena.x + arena.w + 12, y: laneY(lane), vx: -speed, ax: (speed * speed) / (2 * reach), r: 8,
-    lane, damage: muffetDamage(), noCull: true, maxLife: 4,
+    lane, damage: muffetDamage(), noCull: true, maxLife: 4, clip: false,
     update(b, dt) {
       b.vx += b.ax * dt;
       b.x += b.vx * dt;
@@ -189,6 +189,25 @@ const MUFFET_ATTACKS = {
     soul: 'purple',
     update(run) {
       every(run, 'spider', 0.55, () => muffetSpider(randInt(0, 2), chance(0.5), 140), 0.2);
+    }
+  },
+  // groups of spiders walking in from both sides at once, mirrored (from the fight)
+  spiderPairs: {
+    name: 'Spider parade',
+    duration: 6.5,
+    soul: 'purple',
+    update(run) {
+      every(run, 'group', 1.1, () => {
+        const free = randInt(0, 2);
+        const lanes = [0, 1, 2].filter(l => l !== free);
+        const fromLeft = chance(0.5);
+        for (const lane of lanes) {
+          muffetSpider(lane, fromLeft, 115);
+          // a second one right behind it
+          const b = muffetSpider(lane, fromLeft, 115);
+          b.x += fromLeft ? -22 : 22;
+        }
+      }, 0.2);
     }
   },
   spiders2: {
@@ -233,7 +252,8 @@ const MUFFET_ATTACKS = {
     name: 'Pet attack',
     duration: 9,
     soul: 'purple',
-    box: { w: 260, h: 170 },
+    // the board stretches up tall and the pet waits at the bottom
+    box: { w: 210, h: 290 },
     start(run) {
       const p = state.player;
       const spacing = 42;
@@ -244,7 +264,7 @@ const MUFFET_ATTACKS = {
       run.data.spacing = spacing;
       run.data.speed = 34 + (run.attack.meal || 0) * 8;
       // the pet's mouth under the board
-      run.data.mouth = spawn({ kind: 'pet', x: arena.x + arena.w / 2, y: arena.y + arena.h - 7, hw: arena.w / 2, hh: 7, damage: 4, noCull: true });
+      run.data.mouth = spawn({ kind: 'pet', x: arena.x + arena.w / 2, y: arena.y + arena.h - 7, hw: arena.w / 2, hh: 7, damage: 4, noCull: true, noFx: true });
     },
     update(run, dt) {
       const p = state.player;
@@ -314,6 +334,8 @@ BULLET_DRAWERS.donut = b => {
 };
 
 BULLET_DRAWERS.pet = b => {
+  // the pet (a giant cupcake) rising out of the bottom of the board, jaws chomping
+  if (drawArt('muffet_pet', b.x, b.y + 40, Math.min(170, b.hw * 1.6), null, { frame: state.clock * 3 })) return;
   // the pet's big hungry mouth along the bottom of the board
   ctx.fillStyle = '#7a1f8f';
   ctx.fillRect(b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2);
@@ -328,4 +350,4 @@ BULLET_DRAWERS.pet = b => {
   }
 };
 
-Muffet.attacks = ['spiders', 'croissants', 'donuts', 'spiders2', 'mixed', 'pet'].map(id => MUFFET_ATTACKS[id]);
+Muffet.attacks = ['spiders', 'croissants', 'spiderPairs', 'donuts', 'spiders2', 'mixed', 'pet'].map(id => MUFFET_ATTACKS[id]);

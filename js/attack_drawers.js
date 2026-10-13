@@ -76,11 +76,10 @@ spriteDrawer('risingSpear', b => {
   return true;
 });
 
-// Muffet's pastries and spiders are purple.
-const MUFFET_PURPLE = '#d36bff';
-spriteDrawer('spider', b => drawArt('muffet_spider', b.x, b.y, 22, null, { tint: MUFFET_PURPLE }));
-spriteDrawer('croissant', b => drawArt('muffet_croissant', b.x, b.y, 22, null, { angle: b.angle || 0, tint: MUFFET_PURPLE }));
-spriteDrawer('donut', b => drawArt('muffet_donut', b.x, b.y, 18, null, { tint: MUFFET_PURPLE }));
+// Muffet's spiders and pastries (white, like in the fight; only the strings are purple).
+spriteDrawer('spider', b => drawArt('muffet_spider', b.x, b.y, 22, null));
+spriteDrawer('croissant', b => drawArt('muffet_croissant', b.x, b.y, 22, null, { angle: b.angle || 0 }));
+spriteDrawer('donut', b => drawArt('muffet_donut', b.x, b.y, 18, null));
 
 // Asriel's stars: small ones, and the big falling stars.
 spriteDrawer('star', (b, fill) => {
