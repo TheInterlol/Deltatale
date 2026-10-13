@@ -60,6 +60,10 @@ spriteDrawer('spear', (b, fill) => {
 });
 
 spriteDrawer('arrow', b => {
+  if (state.currentBoss && state.currentBoss.id === 'sound_of_justice' && artReady('soj_spear')) {
+    const info = ATTACK_ART.soj_spear;
+    return drawArt('soj_spear', b.x, b.y, 30, 30 * info.h / info.w, { angle: Math.atan2(b.vy, b.vx) + (info.h > info.w ? -Math.PI / 2 : 0) });
+  }
   if (state.currentBoss && state.currentBoss.id === 'gerson' && artReady('gerson_arrow')) {
     return drawArt('gerson_arrow', b.x, b.y, 24, 24, { angle: Math.atan2(b.vy, b.vx) + Math.PI / 4, tint: b.reverse && !b.reversed ? '#ffe14d' : null });
   }

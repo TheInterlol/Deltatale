@@ -357,13 +357,13 @@ const LaninoElnina = registerBoss({
         if (lanino) {
           every(run, 'sun', 0.55 * strong('Lanino') * (f.choice === 'Elnina' ? 2 : 1), () => {
             const y = rand(arena.y + 10, arena.y + arena.h - 10);
-            spawn({ kind: 'star', x: arena.x - 10, y, vx: 130, r: 7, maxLife: 4, minLife: 1, color: '#ffd35e', side: 'left' });
+            spawn({ kind: 'leSun', x: arena.x - 10, y, vx: 130, r: 7, maxLife: 4, minLife: 1, color: '#ffd35e', side: 'left', moon: f.forecast !== 'sunny' });
           }, 0.2);
         }
         if (elnina) {
           every(run, 'rain', 0.5 * strong('Elnina') * (f.choice === 'Lanino' ? 2 : 1), () => {
             const y = rand(arena.y + 10, arena.y + arena.h - 10);
-            spawn({ kind: 'tear', x: arena.x + arena.w + 10, y, vx: -130, r: 5, maxLife: 4, minLife: 1, color: '#7fd4ff', side: 'right' });
+            spawn({ kind: 'leRain', x: arena.x + arena.w + 10, y, vx: -130, r: 5, maxLife: 4, minLife: 1, color: '#7fd4ff', side: 'right', snow: f.forecast === 'sunny' });
           }, 0.4);
         }
         // where sun and rain meet they turn into hearts (before a choice is made)
@@ -506,7 +506,7 @@ const SHUTTAH_ATTACKS = [
   {
     name: 'Frozen drops', duration: 6.5,
     update(run) {
-      every(run, 'drop', 0.15, () => spawn({ kind: 'tear', x: rand(arena.x, arena.x + arena.w), y: arena.y - 8, vy: 150, r: 4, maxLife: 4, color: '#7fd4ff' }), 0.1);
+      every(run, 'drop', 0.15, () => spawn({ kind: 'shuttaBall', x: rand(arena.x, arena.x + arena.w), y: arena.y - 8, vy: 150, r: 4, maxLife: 4, color: '#7fd4ff' }), 0.1);
       // every photo freezes the drops for a moment
       every(run, 'snap', 1.6, () => {
         addFlash(0.25);
@@ -523,8 +523,8 @@ const SHUTTAH_ATTACKS = [
     update(run) {
       every(run, 'drop', 0.25, () => {
         const vertical = chance(0.5);
-        if (vertical) spawn({ kind: 'tear', x: rand(arena.x, arena.x + arena.w), y: arena.y - 8, vy: 160, r: 4, maxLife: 4, color: '#7fd4ff' });
-        else spawn({ kind: 'tear', x: arena.x - 8, y: rand(arena.y, arena.y + arena.h), vx: 160, r: 4, maxLife: 4, color: '#7fd4ff' });
+        if (vertical) spawn({ kind: 'shuttaBolt', x: rand(arena.x, arena.x + arena.w), y: arena.y - 8, vy: 160, r: 4, maxLife: 4, color: '#7fd4ff' });
+        else spawn({ kind: 'shuttaBolt', x: arena.x - 8, y: rand(arena.y, arena.y + arena.h), vx: 160, r: 4, maxLife: 4, color: '#7fd4ff' });
       }, 0.1);
     }
   },
@@ -778,6 +778,30 @@ Jackenstein.drawArenaDecor = box => {
   const w = box.w * 200 / 190;
   const h = box.h * 120 / 75;
   drawArt('jack_house', box.x + box.w / 2, box.y - h * 0.375 + h / 2, w, h, { tint: '#3ddc5a' });
+};
+
+BULLET_DRAWERS.leSun = b => {
+  if (drawArt(b.moon ? 'le_moon' : 'le_sun', b.x, b.y, 18, 18, { angle: b.moon ? 0 : b.life * 3 })) return;
+  ctx.fillStyle = '#ffd35e';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.leRain = b => {
+  if (drawArt(b.snow ? 'le_ice' : 'le_rain', b.x, b.y, 14, 14, { angle: b.snow ? b.life * 4 : 0 })) return;
+  ctx.fillStyle = '#7fd4ff';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.shuttaBall = b => {
+  if (drawArt('shutta_ball', b.x, b.y, 12, 12)) return;
+  ctx.fillStyle = '#7fd4ff';
+  fillCircle(b.x, b.y, b.r);
+};
+
+BULLET_DRAWERS.shuttaBolt = b => {
+  if (drawArt('shutta_lightning', b.x, b.y, 14, 22, { frame: state.clock * 16, angle: Math.atan2(b.vy, b.vx) - Math.PI / 2 })) return;
+  ctx.fillStyle = '#fff7a8';
+  fillCircle(b.x, b.y, b.r);
 };
 
 // ---------------------------------------------------------------- Sound of Justice

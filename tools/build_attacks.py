@@ -190,6 +190,13 @@ SPRITES = {
     'jack_house': DB + 'Ch4/Jackenstein/Battle/Attacks/Ghost Houses/spr_ghost_house_3x2',
     'jack_pumpkin': DB + 'Ch4/Jackenstein/Battle/Attacks/Pumpkin Bullets/spr_ghost_house_pumpkin_spin',
     'jack_face': DB + 'Ch4/Jackenstein/Battle/Attacks/YOUR TAKING TOO LONG/spr_guywhoappearswhenyouhavetakentoolonginaghosthouse',
+    'le_sun': DB + 'Ch3/Lanino & Elnina/Lanino/Ch3/Attacks/spr_ch3_bullet_sun',
+    'le_moon': DB + 'Ch3/Lanino & Elnina/Lanino/Ch3/Attacks/spr_ch3_bullet_moon',
+    'le_rain': DB + 'Ch3/Lanino & Elnina/Elnina/Ch3/Attacks/spr_ch3_bullet_raindrop',
+    'le_ice': DB + 'Ch3/Lanino & Elnina/Elnina/Ch3/Attacks/spr_ch3_bullet_ice',
+    'shutta_ball': DR + '/Enemies/Ch3/Shuttah/Attacks/spr_shutta_ball',
+    'shutta_lightning': DR + '/Enemies/Ch3/Shuttah/Attacks/spr_shutta_lightning',
+    'soj_spear': DB + 'Ch4/Gerson/Battle/Sound of Justice/Attacks/spr_followspear',
     'knight_diamond':DB + 'Ch3/The Roaring Knight/Ch3/Battle/Attacks/spr_knight_diamondswordbullet',
 }
 
