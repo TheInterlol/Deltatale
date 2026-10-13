@@ -1,7 +1,7 @@
 // Rouxls Kaard - Deltarune Chapter 2 (Acid Tunnel).
 // Reference: a house-claiming board game against Rouxls. ACT "Take House" claims houses
-// (Take House 2/3 claim more for TP), "Distract" makes him claim one fewer next turn (not two
-// turns in a row). He claims houses after every attack. When the board is full, whoever owns
+// (Take House 2/3 claim more for TP), "Distract" makes him skip his claim next turn (not two
+// turns in a row). He claims a house after every attack. When the board is full, whoever owns
 // more wins. He always has a box attack (falling boxes squash the board), plus attacks from
 // the Thrash Machine parts: snaking lasers, falling rockets, a boomerang sword, flame sprays,
 // stars on every step, or a slow duck.
@@ -53,7 +53,7 @@ const RouxlsKaard = registerBoss({
     { name: 'TakeHouse3', tp: 24, description: 'Claim three houses.', use: b => rouxlsTake(b, 3) },
     {
       name: 'Distract',
-      description: 'He places one fewer house next turn.',
+      description: 'He places no house next turn.',
       use(battle) {
         if (battle.turn - battle.flags.lastDistract <= 1) return '* Susie tried to distract Rouxls again...\n* "Thou thinkest I am a fool twice!?"';
         battle.flags.lastDistract = battle.turn;
@@ -81,7 +81,8 @@ const RouxlsKaard = registerBoss({
   onTurnEnd(battle) {
     const f = battle.flags;
     const free = ROUXLS_HOUSES - f.mine - f.his;
-    const take = Math.min(free, f.distracted ? 1 : 2);
+    // one house a turn, none when distracted: keep claiming and you stay ahead
+    const take = Math.min(free, f.distracted ? 0 : 1);
     f.his += take;
     f.distracted = false;
     rouxlsCheckEnd(battle);

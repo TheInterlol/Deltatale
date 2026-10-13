@@ -69,7 +69,8 @@ const GigaQueen = registerBoss({
 
   chooseAttack(battle) {
     const f = battle.flags;
-    if (f.round === 2 && battle.bossHp <= 1 && !f.finalBall) {
+    // the final baseball comes back every turn until it's hit
+    if (f.round === 2 && battle.bossHp <= 1 && !f.finalBallHit) {
       f.finalBall = true;
       return GIGA_ATTACKS.finalBall;
     }
